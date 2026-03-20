@@ -1,10 +1,6 @@
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var verses: [Verse]
-
     enum FilterType: String, CaseIterable {
         case all = "All"
         case learning = "Learning"
@@ -16,6 +12,7 @@ struct ContentView: View {
     @State private var selectedFilter: FilterType = .all
     @State private var showingReviewSession = false
     @State private var scrollOffset: CGFloat = 0
+    @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
 
     private let expandedReviewButtonHeight: CGFloat = 66
     private let collapsedReviewButtonHeight: CGFloat = 34
@@ -26,22 +23,22 @@ struct ContentView: View {
         case .all:
             return verses
         case .learning:
-            return verses.filter { !$0.isMastered }
+            return VerseQueries.learningVerses(verses)
         case .memorized:
-            return verses.filter { $0.isMastered }
+            return VerseQueries.memorizedVerses(verses)
         }
     }
 
     private var learningCount: Int {
-        verses.filter { !$0.isMastered }.count
+        VerseQueries.learningVerses(verses).count
     }
 
     private var memorizedCount: Int {
-        verses.filter { $0.isMastered }.count
+        VerseQueries.memorizedVerses(verses).count
     }
 
     private var learningVerses: [Verse] {
-        verses.filter { !$0.isMastered }
+        VerseQueries.learningVerses(verses)
     }
 
     var body: some View {
@@ -90,14 +87,22 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingAddVerse) {
             AddVerseView { newVerse in
-                modelContext.insert(newVerse)
+                VerseRepository.shared.addVerse(newVerse)
+                reloadVerses()
             }
         }
         .sheet(item: $selectedVerse) { verse in
-            ReviewView(verse: verse)
+            ReviewView(verse: verse) { _ in
+                reloadVerses()
+            }
         }
         .sheet(isPresented: $showingReviewSession) {
-            ReviewSessionView(verses: learningVerses)
+            ReviewSessionView(verses: learningVerses) { _ in
+                reloadVerses()
+            }
+        }
+        .onAppear {
+            reloadVerses()
         }
     }
 
@@ -264,16 +269,21 @@ struct ContentView: View {
         .padding(.bottom, 28)
     }
 
+    private func reloadVerses() {
+        verses = VerseRepository.shared.loadVerses()
+    }
+
     private func deleteVerses(at offsets: IndexSet) {
-        let versesToDelete = offsets.map { filteredVerses[$0] }
-        for verse in versesToDelete {
-            modelContext.delete(verse)
+        let idsToDelete = offsets.map { filteredVerses[$0].id }
+
+        for id in idsToDelete {
+            VerseRepository.shared.softDeleteVerse(id: id)
         }
-        try? modelContext.save()
+
+        reloadVerses()
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Verse.self, inMemory: true)
 }

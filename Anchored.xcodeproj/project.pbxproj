@@ -6,11 +6,48 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5F7EEAB52F6CB89A00B56661 /* Verse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAAF2F6CB89A00B56661 /* Verse.swift */; };
+		5F7EEAB62F6CB89A00B56661 /* VerseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAB02F6CB89A00B56661 /* VerseStore.swift */; };
+		5F7EEAE32F6CFECA00B56661 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAE22F6CFECA00B56661 /* Enums.swift */; };
+		5F7EEAE52F6CFECB00B56661 /* AppUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAE42F6CFECB00B56661 /* AppUser.swift */; };
+		5F7EEAE72F6CFECB00B56661 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAE62F6CFECB00B56661 /* Group.swift */; };
+		5F7EEAE92F6CFECB00B56661 /* GroupMembership.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAE82F6CFECB00B56661 /* GroupMembership.swift */; };
+		5F7EEAEB2F6CFECB00B56661 /* ReviewRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAEA2F6CFECB00B56661 /* ReviewRecord.swift */; };
+		5F7EEAED2F6CFECB00B56661 /* Assignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAEC2F6CFECB00B56661 /* Assignment.swift */; };
+		5F7EEAEF2F6CFECB00B56661 /* UserSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAEE2F6CFECB00B56661 /* UserSettings.swift */; };
+		5F7EEAF12F6CFECB00B56661 /* VerseQueries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAF02F6CFECB00B56661 /* VerseQueries.swift */; };
+		5F7EEAF42F6CFECC00B56661 /* ReviewRecordStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAF32F6CFECC00B56661 /* ReviewRecordStore.swift */; };
+		5F7EEAF92F6CFF1F00B56661 /* LocalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAF82F6CFF1F00B56661 /* LocalSession.swift */; };
+		5F7EEAFB2F6CFF6900B56661 /* VerseRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAFA2F6CFF6900B56661 /* VerseRepository.swift */; };
+		5F7EEAFD2F6CFF6900B56661 /* ReviewRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAFC2F6CFF6900B56661 /* ReviewRepository.swift */; };
+		5F7EEAFF2F6CFF6900B56661 /* GroupRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAFE2F6CFF6900B56661 /* GroupRepository.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		5F00DD262F6BB7DE00157BED /* Anchored.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Anchored.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F7EEAAF2F6CB89A00B56661 /* Verse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Verse.swift; sourceTree = "<group>"; };
+		5F7EEAB02F6CB89A00B56661 /* VerseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseStore.swift; sourceTree = "<group>"; };
 		5F7EEABB2F6CC03900B56661 /* VerseRowView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseRowView_v1.swift; sourceTree = "<group>"; };
 		5F7EEABD2F6CC03C00B56661 /* StatCardView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatCardView_v1.swift; sourceTree = "<group>"; };
 		5F7EEABF2F6CC0ED00B56661 /* ContentView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView_v1.swift; sourceTree = "<group>"; };
+		5F7EEAE22F6CFECA00B56661 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
+		5F7EEAE42F6CFECB00B56661 /* AppUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUser.swift; sourceTree = "<group>"; };
+		5F7EEAE62F6CFECB00B56661 /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
+		5F7EEAE82F6CFECB00B56661 /* GroupMembership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupMembership.swift; sourceTree = "<group>"; };
+		5F7EEAEA2F6CFECB00B56661 /* ReviewRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRecord.swift; sourceTree = "<group>"; };
+		5F7EEAEC2F6CFECB00B56661 /* Assignment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Assignment.swift; sourceTree = "<group>"; };
+		5F7EEAEE2F6CFECB00B56661 /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
+		5F7EEAF02F6CFECB00B56661 /* VerseQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseQueries.swift; sourceTree = "<group>"; };
+		5F7EEAF22F6CFECC00B56661 /* LocalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSession.swift; sourceTree = "<group>"; };
+		5F7EEAF32F6CFECC00B56661 /* ReviewRecordStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRecordStore.swift; sourceTree = "<group>"; };
+		5F7EEAF52F6CFECC00B56661 /* VerseRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseRepository.swift; sourceTree = "<group>"; };
+		5F7EEAF62F6CFECC00B56661 /* ReviewRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRepository.swift; sourceTree = "<group>"; };
+		5F7EEAF72F6CFECC00B56661 /* GroupRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRepository.swift; sourceTree = "<group>"; };
+		5F7EEAF82F6CFF1F00B56661 /* LocalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSession.swift; sourceTree = "<group>"; };
+		5F7EEAFA2F6CFF6900B56661 /* VerseRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseRepository.swift; sourceTree = "<group>"; };
+		5F7EEAFC2F6CFF6900B56661 /* ReviewRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRepository.swift; sourceTree = "<group>"; };
+		5F7EEAFE2F6CFF6900B56661 /* GroupRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRepository.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -38,6 +75,10 @@
 				5F7EEAC52F6CC67100B56661 /* Archive_v1 */,
 				5F00DD282F6BB7DE00157BED /* Anchored */,
 				5F00DD272F6BB7DE00157BED /* Products */,
+				5F7EEADE2F6CFD1700B56661 /* Domain */,
+				5F7EEADF2F6CFD1700B56661 /* Repositories */,
+				5F7EEAE02F6CFD1800B56661 /* Stores */,
+				5F7EEAE12F6CFD1800B56661 /* Support */,
 			);
 			sourceTree = "<group>";
 		};
@@ -57,6 +98,53 @@
 				5F7EEABB2F6CC03900B56661 /* VerseRowView_v1.swift */,
 			);
 			path = Archive_v1;
+			sourceTree = "<group>";
+		};
+		5F7EEADE2F6CFD1700B56661 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				5F7EEAAF2F6CB89A00B56661 /* Verse.swift */,
+				5F7EEAE22F6CFECA00B56661 /* Enums.swift */,
+				5F7EEAE42F6CFECB00B56661 /* AppUser.swift */,
+				5F7EEAE62F6CFECB00B56661 /* Group.swift */,
+				5F7EEAE82F6CFECB00B56661 /* GroupMembership.swift */,
+				5F7EEAEA2F6CFECB00B56661 /* ReviewRecord.swift */,
+				5F7EEAEC2F6CFECB00B56661 /* Assignment.swift */,
+				5F7EEAEE2F6CFECB00B56661 /* UserSettings.swift */,
+				5F7EEAF02F6CFECB00B56661 /* VerseQueries.swift */,
+				5F7EEAF82F6CFF1F00B56661 /* LocalSession.swift */,
+				5F7EEAFA2F6CFF6900B56661 /* VerseRepository.swift */,
+				5F7EEAFC2F6CFF6900B56661 /* ReviewRepository.swift */,
+				5F7EEAFE2F6CFF6900B56661 /* GroupRepository.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		5F7EEADF2F6CFD1700B56661 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				5F7EEAF52F6CFECC00B56661 /* VerseRepository.swift */,
+				5F7EEAF62F6CFECC00B56661 /* ReviewRepository.swift */,
+				5F7EEAF72F6CFECC00B56661 /* GroupRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		5F7EEAE02F6CFD1800B56661 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				5F7EEAB02F6CB89A00B56661 /* VerseStore.swift */,
+				5F7EEAF32F6CFECC00B56661 /* ReviewRecordStore.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		5F7EEAE12F6CFD1800B56661 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				5F7EEAF22F6CFECC00B56661 /* LocalSession.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -133,6 +221,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5F7EEAED2F6CFECB00B56661 /* Assignment.swift in Sources */,
+				5F7EEAE52F6CFECB00B56661 /* AppUser.swift in Sources */,
+				5F7EEAE92F6CFECB00B56661 /* GroupMembership.swift in Sources */,
+				5F7EEAF42F6CFECC00B56661 /* ReviewRecordStore.swift in Sources */,
+				5F7EEAB52F6CB89A00B56661 /* Verse.swift in Sources */,
+				5F7EEAE72F6CFECB00B56661 /* Group.swift in Sources */,
+				5F7EEAB62F6CB89A00B56661 /* VerseStore.swift in Sources */,
+				5F7EEAFB2F6CFF6900B56661 /* VerseRepository.swift in Sources */,
+				5F7EEAFD2F6CFF6900B56661 /* ReviewRepository.swift in Sources */,
+				5F7EEAF12F6CFECB00B56661 /* VerseQueries.swift in Sources */,
+				5F7EEAEF2F6CFECB00B56661 /* UserSettings.swift in Sources */,
+				5F7EEAE32F6CFECA00B56661 /* Enums.swift in Sources */,
+				5F7EEAEB2F6CFECB00B56661 /* ReviewRecord.swift in Sources */,
+				5F7EEAFF2F6CFF6900B56661 /* GroupRepository.swift in Sources */,
+				5F7EEAF92F6CFF1F00B56661 /* LocalSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,11 +1,10 @@
 import SwiftUI
-import SwiftData
 
 struct ReviewSessionView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
 
     let verses: [Verse]
+    let onUpdate: (Verse) -> Void
 
     @State private var currentIndex = 0
     @State private var showingAnswer = false
@@ -55,7 +54,7 @@ struct ReviewSessionView: View {
                     if showingAnswer {
                         HStack(spacing: 16) {
                             Button {
-                                markMissed()
+                                recordReview(result: .missed)
                             } label: {
                                 Text("Missed")
                                     .fontWeight(.semibold)
@@ -67,7 +66,7 @@ struct ReviewSessionView: View {
                             }
 
                             Button {
-                                markCorrect()
+                                recordReview(result: .correct)
                             } label: {
                                 Text("Got It")
                                     .fontWeight(.semibold)
@@ -108,26 +107,14 @@ struct ReviewSessionView: View {
         }
     }
 
-    private func markCorrect() {
-        currentVerse.correctCount += 1
-        currentVerse.reviewCount += 1
-        currentVerse.lastReviewedAt = Date()
+    private func recordReview(result: ReviewResult) {
+        let updatedVerse = ReviewRepository.shared.recordReview(
+            for: currentVerse,
+            method: .flashcard,
+            result: result
+        )
 
-        if currentVerse.correctCount >= Verse.masteryGoal {
-            currentVerse.isMastered = true
-        }
-
-        try? modelContext.save()
-        moveToNextVerseOrFinish()
-    }
-
-    private func markMissed() {
-        currentVerse.correctCount = 0
-        currentVerse.isMastered = false
-        currentVerse.reviewCount += 1
-        currentVerse.lastReviewedAt = Date()
-
-        try? modelContext.save()
+        onUpdate(updatedVerse)
         moveToNextVerseOrFinish()
     }
 
@@ -152,6 +139,5 @@ struct ReviewSessionView: View {
         text: "And we know that for those who love God all things work together for good..."
     )
 
-    return ReviewSessionView(verses: [verse1, verse2])
-        .modelContainer(for: Verse.self, inMemory: true)
+    return ReviewSessionView(verses: [verse1, verse2], onUpdate: { _ in })
 }

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct AnchoredApp: App {
@@ -14,6 +13,5 @@ struct AnchoredApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Verse.self])
     }
 }

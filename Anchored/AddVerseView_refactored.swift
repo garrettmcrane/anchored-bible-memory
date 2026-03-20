@@ -3,11 +3,11 @@ import SwiftUI
 struct AddVerseView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let onSave: (Verse) -> Void
+
     @State private var reference = ""
     @State private var text = ""
     @State private var lookupMessage: String?
-
-    let onSave: (Verse) -> Void
 
     private var canSave: Bool {
         !reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -81,5 +81,5 @@ struct AddVerseView: View {
 }
 
 #Preview {
-    AddVerseView { _ in }
+    AddVerseView(onSave: { _ in })
 }

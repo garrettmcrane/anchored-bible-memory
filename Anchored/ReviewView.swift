@@ -1,11 +1,10 @@
 import SwiftUI
-import SwiftData
 
 struct ReviewView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
 
     let verse: Verse
+    let onUpdate: (Verse) -> Void
 
     @State private var showingAnswer = false
 
@@ -37,7 +36,7 @@ struct ReviewView: View {
                 if showingAnswer {
                     HStack(spacing: 16) {
                         Button {
-                            markMissed()
+                            recordReview(result: .missed)
                         } label: {
                             Text("Missed")
                                 .fontWeight(.semibold)
@@ -49,7 +48,7 @@ struct ReviewView: View {
                         }
 
                         Button {
-                            markCorrect()
+                            recordReview(result: .correct)
                         } label: {
                             Text("Got It")
                                 .fontWeight(.semibold)
@@ -89,26 +88,14 @@ struct ReviewView: View {
         }
     }
 
-    private func markCorrect() {
-        verse.correctCount += 1
-        verse.reviewCount += 1
-        verse.lastReviewedAt = Date()
+    private func recordReview(result: ReviewResult) {
+        let updatedVerse = ReviewRepository.shared.recordReview(
+            for: verse,
+            method: .flashcard,
+            result: result
+        )
 
-        if verse.correctCount >= Verse.masteryGoal {
-            verse.isMastered = true
-        }
-
-        try? modelContext.save()
-        dismiss()
-    }
-
-    private func markMissed() {
-        verse.correctCount = 0
-        verse.isMastered = false
-        verse.reviewCount += 1
-        verse.lastReviewedAt = Date()
-
-        try? modelContext.save()
+        onUpdate(updatedVerse)
         dismiss()
     }
 }
@@ -119,6 +106,5 @@ struct ReviewView: View {
         text: "For God so loved the world, that he gave his only Son..."
     )
 
-    return ReviewView(verse: previewVerse)
-        .modelContainer(for: Verse.self, inMemory: true)
+    return ReviewView(verse: previewVerse, onUpdate: { _ in })
 }
