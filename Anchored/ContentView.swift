@@ -97,12 +97,7 @@ struct ContentView: View {
             ReviewView(verse: verse)
         }
         .sheet(isPresented: $showingReviewSession) {
-            ReviewSessionView(
-                verses: learningVerses,
-                onComplete: { _ in
-                    try? modelContext.save()
-                }
-            )
+            ReviewSessionView(verses: learningVerses)
         }
     }
 

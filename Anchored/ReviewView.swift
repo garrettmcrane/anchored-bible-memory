@@ -2,91 +2,123 @@ import SwiftUI
 import SwiftData
 
 struct ReviewView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
-    @State private var isRevealed = false
-    @State private var verse: Verse
+    let verse: Verse
 
-    init(verse: Verse) {
-        _verse = State(initialValue: verse)
-    }
-
+    @State private var showingAnswer = false
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text(verse.reference)
-                .font(.title)
-                .bold()
+        NavigationStack {
+            VStack(spacing: 24) {
+                Spacer()
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(verse.progressText)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    if verse.isMastered {
-                        Label("Complete", systemImage: "checkmark.circle.fill")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.green)
-                    }
-                }
-
-                ProgressView(value: verse.progress)
-                    .tint(verse.isMastered ? .green : .blue)
-            }
-            .padding()
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-            Spacer()
-
-            if isRevealed {
-                Text(verse.text)
-                    .font(.body)
+                Text(verse.reference)
+                    .font(.title2)
+                    .fontWeight(.semibold)
                     .multilineTextAlignment(.center)
-                    .padding()
-            } else {
-                Text("Tap to reveal")
-                    .foregroundStyle(.secondary)
-            }
 
-            Spacer()
-
-            if !isRevealed {
-                Button("Reveal Verse") {
-                    isRevealed = true
+                if showingAnswer {
+                    Text(verse.text)
+                        .font(.title3)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                } else {
+                    Text("Try to recite this verse before revealing it.")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
-                .buttonStyle(.borderedProminent)
-            } else {
-                HStack(spacing: 16) {
 
-                    Button("Missed") {
-                        verse.correctCount = 0
-                        try? modelContext.save()
-                        dismiss()
-                    }
-                    .buttonStyle(.bordered)
+                Spacer()
 
-                    Button("Got It") {
-                        verse.correctCount += 1
-                        if verse.correctCount >= Verse.masteryGoal {
-                            verse.isMastered = true
+                if showingAnswer {
+                    HStack(spacing: 16) {
+                        Button {
+                            markMissed()
+                        } label: {
+                            Text("Missed")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color.red.opacity(0.15))
+                                .foregroundStyle(.red)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
-                        try? modelContext.save()
-                        dismiss()
+
+                        Button {
+                            markCorrect()
+                        } label: {
+                            Text("Got It")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color.green.opacity(0.15))
+                                .foregroundStyle(.green)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal)
+                } else {
+                    Button {
+                        showingAnswer = true
+                    } label: {
+                        Text("Reveal Verse")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color.blue)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                    .padding(.horizontal)
                 }
             }
-
-            Spacer()
+            .padding(.vertical, 32)
+            .navigationTitle("Review")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
         }
-        .padding()
+    }
+
+    private func markCorrect() {
+        verse.correctCount += 1
+        verse.reviewCount += 1
+        verse.lastReviewedAt = Date()
+
+        if verse.correctCount >= Verse.masteryGoal {
+            verse.isMastered = true
+        }
+
+        try? modelContext.save()
+        dismiss()
+    }
+
+    private func markMissed() {
+        verse.correctCount = 0
+        verse.isMastered = false
+        verse.reviewCount += 1
+        verse.lastReviewedAt = Date()
+
+        try? modelContext.save()
+        dismiss()
     }
 }
 
 #Preview {
-    ReviewView(verse: Verse(reference: "John 3:16", text: "Sample verse"))
+    let previewVerse = Verse(
+        reference: "John 3:16",
+        text: "For God so loved the world, that he gave his only Son..."
+    )
+
+    return ReviewView(verse: previewVerse)
+        .modelContainer(for: Verse.self, inMemory: true)
 }
