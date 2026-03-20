@@ -25,10 +25,11 @@ struct LibraryView: View {
     private static let allFoldersOption = "All Folders"
 
     @State private var showingAddVerse = false
+    @State private var showingFolderFilterSheet = false
     @State private var detailVerse: Verse? = nil
     @State private var selectedVerseReview: SingleVerseReviewPresentation? = nil
     @State private var selectedFilter: FilterType = .all
-    @State private var selectedFolder: String = Self.allFoldersOption
+    @State private var selectedFolders: Set<String> = []
     @State private var sortMode: SortMode = .newest
     @State private var selectedBatchReviewMethod: ReviewMethod? = nil
     @State private var showingBatchReviewMethodPicker = false
@@ -47,7 +48,7 @@ struct LibraryView: View {
             }
         )
 
-        return [Self.allFoldersOption] + folderNames.sorted()
+        return folderNames.sorted()
     }
 
     private var statusFilteredVerses: [Verse] {
@@ -62,12 +63,12 @@ struct LibraryView: View {
     }
 
     private var folderFilteredVerses: [Verse] {
-        guard selectedFolder != Self.allFoldersOption else {
+        guard !selectedFolders.isEmpty else {
             return statusFilteredVerses
         }
 
         return statusFilteredVerses.filter { verse in
-            normalizedFolderName(verse.folderName) == selectedFolder
+            selectedFolders.contains(normalizedFolderName(verse.folderName))
         }
     }
 
@@ -104,13 +105,40 @@ struct LibraryView: View {
         VerseQueries.memorizedVerses(verses).count
     }
 
+    private var totalCount: Int {
+        verses.count
+    }
+
     private var learningVerses: [Verse] {
         VerseQueries.learningVerses(verses)
+    }
+
+    private var hasActiveFolderFilter: Bool {
+        !selectedFolders.isEmpty
+    }
+
+    private var folderSelectionSummary: String {
+        if selectedFolders.isEmpty {
+            return Self.allFoldersOption
+        }
+
+        let selected = folderOptions.filter { selectedFolders.contains($0) }
+
+        if selected.count == 1, let firstSelection = selected.first {
+            return firstSelection
+        }
+
+        return "\(selected.count) folders"
+    }
+
+    private var reviewButtonBottomInset: CGFloat {
+        88
     }
 
     var body: some View {
         GeometryReader { proxy in
             let safeTop = proxy.safeAreaInsets.top
+            let safeBottom = proxy.safeAreaInsets.bottom
 
             NavigationStack {
                 ZStack(alignment: .top) {
@@ -136,6 +164,7 @@ struct LibraryView: View {
                                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
                             }
                         }
+                        .padding(.bottom, reviewButtonBottomInset + safeBottom)
                     }
                     .overlay(alignment: .top) {
                         Color(.systemGroupedBackground)
@@ -148,6 +177,9 @@ struct LibraryView: View {
                     } action: { _, newValue in
                         scrollOffset = max(newValue, 0)
                     }
+                }
+                .overlay(alignment: .bottom) {
+                    floatingReviewButton(safeBottom: safeBottom)
                 }
                 .navigationBarHidden(true)
                 .navigationDestination(isPresented: detailVersePresented) {
@@ -166,6 +198,15 @@ struct LibraryView: View {
             AddVerseView { newVerse in
                 VerseRepository.shared.addVerse(newVerse)
                 reloadVerses()
+            }
+        }
+        .sheet(isPresented: $showingFolderFilterSheet) {
+            FolderFilterSheet(
+                allFoldersTitle: Self.allFoldersOption,
+                folders: folderOptions,
+                initialSelection: selectedFolders
+            ) { selection in
+                selectedFolders = selection
             }
         }
         .sheet(item: $selectedVerseReview) { presentation in
@@ -236,7 +277,7 @@ struct LibraryView: View {
     }
 
     private var topSummarySection: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Library")
@@ -264,25 +305,24 @@ struct LibraryView: View {
                 .buttonStyle(.plain)
             }
 
-            HStack(spacing: 14) {
-                StatCardView(
-                    title: "Learning",
-                    value: learningCount,
-                    systemImage: "brain.head.profile",
-                    iconColor: .blue
-                )
+            HStack(spacing: 8) {
+                Text("Total \(totalCount)")
+                    .foregroundStyle(.primary)
 
-                StatCardView(
-                    title: "Memorized",
-                    value: memorizedCount,
-                    systemImage: "checkmark.circle.fill",
-                    iconColor: .green
-                )
+                Text("•")
+
+                Text("Learning \(learningCount)")
+
+                Text("•")
+
+                Text("Memorized \(memorizedCount)")
             }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 20)
         .padding(.top, 18)
-        .padding(.bottom, 18)
+        .padding(.bottom, 12)
     }
 
     @ViewBuilder
@@ -291,26 +331,6 @@ struct LibraryView: View {
         spacing: CGFloat
     ) -> some View {
         VStack(spacing: spacing) {
-            if !learningVerses.isEmpty {
-                Button {
-                    showingBatchReviewMethodPicker = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "play.circle.fill")
-                        Text("Review Learning Verses")
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: buttonHeight)
-                    .background(
-                        Capsule()
-                            .fill(Color.blue)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-
             HStack(spacing: 12) {
                 Picker("Filter", selection: $selectedFilter) {
                     ForEach(FilterType.allCases, id: \.self) { filter in
@@ -326,7 +346,7 @@ struct LibraryView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
+                    Image(systemName: "arrow.up.arrow.down.circle")
                         .font(.title3)
                         .foregroundStyle(.primary)
                         .frame(width: 40, height: 40)
@@ -337,39 +357,33 @@ struct LibraryView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Sort")
+
+                Button {
+                    showingFolderFilterSheet = true
+                } label: {
+                    Image(systemName: hasActiveFolderFilter ? "folder.badge.gearshape.fill" : "folder.badge.gearshape")
+                        .font(.title3)
+                        .foregroundStyle(hasActiveFolderFilter ? .blue : .primary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(Color(.secondarySystemBackground))
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Folders")
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Folders")
+            if hasActiveFolderFilter {
+                Text("Filtered: \(folderSelectionSummary)")
                     .font(.caption)
-                    .foregroundColor(.secondary)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(folderOptions, id: \.self) { folder in
-                            Button {
-                                selectedFolder = folder
-                            } label: {
-                                Text(folder)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(selectedFolder == folder ? .white : .primary)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        Capsule()
-                                            .fill(selectedFolder == folder ? Color.blue : Color(.secondarySystemBackground))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
-        .padding(.bottom, 14)
+        .padding(.bottom, 10)
         .background(Color(.systemGroupedBackground))
         .overlay(alignment: .bottom) {
             Divider()
@@ -437,7 +451,33 @@ struct LibraryView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 18)
-        .padding(.bottom, 28)
+        .padding(.bottom, 16)
+    }
+
+    @ViewBuilder
+    private func floatingReviewButton(safeBottom: CGFloat) -> some View {
+        Button {
+            showingBatchReviewMethodPicker = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "play.circle.fill")
+                Text("Review Verses")
+                    .fontWeight(.semibold)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(
+                Capsule()
+                    .fill(Color.blue)
+            )
+            .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+        .disabled(learningVerses.isEmpty)
+        .opacity(learningVerses.isEmpty ? 0.55 : 1)
     }
 
     private func reloadVerses() {
@@ -447,9 +487,7 @@ struct LibraryView: View {
             self.detailVerse = verses.first(where: { $0.id == detailVerse.id })
         }
 
-        if !folderOptions.contains(selectedFolder) {
-            selectedFolder = Self.allFoldersOption
-        }
+        selectedFolders = selectedFolders.intersection(Set(folderOptions))
 
         if let swipedVerseID, !verses.contains(where: { $0.id == swipedVerseID }) {
             self.swipedVerseID = nil
@@ -523,6 +561,93 @@ struct LibraryView: View {
 
         VerseRepository.shared.softDeleteVerse(id: verse.id)
         reloadVerses()
+    }
+}
+
+private struct FolderFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let allFoldersTitle: String
+    let folders: [String]
+    let initialSelection: Set<String>
+    let onApply: (Set<String>) -> Void
+
+    @State private var draftSelection: Set<String>
+
+    init(
+        allFoldersTitle: String,
+        folders: [String],
+        initialSelection: Set<String>,
+        onApply: @escaping (Set<String>) -> Void
+    ) {
+        self.allFoldersTitle = allFoldersTitle
+        self.folders = folders
+        self.initialSelection = initialSelection
+        self.onApply = onApply
+        _draftSelection = State(initialValue: initialSelection)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Button {
+                    draftSelection.removeAll()
+                } label: {
+                    folderRow(title: allFoldersTitle, isSelected: draftSelection.isEmpty)
+                }
+                .buttonStyle(.plain)
+
+                ForEach(folders, id: \.self) { folder in
+                    Button {
+                        toggle(folder)
+                    } label: {
+                        folderRow(title: folder, isSelected: draftSelection.contains(folder))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle("Folders")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Reset") {
+                        draftSelection.removeAll()
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Apply") {
+                        onApply(draftSelection)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    @ViewBuilder
+    private func folderRow(title: String, isSelected: Bool) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                .font(.title3)
+                .foregroundStyle(isSelected ? .blue : .secondary)
+
+            Text(title)
+                .foregroundStyle(.primary)
+
+            Spacer()
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func toggle(_ folder: String) {
+        if draftSelection.contains(folder) {
+            draftSelection.remove(folder)
+        } else {
+            draftSelection.insert(folder)
+        }
     }
 }
 

@@ -16,9 +16,9 @@ struct ProgressTabView: View {
                         .foregroundStyle(.secondary)
 
                     VStack(spacing: 14) {
-                        ProgressPreviewRow(title: "Consistency", subtitle: "Weekly rhythm and streaks")
+                        ProgressPreviewRow(title: "Consistency", subtitle: "Weekly rhythm and review frequency")
                         ProgressPreviewRow(title: "Retention", subtitle: "What is sticking and what needs review")
-                        ProgressPreviewRow(title: "Growth", subtitle: "How your memory library expands over time")
+                        ProgressPreviewRow(title: "Growth", subtitle: "Learning patterns as your memory library expands")
                     }
                     .padding(20)
                     .background(

@@ -15,9 +15,9 @@ struct VerseRowView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(verse.reference)
                         .font(.headline)
 
@@ -27,27 +27,32 @@ struct VerseRowView: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
 
-                    Text(verse.folderName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        Text(verse.folderName)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary.opacity(0.75))
+                            .lineLimit(1)
+
+                        ProgressView(value: verse.progress)
+                            .tint(progressTint)
+                            .scaleEffect(x: 1, y: 0.7, anchor: .center)
+
+                        Text(verse.isMastered ? "Memorized" : verse.progressText)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
 
-                Spacer()
-            }
+                Spacer(minLength: 10)
 
-            HStack(spacing: 12) {
-                ProgressView(value: verse.progress)
-                    .tint(progressTint)
-
-                Text(verse.isMastered ? "Memorized" : verse.progressText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 Image(systemName: "chevron.right")
                     .foregroundColor(.gray)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.top, 2)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 1)
     }
 }
 

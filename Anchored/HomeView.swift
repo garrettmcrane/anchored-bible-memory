@@ -118,13 +118,9 @@ struct HomeView: View {
 
     private var header: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(greetingText)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-
-                Text("Ready to anchor another passage?")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundStyle(.primary)
             }
 
@@ -180,11 +176,17 @@ struct HomeView: View {
     }
 
     private var summarySection: some View {
-        HStack(spacing: 12) {
-            HomeMetricCard(title: "Memorized", value: memorizedCount, tint: .green)
-            HomeMetricCard(title: "Learning", value: learningCount, tint: .blue)
-            HomeMetricCard(title: "Needs Attention", value: needsAttentionCount, tint: .orange)
+        HStack(spacing: 0) {
+            HomeMetricColumn(title: "Memorized", value: memorizedCount)
+            HomeMetricColumn(title: "Learning", value: learningCount)
+            HomeMetricColumn(title: "Needs Attention", value: needsAttentionCount)
         }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.blue.opacity(0.08))
+        )
     }
 
     private var reviewButton: some View {
@@ -209,28 +211,23 @@ struct HomeView: View {
     }
 }
 
-private struct HomeMetricCard: View {
+private struct HomeMetricColumn: View {
     let title: String
     let value: Int
-    let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(spacing: 6) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.secondary.opacity(0.8))
                 .lineLimit(2)
+                .multilineTextAlignment(.center)
 
             Text("\(value)")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(tint)
+                .foregroundStyle(.primary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
+        .frame(maxWidth: .infinity)
     }
 }
 
