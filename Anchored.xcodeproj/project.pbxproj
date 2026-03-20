@@ -28,9 +28,6 @@
 		5F00DD262F6BB7DE00157BED /* Anchored.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Anchored.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F7EEAAF2F6CB89A00B56661 /* Verse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Verse.swift; sourceTree = "<group>"; };
 		5F7EEAB02F6CB89A00B56661 /* VerseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseStore.swift; sourceTree = "<group>"; };
-		5F7EEABB2F6CC03900B56661 /* VerseRowView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseRowView_v1.swift; sourceTree = "<group>"; };
-		5F7EEABD2F6CC03C00B56661 /* StatCardView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatCardView_v1.swift; sourceTree = "<group>"; };
-		5F7EEABF2F6CC0ED00B56661 /* ContentView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView_v1.swift; sourceTree = "<group>"; };
 		5F7EEAE22F6CFECA00B56661 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		5F7EEAE42F6CFECB00B56661 /* AppUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUser.swift; sourceTree = "<group>"; };
 		5F7EEAE62F6CFECB00B56661 /* Group.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
@@ -68,7 +65,6 @@
 		5F00DD1D2F6BB7DE00157BED = {
 			isa = PBXGroup;
 			children = (
-				5F7EEAC52F6CC67100B56661 /* Archive_v1 */,
 				5F00DD282F6BB7DE00157BED /* Anchored */,
 				5F00DD272F6BB7DE00157BED /* Products */,
 				5F7EEADE2F6CFD1700B56661 /* Domain */,
@@ -84,16 +80,6 @@
 				5F00DD262F6BB7DE00157BED /* Anchored.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		5F7EEAC52F6CC67100B56661 /* Archive_v1 */ = {
-			isa = PBXGroup;
-			children = (
-				5F7EEABF2F6CC0ED00B56661 /* ContentView_v1.swift */,
-				5F7EEABD2F6CC03C00B56661 /* StatCardView_v1.swift */,
-				5F7EEABB2F6CC03900B56661 /* VerseRowView_v1.swift */,
-			);
-			path = Archive_v1;
 			sourceTree = "<group>";
 		};
 		5F7EEADE2F6CFD1700B56661 /* Domain */ = {

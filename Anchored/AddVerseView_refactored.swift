@@ -3,8 +3,13 @@ import SwiftUI
 struct AddVerseView: View {
     private static let uncategorizedFolder = "Uncategorized"
 
+    private enum Field {
+        case reference
+    }
+
     @Environment(\.dismiss) private var dismiss
 
+    var showsCancelButton: Bool = true
     let onSave: (Verse) -> Void
 
     @State private var reference = ""
@@ -14,6 +19,7 @@ struct AddVerseView: View {
     @State private var isAddingNewFolder = false
     @State private var newFolderName = ""
     @State private var lookupMessage: String?
+    @FocusState private var focusedField: Field?
 
     private var canSave: Bool {
         !reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -40,6 +46,7 @@ struct AddVerseView: View {
                 Section("Reference") {
                     TextField("John 3:16", text: $reference)
                         .textInputAutocapitalization(.words)
+                        .focused($focusedField, equals: .reference)
                         .onSubmit {
                             autoFillVerseIfPossible()
                         }
@@ -130,14 +137,19 @@ struct AddVerseView: View {
             .navigationTitle("Add Verse")
             .onAppear {
                 folderName = selectedFolder
+                DispatchQueue.main.async {
+                    focusedField = .reference
+                }
             }
             .onChange(of: selectedFolder) { _, newValue in
                 folderName = newValue
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                if showsCancelButton {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
                     }
                 }
 
@@ -149,7 +161,7 @@ struct AddVerseView: View {
                             folderName: selectedFolder
                         )
                         onSave(newVerse)
-                        dismiss()
+                        handleSuccessfulSave()
                     }
                     .disabled(!canSave)
                 }
@@ -168,8 +180,27 @@ struct AddVerseView: View {
         if let foundText = VerseReferenceLibrary.lookup(reference: cleanedReference) {
             text = foundText
             lookupMessage = "Verse text found and filled in automatically."
+            focusedField = nil
         } else {
             lookupMessage = "No match found in the local sample library yet. You can still paste the text manually."
+        }
+    }
+
+    private func handleSuccessfulSave() {
+        if showsCancelButton {
+            dismiss()
+        } else {
+            reference = ""
+            text = ""
+            selectedFolder = Self.uncategorizedFolder
+            folderName = Self.uncategorizedFolder
+            isAddingNewFolder = false
+            newFolderName = ""
+            lookupMessage = "Verse saved."
+
+            DispatchQueue.main.async {
+                focusedField = .reference
+            }
         }
     }
 
