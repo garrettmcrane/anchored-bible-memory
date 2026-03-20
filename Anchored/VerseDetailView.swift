@@ -2,9 +2,10 @@ import SwiftUI
 
 struct VerseDetailView: View {
     let verse: Verse
-    let onStartReview: () -> Void
+    let onStartReview: (ReviewMethod) -> Void
 
     @State private var isVerseRevealed = false
+    @State private var showingReviewMethodPicker = false
 
     var body: some View {
         ScrollView {
@@ -92,7 +93,7 @@ struct VerseDetailView: View {
                 }
 
                 Button {
-                    onStartReview()
+                    showingReviewMethodPicker = true
                 } label: {
                     Text("Start Review")
                         .frame(maxWidth: .infinity)
@@ -106,6 +107,17 @@ struct VerseDetailView: View {
         .navigationTitle("Verse")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(.systemBackground))
+        .confirmationDialog("Choose Review Method", isPresented: $showingReviewMethodPicker, titleVisibility: .visible) {
+            ForEach(ReviewMethod.allCases) { method in
+                Button(method.title) {
+                    onStartReview(method)
+                }
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Select how you want to review \(verse.reference).")
+        }
     }
 }
 
@@ -116,7 +128,7 @@ struct VerseDetailView: View {
                 reference: "Romans 8:28",
                 text: "And we know that for those who love God all things work together for good, for those who are called according to his purpose."
             ),
-            onStartReview: {}
+            onStartReview: { _ in }
         )
     }
 }

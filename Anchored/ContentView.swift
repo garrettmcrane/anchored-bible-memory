@@ -1,16 +1,31 @@
 import SwiftUI
 
 struct ContentView: View {
+    private struct SingleVerseReviewPresentation: Identifiable {
+        let verse: Verse
+        let method: ReviewMethod
+
+        var id: String {
+            "\(verse.id)-\(method.rawValue)"
+        }
+    }
+
     enum FilterType: String, CaseIterable {
         case all = "All"
         case learning = "Learning"
         case memorized = "Memorized"
     }
 
+    private static let allFoldersOption = "All Folders"
+
     @State private var showingAddVerse = false
-    @State private var selectedVerse: Verse? = nil
+    @State private var detailVerse: Verse? = nil
+    @State private var selectedVerseReview: SingleVerseReviewPresentation? = nil
     @State private var selectedFilter: FilterType = .all
-    @State private var showingReviewSession = false
+    @State private var selectedFolder: String = Self.allFoldersOption
+    @State private var selectedBatchReviewMethod: ReviewMethod? = nil
+    @State private var showingBatchReviewMethodPicker = false
+    @State private var swipedVerseID: String? = nil
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
 
@@ -18,7 +33,17 @@ struct ContentView: View {
     private let collapsedReviewButtonHeight: CGFloat = 34
     private let summaryFadeDistance: CGFloat = 100
 
-    private var filteredVerses: [Verse] {
+    private var folderOptions: [String] {
+        let folderNames = Set(
+            verses.map { verse in
+                normalizedFolderName(verse.folderName)
+            }
+        )
+
+        return [Self.allFoldersOption] + folderNames.sorted()
+    }
+
+    private var statusFilteredVerses: [Verse] {
         switch selectedFilter {
         case .all:
             return verses
@@ -26,6 +51,16 @@ struct ContentView: View {
             return VerseQueries.learningVerses(verses)
         case .memorized:
             return VerseQueries.memorizedVerses(verses)
+        }
+    }
+
+    private var filteredVerses: [Verse] {
+        guard selectedFolder != Self.allFoldersOption else {
+            return statusFilteredVerses
+        }
+
+        return statusFilteredVerses.filter { verse in
+            normalizedFolderName(verse.folderName) == selectedFolder
         }
     }
 
@@ -83,6 +118,16 @@ struct ContentView: View {
                     }
                 }
                 .navigationBarHidden(true)
+                .navigationDestination(isPresented: detailVersePresented) {
+                    if let verse = detailVerse {
+                        VerseDetailView(
+                            verse: verse,
+                            onStartReview: { method in
+                                selectedVerseReview = SingleVerseReviewPresentation(verse: verse, method: method)
+                            }
+                        )
+                    }
+                }
             }
         }
         .sheet(isPresented: $showingAddVerse) {
@@ -91,18 +136,43 @@ struct ContentView: View {
                 reloadVerses()
             }
         }
-        .sheet(item: $selectedVerse) { verse in
-            ReviewView(verse: verse) { _ in
-                reloadVerses()
+        .sheet(item: $selectedVerseReview) { presentation in
+            switch presentation.method {
+            case .flashcard:
+                ReviewView(verse: presentation.verse) { _ in
+                    reloadVerses()
+                }
+            case .progressiveWordHiding:
+                ProgressiveWordHidingReviewView(verse: presentation.verse) { _ in
+                    reloadVerses()
+                }
             }
         }
-        .sheet(isPresented: $showingReviewSession) {
-            ReviewSessionView(verses: learningVerses) { _ in
-                reloadVerses()
+        .sheet(item: $selectedBatchReviewMethod) { method in
+            switch method {
+            case .flashcard:
+                ReviewSessionView(verses: learningVerses) { _ in
+                    reloadVerses()
+                }
+            case .progressiveWordHiding:
+                ProgressiveWordHidingReviewSessionView(verses: learningVerses) { _ in
+                    reloadVerses()
+                }
             }
         }
         .onAppear {
             reloadVerses()
+        }
+        .confirmationDialog("Choose Review Method", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
+            ForEach(ReviewMethod.allCases) { method in
+                Button(method.title) {
+                    selectedBatchReviewMethod = method
+                }
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Select one method for this review session.")
         }
     }
 
@@ -120,6 +190,17 @@ struct ContentView: View {
 
     private var currentControlsSpacing: CGFloat {
         12 - (4 * scrollProgress)
+    }
+
+    private var detailVersePresented: Binding<Bool> {
+        Binding(
+            get: { detailVerse != nil },
+            set: { isPresented in
+                if !isPresented {
+                    detailVerse = nil
+                }
+            }
+        )
     }
 
     private var topSummarySection: some View {
@@ -174,7 +255,7 @@ struct ContentView: View {
         VStack(spacing: spacing) {
             if !learningVerses.isEmpty {
                 Button {
-                    showingReviewSession = true
+                    showingBatchReviewMethodPicker = true
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "play.circle.fill")
@@ -198,6 +279,34 @@ struct ContentView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Folders")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(folderOptions, id: \.self) { folder in
+                            Button {
+                                selectedFolder = folder
+                            } label: {
+                                Text(folder)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(selectedFolder == folder ? .white : .primary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule()
+                                            .fill(selectedFolder == folder ? Color.blue : Color(.secondarySystemBackground))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -238,30 +347,33 @@ struct ContentView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(filteredVerses) { verse in
-                        NavigationLink {
-                            VerseDetailView(
-                                verse: verse,
-                                onStartReview: {
-                                    selectedVerse = verse
-                                }
-                            )
-                        } label: {
-                            VerseRowView(verse: verse)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+                        SwipeToDeleteVerseRow(
+                            id: verse.id,
+                            openRowID: $swipedVerseID,
+                            onDelete: {
+                                deleteVerse(verse)
+                            },
+                            onTap: {
+                                detailVerse = verse
+                            },
+                            label: {
+                                VerseRowView(verse: verse)
+                                    .contentShape(Rectangle())
+                            }
+                        )
 
                         if verse.id != filteredVerses.last?.id {
                             Divider()
+                                .padding(.horizontal, 18)
                         }
                     }
                 }
-                .padding(.horizontal, 18)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 26)
                         .fill(Color(.systemBackground))
                 )
+                .clipShape(RoundedRectangle(cornerRadius: 26))
             }
         }
         .padding(.horizontal, 20)
@@ -271,16 +383,184 @@ struct ContentView: View {
 
     private func reloadVerses() {
         verses = VerseRepository.shared.loadVerses()
-    }
 
-    private func deleteVerses(at offsets: IndexSet) {
-        let idsToDelete = offsets.map { filteredVerses[$0].id }
-
-        for id in idsToDelete {
-            VerseRepository.shared.softDeleteVerse(id: id)
+        if !folderOptions.contains(selectedFolder) {
+            selectedFolder = Self.allFoldersOption
         }
 
+        if let swipedVerseID, !verses.contains(where: { $0.id == swipedVerseID }) {
+            self.swipedVerseID = nil
+        }
+    }
+
+    private func normalizedFolderName(_ folderName: String) -> String {
+        let trimmedFolderName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedFolderName.isEmpty else {
+            return "General"
+        }
+
+        let collapsedWhitespaceFolderName = trimmedFolderName
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
+    }
+
+    private func deleteVerse(_ verse: Verse) {
+        if detailVerse?.id == verse.id {
+            detailVerse = nil
+        }
+
+        if selectedVerseReview?.verse.id == verse.id {
+            selectedVerseReview = nil
+        }
+
+        if swipedVerseID == verse.id {
+            swipedVerseID = nil
+        }
+
+        VerseRepository.shared.softDeleteVerse(id: verse.id)
         reloadVerses()
+    }
+}
+
+private struct SwipeToDeleteVerseRow<Label: View>: View {
+    let id: String
+    @Binding var openRowID: String?
+    let onDelete: () -> Void
+    let onTap: () -> Void
+    @ViewBuilder let label: () -> Label
+
+    @State private var settledOffset: CGFloat = 0
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging = false
+
+    private let actionWidth: CGFloat = 84
+    private let revealThreshold: CGFloat = 52
+    private let fullSwipeThreshold: CGFloat = 148
+
+    private var contentOffset: CGFloat {
+        let proposedOffset = settledOffset + dragOffset
+        return min(0, max(-fullSwipeThreshold, proposedOffset))
+    }
+
+    private var deleteActionOpacity: CGFloat {
+        contentOffset == 0 ? 0 : 1
+    }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            deleteAction
+
+            label()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .background(Color(.systemBackground))
+                .offset(x: contentOffset)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    guard !isDragging else {
+                        return
+                    }
+
+                    if settledOffset == 0 {
+                        onTap()
+                    } else {
+                        closeRow()
+                    }
+                }
+                .highPriorityGesture(dragGesture)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+        .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.86), value: settledOffset)
+        .onChange(of: openRowID) { _, newValue in
+            if newValue != id, settledOffset != 0 {
+                settledOffset = 0
+                dragOffset = 0
+            }
+        }
+    }
+
+    private var deleteAction: some View {
+        HStack {
+            Spacer()
+
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Image(systemName: "trash.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(
+                        Circle()
+                            .fill(Color(uiColor: .systemRed))
+                    )
+                    .frame(width: actionWidth, height: 64)
+                .opacity(deleteActionOpacity)
+            }
+            .buttonStyle(.plain)
+            .disabled(settledOffset == 0)
+        }
+        .padding(.trailing, 12)
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 10, coordinateSpace: .local)
+            .onChanged { value in
+                if !isDragging {
+                    isDragging = true
+                }
+
+                if openRowID != id, value.translation.width < 0 {
+                    openRowID = id
+                }
+
+                if value.translation.width < 0 || settledOffset < 0 {
+                    dragOffset = value.translation.width
+                } else {
+                    dragOffset = 0
+                }
+            }
+            .onEnded { value in
+                defer {
+                    dragOffset = 0
+                    DispatchQueue.main.async {
+                        isDragging = false
+                    }
+                }
+
+                let finalOffset = settledOffset + value.translation.width
+                let predictedOffset = settledOffset + value.predictedEndTranslation.width
+
+                if predictedOffset <= -fullSwipeThreshold {
+                    onDelete()
+                    return
+                }
+
+                if finalOffset <= -revealThreshold {
+                    openRow()
+                } else {
+                    closeRow()
+                }
+            }
+    }
+
+    private func openRow() {
+        openRowID = id
+        settledOffset = -actionWidth
+    }
+
+    private func closeRow() {
+        if openRowID == id {
+            openRowID = nil
+        }
+
+        settledOffset = 0
     }
 }
 
