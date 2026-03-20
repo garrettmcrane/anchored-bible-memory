@@ -4,7 +4,7 @@ struct AddTabView: View {
     let focusTrigger: Int
 
     var body: some View {
-        AddVerseView(showsCancelButton: false, focusTrigger: focusTrigger) { newVerse in
+        AddHubView(showsCancelButton: false, focusTrigger: focusTrigger) { newVerse in
             VerseRepository.shared.addVerse(newVerse)
         }
     }

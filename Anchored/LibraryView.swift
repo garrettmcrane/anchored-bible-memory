@@ -220,9 +220,11 @@ struct LibraryView: View {
             }
         }
         .sheet(isPresented: $showingAddVerse) {
-            AddVerseView { newVerse in
+            AddHubView(showsCancelButton: true) { newVerse in
                 VerseRepository.shared.addVerse(newVerse)
+            } onComplete: {
                 reloadVerses()
+                showingAddVerse = false
             }
         }
         .sheet(isPresented: $showingFolderFilterSheet) {

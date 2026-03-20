@@ -2,581 +2,107 @@ import SwiftUI
 import UIKit
 
 struct AddVerseView: View {
-    private static let uncategorizedFolder = "Uncategorized"
-    private let screenHorizontalPadding: CGFloat = 20
-    private let cardCornerRadius: CGFloat = 22
-    private let sectionSpacing: CGFloat = 14
-
-    private enum Field {
-        case reference
-        case text
-        case newFolder
-    }
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
-
-    var showsCancelButton: Bool = true
-    var focusTrigger: Int = 0
+    let focusTrigger: Int
     let onSave: (Verse) -> Void
+    let onComplete: (() -> Void)?
 
-    @State private var reference = ""
-    @State private var text = ""
-    @State private var folderName = Self.uncategorizedFolder
-    @State private var selectedFolder: String = Self.uncategorizedFolder
-    @State private var isAddingNewFolder = false
-    @State private var newFolderName = ""
-    @State private var masteryStatus: VerseMasteryStatus = .learning
-    @State private var lookupMessage: String?
-    @State private var referenceFocusRequestID = 0
-    @FocusState private var focusedField: Field?
+    @State private var translation: BibleTranslation = .kjv
+    @State private var rawInput = ""
+    @State private var previewContext: ScriptureAddPreviewContext?
+    @State private var message: String?
 
-    private var canSave: Bool {
-        !reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var existingFolders: [String] {
-        var normalizedFolders = Set(
-            VerseRepository.shared.loadVerses().map { normalizedFolderName($0.folderName) }
-        )
-
-        normalizedFolders.remove(Self.uncategorizedFolder)
-
-        if selectedFolder != Self.uncategorizedFolder {
-            normalizedFolders.insert(selectedFolder)
-        }
-
-        return normalizedFolders.sorted()
+    init(
+        showsCancelButton: Bool = true,
+        focusTrigger: Int = 0,
+        onSave: @escaping (Verse) -> Void,
+        onComplete: (() -> Void)? = nil
+    ) {
+        self.focusTrigger = focusTrigger
+        self.onSave = onSave
+        self.onComplete = onComplete
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: sectionSpacing) {
-                    headerRow
-                    referenceSection
-                    verseTextSection
-                    detailsSection
-                }
-                .padding(.horizontal, screenHorizontalPadding)
-                .padding(.top, 16)
-                .padding(.bottom, 20)
-            }
-            .background(Color(.systemGroupedBackground))
-            .scrollDismissesKeyboard(.interactively)
-            .onAppear {
-                folderName = selectedFolder
-                requestReferenceFocus(after: 0.3)
-            }
-            .task {
-                requestReferenceFocus(after: 0.3)
-            }
-            .onChange(of: scenePhase) { _, newValue in
-                guard newValue == .active else {
-                    return
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                TranslationPickerSection(selection: $translation)
 
-                requestReferenceFocus(after: 0.3)
-            }
-            .onChange(of: focusTrigger) { _, _ in
-                requestReferenceFocus(after: 0.3)
-            }
-            .onChange(of: selectedFolder) { _, newValue in
-                folderName = newValue
-            }
-            .toolbar {
-                if showsCancelButton {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Cancel") {
-                            dismiss()
-                        }
-                    }
-                }
-
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-
-                    Button("Done") {
-                        dismissKeyboard()
-                    }
-                }
-            }
-        }
-    }
-
-    private var headerRow: some View {
-        HStack(alignment: .center) {
-            Text("Add Verse")
-                .font(.largeTitle.weight(.bold))
-
-            Spacer()
-
-            Button("Save") {
-                let newVerse = Verse(
-                    reference: reference.trimmingCharacters(in: .whitespacesAndNewlines),
-                    text: text.trimmingCharacters(in: .whitespacesAndNewlines),
-                    folderName: selectedFolder,
-                    isMastered: masteryStatus == .memorized
-                )
-                onSave(newVerse)
-                handleSuccessfulSave()
-            }
-            .fontWeight(.semibold)
-            .padding(.horizontal, 18)
-            .frame(height: 40)
-            .background(
-                Capsule()
-                    .fill(canSave ? Color.blue : Color(.tertiarySystemFill))
-            )
-            .foregroundStyle(canSave ? .white : .secondary)
-            .disabled(!canSave)
-        }
-    }
-
-    private var referenceSection: some View {
-        sectionCard {
-            VStack(alignment: .leading, spacing: 8) {
-                sectionLabel("Reference")
-
-                HStack(alignment: .center, spacing: 12) {
-                    AutoFocusReferenceField(
-                        text: $reference,
-                        focusRequestID: referenceFocusRequestID,
-                        onSubmit: {
-                            autoFillVerseIfPossible()
-                        }
-                    )
-                    .frame(minHeight: 22)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 17)
-                    .background(inputFieldBackground(cornerRadius: 18))
-
-                    Button("Autofill") {
-                        autoFillVerseIfPossible()
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .frame(height: 52)
-                    .padding(.horizontal, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.blue.opacity(0.12))
-                    )
-                }
-
-                if let lookupMessage {
-                    Text(lookupMessage)
-                        .font(.footnote)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("References")
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                }
-            }
-        }
-    }
+                        .textCase(.uppercase)
 
-    private var verseTextSection: some View {
-        sectionCard {
-            VStack(alignment: .leading, spacing: 8) {
-                sectionLabel("Verse Text")
-
-                TextField("Paste the verse text here", text: $text, axis: .vertical)
-                    .lineLimit(5...10)
-                    .focused($focusedField, equals: .text)
-                    .font(.system(.body, design: .serif))
-                    .padding(16)
-                    .background(inputFieldBackground(cornerRadius: 18))
-            }
-        }
-    }
-
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            folderPanel
-            statusPanel
-        }
-    }
-
-    private var folderPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("Folder")
-
-            Menu {
-                Button(Self.uncategorizedFolder) {
-                    selectFolder(Self.uncategorizedFolder)
-                }
-
-                ForEach(existingFolders, id: \.self) { folder in
-                    Button(folder) {
-                        selectFolder(folder)
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(selectedFolder)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 14)
-                .frame(height: 48)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(.systemBackground))
-                )
-            }
-            .buttonStyle(.plain)
-
-            Button(isAddingNewFolder ? "Cancel New Folder" : "New Folder") {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isAddingNewFolder.toggle()
-                }
-            }
-            .font(.subheadline.weight(.semibold))
-
-            if isAddingNewFolder {
-                VStack(spacing: 8) {
-                    TextField("New folder name", text: $newFolderName)
-                        .textInputAutocapitalization(.words)
-                        .submitLabel(.done)
-                        .focused($focusedField, equals: .newFolder)
-                        .onSubmit {
-                            saveNewFolder()
-                        }
-                        .padding(.horizontal, 14)
-                        .frame(height: 44)
+                    TextEditor(text: $rawInput)
+                        .font(.body)
+                        .frame(minHeight: 180)
+                        .padding(10)
                         .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color(.systemBackground))
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(Color(.secondarySystemBackground))
                         )
 
-                    Button("Save Folder") {
-                        saveNewFolder()
+                    HStack {
+                        Text("Examples: John 3:16, Genesis 1:3-5, Romans 8")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Button("Paste") {
+                            rawInput = UIPasteboard.general.string ?? rawInput
+                        }
+                        .font(.subheadline.weight(.semibold))
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.blue.opacity(0.12))
-                    )
-                    .disabled(normalizedCandidateFolderName == nil)
                 }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .modifier(SectionCardModifier(cornerRadius: cardCornerRadius))
-    }
 
-    private var statusPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("Status")
-
-            Picker("Status", selection: $masteryStatus) {
-                ForEach(VerseMasteryStatus.allCases) { status in
-                    Text(status.rawValue).tag(status)
+                if let message {
+                    AddFlowMessageCard(message: message, tint: message.contains("ready") ? .green : .orange)
                 }
+
+                Button("Fetch Preview") {
+                    buildPreview()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            .pickerStyle(.segmented)
-
-            Text("Choose whether this verse is still in progress or already memorized.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-            Spacer(minLength: 0)
+            .padding(20)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .modifier(SectionCardModifier(cornerRadius: cardCornerRadius))
-    }
-
-    private func sectionLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-    }
-
-    private func inputFieldBackground(cornerRadius: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(Color.white)
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Paste / Type")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $previewContext) { context in
+            ScriptureAddPreviewView(
+                passages: context.passages,
+                onSaveVerse: onSave,
+                onComplete: onComplete
             )
+        }
+        .onChange(of: focusTrigger) { _, _ in
+            // The hub stays stable; focus refresh will matter once this flow is reopened.
+        }
     }
 
-    private func sectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .modifier(SectionCardModifier(cornerRadius: cardCornerRadius))
-    }
-
-    private func autoFillVerseIfPossible() {
-        let cleanedReference = reference.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !cleanedReference.isEmpty else {
-            lookupMessage = "Enter a reference first."
+    private func buildPreview() {
+        guard translation.isAvailable else {
+            message = "ESV is visible for the future, but it is not available until API approval is in place."
             return
         }
 
-        if let foundText = VerseReferenceLibrary.lookup(reference: cleanedReference) {
-            text = foundText
-            lookupMessage = "Verse text found and filled in automatically."
-            dismissKeyboard()
-        } else {
-            lookupMessage = "No match found in the local sample library yet. You can still paste the text manually."
+        do {
+            let references = try ReferenceParser.parse(rawInput)
+            let provider = try ScriptureProviderFactory.makeProvider(for: translation)
+            let passages = try provider.fetchPassages(for: references)
+            previewContext = ScriptureAddPreviewContext(passages: passages)
+            message = passages.count == 1 ? "1 passage ready for preview." : "\(passages.count) passages ready for preview."
+        } catch {
+            message = error.localizedDescription
         }
-    }
-
-    private func handleSuccessfulSave() {
-        if showsCancelButton {
-            dismiss()
-        } else {
-            reference = ""
-            text = ""
-            selectedFolder = Self.uncategorizedFolder
-            folderName = Self.uncategorizedFolder
-            isAddingNewFolder = false
-            newFolderName = ""
-            masteryStatus = .learning
-            lookupMessage = "Verse saved."
-
-            requestReferenceFocus(after: 0.3)
-        }
-    }
-
-    @ViewBuilder
-    private func folderCard(
-        title: String,
-        systemImage: String,
-        isSelected: Bool,
-        tint: Color
-    ) -> some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.body)
-                .fontWeight(.medium)
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            Image(systemName: systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isSelected ? .blue : .secondary)
-                .opacity(isSelected || systemImage == "chevron.right" ? 1 : 0)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 15)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(tint)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(isSelected ? Color.blue.opacity(0.22) : Color.clear, lineWidth: 1)
-        }
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
-    private var normalizedCandidateFolderName: String? {
-        let normalizedName = normalizedFolderName(newFolderName)
-        return normalizedName.isEmpty ? nil : normalizedName
-    }
-
-    private func saveNewFolder() {
-        guard let normalizedName = normalizedCandidateFolderName else {
-            return
-        }
-
-        if let matchingFolder = existingFolders.first(where: {
-            $0.compare(normalizedName, options: .caseInsensitive) == .orderedSame
-        }) {
-            selectFolder(matchingFolder)
-        } else {
-            selectFolder(normalizedName)
-        }
-
-        newFolderName = ""
-
-        withAnimation(.easeInOut(duration: 0.2)) {
-            isAddingNewFolder = false
-        }
-
-        dismissKeyboard()
-    }
-
-    private func selectFolder(_ folder: String) {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            selectedFolder = folder
-        }
-    }
-
-    private func requestReferenceFocus(after delay: TimeInterval) {
-        Task { @MainActor in
-            let delayInNanoseconds = UInt64(delay * 1_000_000_000)
-            try? await Task.sleep(nanoseconds: delayInNanoseconds)
-            referenceFocusRequestID += 1
-        }
-    }
-
-    private func dismissKeyboard() {
-        focusedField = nil
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-
-    private func normalizedFolderName(_ folderName: String) -> String {
-        let trimmedFolderName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let collapsedWhitespaceFolderName = trimmedFolderName
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-
-        guard !collapsedWhitespaceFolderName.isEmpty else {
-            return ""
-        }
-
-        return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
-    }
-}
-
-private struct SectionCardModifier: ViewModifier {
-    let cornerRadius: CGFloat
-
-    func body(content: Content) -> some View {
-        content
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
-            )
-    }
-}
-
-private struct AutoFocusReferenceField: UIViewRepresentable {
-    @Binding var text: String
-    let focusRequestID: Int
-    let onSubmit: () -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, onSubmit: onSubmit)
-    }
-
-    func makeUIView(context: Context) -> ReferenceFieldContainerView {
-        let containerView = ReferenceFieldContainerView()
-        let textField = containerView.textField
-
-        textField.borderStyle = .none
-        textField.placeholder = "John 3:16"
-        textField.autocapitalizationType = .words
-        textField.returnKeyType = .done
-        textField.clearButtonMode = .whileEditing
-        textField.delegate = context.coordinator
-        textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
-
-        containerView.onTap = {
-            textField.requestFirstResponder()
-        }
-
-        return containerView
-    }
-
-    func updateUIView(_ uiView: ReferenceFieldContainerView, context: Context) {
-        if uiView.textField.text != text {
-            uiView.textField.text = text
-        }
-
-        if context.coordinator.lastFocusRequestID != focusRequestID {
-            context.coordinator.lastFocusRequestID = focusRequestID
-            uiView.textField.requestFirstResponder()
-        }
-    }
-
-    final class Coordinator: NSObject, UITextFieldDelegate {
-        @Binding var text: String
-        let onSubmit: () -> Void
-        var lastFocusRequestID = -1
-
-        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
-            _text = text
-            self.onSubmit = onSubmit
-        }
-
-        @objc
-        func textDidChange(_ textField: UITextField) {
-            text = textField.text ?? ""
-        }
-
-        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-            onSubmit()
-            return true
-        }
-    }
-}
-
-private final class ReferenceFieldContainerView: UIView {
-    let textField = FocusableTextField()
-    var onTap: (() -> Void)?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-
-        backgroundColor = .clear
-        addSubview(textField)
-        textField.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            textField.leadingAnchor.constraint(equalTo: leadingAnchor),
-            textField.trailingAnchor.constraint(equalTo: trailingAnchor),
-            textField.topAnchor.constraint(equalTo: topAnchor),
-            textField.bottomAnchor.constraint(equalTo: bottomAnchor)
-        ])
-
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        addGestureRecognizer(tapGesture)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    @objc
-    private func handleTap() {
-        onTap?()
-    }
-}
-
-private final class FocusableTextField: UITextField {
-    private var pendingFocusWorkItem: DispatchWorkItem?
-
-    func requestFirstResponder() {
-        pendingFocusWorkItem?.cancel()
-
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self else {
-                return
-            }
-
-            guard window != nil else {
-                requestFirstResponder()
-                return
-            }
-
-            becomeFirstResponder()
-        }
-
-        pendingFocusWorkItem = workItem
-        DispatchQueue.main.async(execute: workItem)
     }
 }
 
 #Preview {
-    AddVerseView(onSave: { _ in })
+    NavigationStack {
+        AddVerseView(onSave: { _ in })
+    }
 }
