@@ -3,6 +3,9 @@ import UIKit
 
 struct AddVerseView: View {
     private static let uncategorizedFolder = "Uncategorized"
+    private let screenHorizontalPadding: CGFloat = 20
+    private let cardCornerRadius: CGFloat = 22
+    private let sectionSpacing: CGFloat = 14
 
     private enum Field {
         case reference
@@ -49,112 +52,18 @@ struct AddVerseView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Reference") {
-                    AutoFocusReferenceField(
-                        text: $reference,
-                        focusRequestID: referenceFocusRequestID,
-                        onSubmit: {
-                            autoFillVerseIfPossible()
-                        }
-                    )
-                    .frame(minHeight: 22)
-
-                    Button("Auto-Fill Verse Text") {
-                        autoFillVerseIfPossible()
-                    }
-
-                    if let lookupMessage {
-                        Text(lookupMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
+            ScrollView {
+                VStack(alignment: .leading, spacing: sectionSpacing) {
+                    headerRow
+                    referenceSection
+                    verseTextSection
+                    detailsSection
                 }
-
-                Section("Verse Text") {
-                    TextField("Paste the verse text here", text: $text, axis: .vertical)
-                        .lineLimit(5...10)
-                        .focused($focusedField, equals: .text)
-                }
-
-                Section("Folder") {
-                    VStack(spacing: 12) {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isAddingNewFolder.toggle()
-                            }
-                        } label: {
-                            folderCard(
-                                title: "Add New Folder",
-                                systemImage: "chevron.right",
-                                isSelected: false,
-                                tint: Color(.secondarySystemBackground)
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        if isAddingNewFolder {
-                            HStack(spacing: 12) {
-                                TextField("New folder name", text: $newFolderName)
-                                    .textInputAutocapitalization(.words)
-                                    .submitLabel(.done)
-                                    .focused($focusedField, equals: .newFolder)
-                                    .onSubmit {
-                                        saveNewFolder()
-                                    }
-
-                                Button("Save") {
-                                    saveNewFolder()
-                                }
-                                .fontWeight(.semibold)
-                                .disabled(normalizedCandidateFolderName == nil)
-                            }
-                            .padding(14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color(.secondarySystemBackground))
-                            )
-                        }
-
-                        Button {
-                            selectFolder(Self.uncategorizedFolder)
-                        } label: {
-                            folderCard(
-                                title: Self.uncategorizedFolder,
-                                systemImage: "checkmark",
-                                isSelected: selectedFolder == Self.uncategorizedFolder,
-                                tint: selectedFolder == Self.uncategorizedFolder ? Color.blue.opacity(0.14) : Color(.secondarySystemBackground)
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        ForEach(existingFolders, id: \.self) { folder in
-                            Button {
-                                selectFolder(folder)
-                            } label: {
-                                folderCard(
-                                    title: folder,
-                                    systemImage: "checkmark",
-                                    isSelected: selectedFolder == folder,
-                                    tint: selectedFolder == folder ? Color.blue.opacity(0.14) : Color(.secondarySystemBackground)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                Section("Status") {
-                    Picker("Status", selection: $masteryStatus) {
-                        ForEach(VerseMasteryStatus.allCases) { status in
-                            Text(status.rawValue).tag(status)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
+                .padding(.horizontal, screenHorizontalPadding)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
             }
-            .navigationTitle("Add Verse")
+            .background(Color(.systemGroupedBackground))
             .scrollDismissesKeyboard(.interactively)
             .onAppear {
                 folderName = selectedFolder
@@ -185,20 +94,6 @@ struct AddVerseView: View {
                     }
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
-                        let newVerse = Verse(
-                            reference: reference.trimmingCharacters(in: .whitespacesAndNewlines),
-                            text: text.trimmingCharacters(in: .whitespacesAndNewlines),
-                            folderName: selectedFolder,
-                            isMastered: masteryStatus == .memorized
-                        )
-                        onSave(newVerse)
-                        handleSuccessfulSave()
-                    }
-                    .disabled(!canSave)
-                }
-
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
 
@@ -208,6 +103,216 @@ struct AddVerseView: View {
                 }
             }
         }
+    }
+
+    private var headerRow: some View {
+        HStack(alignment: .center) {
+            Text("Add Verse")
+                .font(.largeTitle.weight(.bold))
+
+            Spacer()
+
+            Button("Save") {
+                let newVerse = Verse(
+                    reference: reference.trimmingCharacters(in: .whitespacesAndNewlines),
+                    text: text.trimmingCharacters(in: .whitespacesAndNewlines),
+                    folderName: selectedFolder,
+                    isMastered: masteryStatus == .memorized
+                )
+                onSave(newVerse)
+                handleSuccessfulSave()
+            }
+            .fontWeight(.semibold)
+            .padding(.horizontal, 18)
+            .frame(height: 40)
+            .background(
+                Capsule()
+                    .fill(canSave ? Color.blue : Color(.tertiarySystemFill))
+            )
+            .foregroundStyle(canSave ? .white : .secondary)
+            .disabled(!canSave)
+        }
+    }
+
+    private var referenceSection: some View {
+        sectionCard {
+            VStack(alignment: .leading, spacing: 8) {
+                sectionLabel("Reference")
+
+                HStack(alignment: .center, spacing: 12) {
+                    AutoFocusReferenceField(
+                        text: $reference,
+                        focusRequestID: referenceFocusRequestID,
+                        onSubmit: {
+                            autoFillVerseIfPossible()
+                        }
+                    )
+                    .frame(minHeight: 22)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 17)
+                    .background(inputFieldBackground(cornerRadius: 18))
+
+                    Button("Autofill") {
+                        autoFillVerseIfPossible()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .frame(height: 52)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.blue.opacity(0.12))
+                    )
+                }
+
+                if let lookupMessage {
+                    Text(lookupMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                }
+            }
+        }
+    }
+
+    private var verseTextSection: some View {
+        sectionCard {
+            VStack(alignment: .leading, spacing: 8) {
+                sectionLabel("Verse Text")
+
+                TextField("Paste the verse text here", text: $text, axis: .vertical)
+                    .lineLimit(5...10)
+                    .focused($focusedField, equals: .text)
+                    .font(.system(.body, design: .serif))
+                    .padding(16)
+                    .background(inputFieldBackground(cornerRadius: 18))
+            }
+        }
+    }
+
+    private var detailsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            folderPanel
+            statusPanel
+        }
+    }
+
+    private var folderPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Folder")
+
+            Menu {
+                Button(Self.uncategorizedFolder) {
+                    selectFolder(Self.uncategorizedFolder)
+                }
+
+                ForEach(existingFolders, id: \.self) { folder in
+                    Button(folder) {
+                        selectFolder(folder)
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(selectedFolder)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(.systemBackground))
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button(isAddingNewFolder ? "Cancel New Folder" : "New Folder") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isAddingNewFolder.toggle()
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+
+            if isAddingNewFolder {
+                VStack(spacing: 8) {
+                    TextField("New folder name", text: $newFolderName)
+                        .textInputAutocapitalization(.words)
+                        .submitLabel(.done)
+                        .focused($focusedField, equals: .newFolder)
+                        .onSubmit {
+                            saveNewFolder()
+                        }
+                        .padding(.horizontal, 14)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color(.systemBackground))
+                        )
+
+                    Button("Save Folder") {
+                        saveNewFolder()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.blue.opacity(0.12))
+                    )
+                    .disabled(normalizedCandidateFolderName == nil)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .modifier(SectionCardModifier(cornerRadius: cardCornerRadius))
+    }
+
+    private var statusPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("Status")
+
+            Picker("Status", selection: $masteryStatus) {
+                ForEach(VerseMasteryStatus.allCases) { status in
+                    Text(status.rawValue).tag(status)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text("Choose whether this verse is still in progress or already memorized.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .modifier(SectionCardModifier(cornerRadius: cardCornerRadius))
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+    }
+
+    private func inputFieldBackground(cornerRadius: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
+            )
+    }
+
+    private func sectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .modifier(SectionCardModifier(cornerRadius: cardCornerRadius))
     }
 
     private func autoFillVerseIfPossible() {
@@ -337,6 +442,20 @@ struct AddVerseView: View {
         }
 
         return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
+    }
+}
+
+private struct SectionCardModifier: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+            )
     }
 }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct FirstLetterTypingToken: Identifiable, Equatable {
     let id = UUID()
@@ -31,26 +32,62 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
     }
 
     var qualityLabel: String {
-        switch scorePercent {
-        case 100:
+        switch resultTier {
+        case .perfect:
             return "Perfect"
-        case 85...:
+        case .imperfect:
             return "Strong"
-        default:
+        case .missed:
             return "Needs Work"
         }
     }
 
     var summaryText: String {
-        switch scorePercent {
-        case 100:
+        switch resultTier {
+        case .perfect:
             return "Perfect recall"
-        case 85...:
+        case .imperfect:
             return "\(scorePercent)% accurate"
-        default:
+        case .missed:
             return "A few misses"
         }
     }
+
+    var reviewResult: ReviewResult {
+        resultTier == .missed ? .missed : .correct
+    }
+
+    var resultTier: FirstLetterTypingResultTier {
+        switch scorePercent {
+        case 100:
+            return .perfect
+        case 80...99:
+            return .imperfect
+        default:
+            return .missed
+        }
+    }
+
+    var tintColor: Color {
+        switch resultTier {
+        case .perfect:
+            return .green
+        case .imperfect:
+            return Color(red: 0.78, green: 0.58, blue: 0.10)
+        case .missed:
+            return .red
+        }
+    }
+
+    var backgroundTint: Color {
+        tintColor.opacity(0.12)
+    }
+}
+
+enum FirstLetterTypingResultTier {
+    case perfect
+    case imperfect
+    case missed
 }
 
 struct FirstLetterTypingState {
@@ -154,8 +191,30 @@ enum FirstLetterTypingSupport {
     }
 }
 
+enum FirstLetterTypingFeedback {
+    private static let generator = UIImpactFeedbackGenerator(style: .light)
+    private static var lastImpactTimestamp: TimeInterval = 0
+
+    static func prepare() {
+        generator.prepare()
+    }
+
+    static func triggerLightImpactIfNeeded() {
+        let now = Date().timeIntervalSince1970
+
+        guard now - lastImpactTimestamp > 0.12 else {
+            return
+        }
+
+        lastImpactTimestamp = now
+        generator.impactOccurred()
+        generator.prepare()
+    }
+}
+
 struct FirstLetterTypingVerseCard: View {
     let state: FirstLetterTypingState
+    var isErrorFlashing = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -176,8 +235,9 @@ struct FirstLetterTypingVerseCard: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(isErrorFlashing ? Color.red.opacity(0.10) : Color(.secondarySystemBackground))
         )
+        .animation(.easeInOut(duration: 0.18), value: isErrorFlashing)
     }
 }
 
@@ -196,8 +256,9 @@ struct FirstLetterTypingFlowingText: View {
             .frame(minHeight: 120, alignment: .topLeading)
     }
 
-    private var visibleText: Text {
+    private var visibleText: some View {
         composedText(showAllWords: false)
+            .foregroundStyle(.primary)
     }
 
     private var skeletonText: some View {
@@ -206,7 +267,7 @@ struct FirstLetterTypingFlowingText: View {
     }
 
     private func composedText(showAllWords: Bool) -> Text {
-        state.tokens.enumerated().reduce(Text("")) { partial, element in
+        let content = state.tokens.enumerated().reduce(into: "") { partial, element in
             let index = element.offset
             let token = element.element
             let suffix = index == state.tokens.count - 1 ? "" : " "
@@ -218,8 +279,10 @@ struct FirstLetterTypingFlowingText: View {
                 visibleToken = showAllWords || state.hasAnyRevealedWords ? token.text : ""
             }
 
-            return partial + Text(visibleToken + suffix)
+            partial += visibleToken + suffix
         }
+
+        return Text(content)
     }
 }
 
@@ -242,6 +305,7 @@ struct FirstLetterTypingPerformanceCard: View {
 
                 Text("\(performance.scorePercent)%")
                     .font(.headline.weight(.semibold))
+                    .foregroundStyle(performance.tintColor)
             }
 
             Text(performance.summaryText)
@@ -256,19 +320,8 @@ struct FirstLetterTypingPerformanceCard: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(backgroundTint)
+                .fill(performance.backgroundTint)
         )
-    }
-
-    private var backgroundTint: Color {
-        switch performance.scorePercent {
-        case 100:
-            return Color.green.opacity(0.12)
-        case 85...:
-            return Color.blue.opacity(0.10)
-        default:
-            return Color.orange.opacity(0.12)
-        }
     }
 }
 
@@ -277,6 +330,8 @@ struct FirstLetterTypingSessionCompletionView: View {
 
     let summary: ReviewSessionSummary
     let verseReports: [FirstLetterTypingVersePerformance]
+    let totalVerseCount: Int
+    let endedEarly: Bool
 
     var body: some View {
         ScrollView {
@@ -293,6 +348,13 @@ struct FirstLetterTypingSessionCompletionView: View {
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+
+                    if endedEarly {
+                        Text("Session ended early. \(summary.reviewedCount) of \(totalVerseCount) verses were completed.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
 
                 HStack(spacing: 12) {
@@ -319,11 +381,12 @@ struct FirstLetterTypingSessionCompletionView: View {
 
                             Text("\(report.scorePercent)%")
                                 .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(report.tintColor)
                         }
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color(.secondarySystemBackground))
+                                .fill(report.backgroundTint)
                         )
                     }
                 }
@@ -455,6 +518,8 @@ struct ReviewSessionCompletionView: View {
     @Environment(\.dismiss) private var dismiss
 
     let summary: ReviewSessionSummary
+    let totalVerseCount: Int
+    let endedEarly: Bool
 
     var body: some View {
         VStack(spacing: 24) {
@@ -472,6 +537,13 @@ struct ReviewSessionCompletionView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+
+                if endedEarly {
+                    Text("Session ended early. \(summary.reviewedCount) of \(totalVerseCount) verses were completed.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
 
             HStack(spacing: 12) {

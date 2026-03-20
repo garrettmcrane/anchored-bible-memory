@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct FirstLetterTypingReviewView: View {
     @Environment(\.dismiss) private var dismiss
@@ -11,6 +12,11 @@ struct FirstLetterTypingReviewView: View {
     @State private var stepInput = ""
     @State private var showIncorrectHint = false
     @State private var incorrectFlashToken = 0
+    @State private var showVerseErrorFlash = false
+
+    private var performance: FirstLetterTypingVersePerformance {
+        reconstructionState.performance(for: verse)
+    }
 
     init(verse: Verse, onUpdate: @escaping (Verse) -> Void) {
         self.verse = verse
@@ -34,15 +40,20 @@ struct FirstLetterTypingReviewView: View {
                     }
                     .padding(.horizontal)
 
-                    FirstLetterTypingVerseCard(state: reconstructionState)
+                    FirstLetterTypingVerseCard(state: reconstructionState, isErrorFlashing: showVerseErrorFlash)
 
                     if reconstructionState.isComplete {
-                        FirstLetterTypingPerformanceCard(performance: reconstructionState.performance(for: verse))
+                        FirstLetterTypingPerformanceCard(performance: performance)
 
-                        ReviewResultButtons(
-                            onMissed: { recordReview(result: .missed) },
-                            onCorrect: { recordReview(result: .correct) }
-                        )
+                        Button("Finish Review") {
+                            recordReview()
+                        }
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.blue)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
                     } else {
                         inputCard
                     }
@@ -61,6 +72,7 @@ struct FirstLetterTypingReviewView: View {
             }
             .onAppear {
                 isStepFieldFocused = true
+                FirstLetterTypingFeedback.prepare()
             }
         }
     }
@@ -120,16 +132,30 @@ struct FirstLetterTypingReviewView: View {
         } else {
             showIncorrectHint = true
             incorrectFlashToken += 1
+            triggerIncorrectFeedback()
             stepInput = ""
             isStepFieldFocused = true
         }
     }
 
-    private func recordReview(result: ReviewResult) {
+    private func triggerIncorrectFeedback() {
+        FirstLetterTypingFeedback.triggerLightImpactIfNeeded()
+
+        withAnimation(.easeInOut(duration: 0.18)) {
+            showVerseErrorFlash = true
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 220_000_000)
+            showVerseErrorFlash = false
+        }
+    }
+
+    private func recordReview() {
         let updatedVerse = ReviewRepository.shared.recordReview(
             for: verse,
             method: .firstLetterTyping,
-            result: result
+            result: performance.reviewResult
         )
 
         onUpdate(updatedVerse)

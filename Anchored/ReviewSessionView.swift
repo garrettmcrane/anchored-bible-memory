@@ -10,6 +10,8 @@ struct ReviewSessionView: View {
     @State private var showingAnswer = false
     @State private var summary = ReviewSessionSummary()
     @State private var isSessionComplete = false
+    @State private var endedEarly = false
+    @State private var showingEndEarlyConfirmation = false
 
     private var currentVerse: Verse {
         verses[currentIndex]
@@ -29,7 +31,11 @@ struct ReviewSessionView: View {
                         Spacer()
                     }
                 } else if isSessionComplete {
-                    ReviewSessionCompletionView(summary: summary)
+                    ReviewSessionCompletionView(
+                        summary: summary,
+                        totalVerseCount: verses.count,
+                        endedEarly: endedEarly
+                    )
                 } else {
                     VStack(spacing: 20) {
                         ReviewSessionProgressHeader(
@@ -87,11 +93,23 @@ struct ReviewSessionView: View {
             .navigationTitle("Review Session")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                if !isSessionComplete {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("End Early") {
+                            showingEndEarlyConfirmation = true
+                        }
                     }
                 }
+            }
+            .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
+                Button("Complete Early") {
+                    endedEarly = true
+                    isSessionComplete = true
+                }
+
+                Button("Keep Reviewing", role: .cancel) {}
+            } message: {
+                Text("You’ll still see results for the verses you’ve already reviewed.")
             }
             .animation(.easeInOut(duration: 0.2), value: currentIndex)
             .animation(.easeInOut(duration: 0.2), value: isSessionComplete)

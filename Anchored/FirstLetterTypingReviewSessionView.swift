@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct FirstLetterTypingReviewSessionView: View {
     @Environment(\.dismiss) private var dismiss
@@ -12,9 +13,16 @@ struct FirstLetterTypingReviewSessionView: View {
     @State private var stepInput = ""
     @State private var showIncorrectHint = false
     @State private var incorrectFlashToken = 0
+    @State private var showVerseErrorFlash = false
     @State private var summary = ReviewSessionSummary()
     @State private var isSessionComplete = false
     @State private var verseReports: [FirstLetterTypingVersePerformance] = []
+    @State private var endedEarly = false
+    @State private var showingEndEarlyConfirmation = false
+
+    private var performance: FirstLetterTypingVersePerformance {
+        reconstructionState.performance(for: currentVerse)
+    }
 
     init(verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
         self.verses = verses
@@ -32,7 +40,12 @@ struct FirstLetterTypingReviewSessionView: View {
                 if verses.isEmpty {
                     emptyState
                 } else if isSessionComplete {
-                    FirstLetterTypingSessionCompletionView(summary: summary, verseReports: verseReports)
+                    FirstLetterTypingSessionCompletionView(
+                        summary: summary,
+                        verseReports: verseReports,
+                        totalVerseCount: verses.count,
+                        endedEarly: endedEarly
+                    )
                 } else {
                     ScrollView {
                         VStack(spacing: 20) {
@@ -54,11 +67,23 @@ struct FirstLetterTypingReviewSessionView: View {
             .navigationTitle("Review Session")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                if !isSessionComplete {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("End Early") {
+                            showingEndEarlyConfirmation = true
+                        }
                     }
                 }
+            }
+            .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
+                Button("Complete Early") {
+                    endedEarly = true
+                    isSessionComplete = true
+                }
+
+                Button("Keep Reviewing", role: .cancel) {}
+            } message: {
+                Text("You’ll still see results for the verses you’ve already reviewed.")
             }
             .animation(.easeInOut(duration: 0.2), value: currentIndex)
             .animation(.easeInOut(duration: 0.2), value: isSessionComplete)
@@ -75,21 +100,27 @@ struct FirstLetterTypingReviewSessionView: View {
             }
             .frame(maxWidth: .infinity)
 
-            FirstLetterTypingVerseCard(state: reconstructionState)
+            FirstLetterTypingVerseCard(state: reconstructionState, isErrorFlashing: showVerseErrorFlash)
 
             if reconstructionState.isComplete {
-                FirstLetterTypingPerformanceCard(performance: reconstructionState.performance(for: currentVerse))
+                FirstLetterTypingPerformanceCard(performance: performance)
 
-                ReviewResultButtons(
-                    onMissed: { recordReview(result: .missed) },
-                    onCorrect: { recordReview(result: .correct) }
-                )
+                Button(currentIndex + 1 < verses.count ? "Next Verse" : "Finish Session") {
+                    recordReview()
+                }
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(Color.blue)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
             } else {
                 inputCard
             }
         }
         .onAppear {
             isStepFieldFocused = !reconstructionState.isComplete
+            FirstLetterTypingFeedback.prepare()
         }
     }
 
@@ -157,6 +188,7 @@ struct FirstLetterTypingReviewSessionView: View {
         } else {
             showIncorrectHint = true
             incorrectFlashToken += 1
+            triggerIncorrectFeedback()
             stepInput = ""
             isStepFieldFocused = true
         }
@@ -166,17 +198,17 @@ struct FirstLetterTypingReviewSessionView: View {
         incorrectFlashToken.isMultiple(of: 2) ? -6 : 6
     }
 
-    private func recordReview(result: ReviewResult) {
-        verseReports.append(reconstructionState.performance(for: currentVerse))
+    private func recordReview() {
+        verseReports.append(performance)
 
         let updatedVerse = ReviewRepository.shared.recordReview(
             for: currentVerse,
             method: .firstLetterTyping,
-            result: result
+            result: performance.reviewResult
         )
 
         onUpdate(updatedVerse)
-        summary.record(result)
+        summary.record(performance.reviewResult)
         moveToNextVerseOrFinish()
     }
 
@@ -188,9 +220,23 @@ struct FirstLetterTypingReviewSessionView: View {
             stepInput = ""
             showIncorrectHint = false
             incorrectFlashToken = 0
+            showVerseErrorFlash = false
             isStepFieldFocused = true
         } else {
             isSessionComplete = true
+        }
+    }
+
+    private func triggerIncorrectFeedback() {
+        FirstLetterTypingFeedback.triggerLightImpactIfNeeded()
+
+        withAnimation(.easeInOut(duration: 0.18)) {
+            showVerseErrorFlash = true
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 220_000_000)
+            showVerseErrorFlash = false
         }
     }
 }
