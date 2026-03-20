@@ -8,6 +8,9 @@
 
 /* Begin PBXFileReference section */
 		5F00DD262F6BB7DE00157BED /* Anchored.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Anchored.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F7EEABB2F6CC03900B56661 /* VerseRowView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseRowView_v1.swift; sourceTree = "<group>"; };
+		5F7EEABD2F6CC03C00B56661 /* StatCardView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatCardView_v1.swift; sourceTree = "<group>"; };
+		5F7EEABF2F6CC0ED00B56661 /* ContentView_v1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView_v1.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +35,7 @@
 		5F00DD1D2F6BB7DE00157BED = {
 			isa = PBXGroup;
 			children = (
+				5F7EEAC52F6CC67100B56661 /* Archive_v1 */,
 				5F00DD282F6BB7DE00157BED /* Anchored */,
 				5F00DD272F6BB7DE00157BED /* Products */,
 			);
@@ -43,6 +47,16 @@
 				5F00DD262F6BB7DE00157BED /* Anchored.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5F7EEAC52F6CC67100B56661 /* Archive_v1 */ = {
+			isa = PBXGroup;
+			children = (
+				5F7EEABF2F6CC0ED00B56661 /* ContentView_v1.swift */,
+				5F7EEABD2F6CC03C00B56661 /* StatCardView_v1.swift */,
+				5F7EEABB2F6CC03900B56661 /* VerseRowView_v1.swift */,
+			);
+			path = Archive_v1;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -251,6 +265,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M5Y858XB7T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -282,6 +297,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M5Y858XB7T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
