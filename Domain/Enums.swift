@@ -24,6 +24,7 @@ enum GroupRole: String, Codable {
 enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
     case flashcard
     case progressiveWordHiding
+    case firstLetterTyping
 
     var id: String {
         rawValue
@@ -35,6 +36,8 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
             return "Flashcard"
         case .progressiveWordHiding:
             return "Progressive Word Hiding"
+        case .firstLetterTyping:
+            return "First-Letter Typing"
         }
     }
 
@@ -44,6 +47,8 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
             return "Recite first, then reveal and score."
         case .progressiveWordHiding:
             return "Start with the full verse and hide more words as you go."
+        case .firstLetterTyping:
+            return "Type the verse from memory with first-letter prompts as your guide."
         }
     }
 
@@ -52,10 +57,12 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
         let rawValue = try container.decode(String.self)
 
         switch rawValue {
-        case Self.flashcard.rawValue, "firstLetter", "listening", "voice":
+        case Self.flashcard.rawValue, "listening", "voice":
             self = .flashcard
         case Self.progressiveWordHiding.rawValue, "progressiveReveal":
             self = .progressiveWordHiding
+        case Self.firstLetterTyping.rawValue, "firstLetter":
+            self = .firstLetterTyping
         default:
             self = .flashcard
         }

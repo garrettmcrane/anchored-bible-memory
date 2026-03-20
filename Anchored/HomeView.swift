@@ -7,8 +7,11 @@ struct HomeView: View {
     }
 
     @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
+    @State private var reviewQueue: [Verse] = []
     @State private var selectedBatchReviewMethod: ReviewMethod? = nil
     @State private var showingBatchReviewMethodPicker = false
+
+    private let reviewQueueBuilder = ReviewQueueBuilder()
 
     private let placeholderVerses = [
         VerseOfTheDay(
@@ -53,10 +56,6 @@ struct HomeView: View {
         VerseQueries.learningVerses(verses)
     }
 
-    private var reviewVerses: [Verse] {
-        learningVerses.isEmpty ? verses : learningVerses
-    }
-
     private var memorizedCount: Int {
         VerseQueries.memorizedVerses(verses).count
     }
@@ -88,15 +87,19 @@ struct HomeView: View {
             }
             .navigationBarHidden(true)
         }
-        .sheet(item: $selectedBatchReviewMethod) { method in
+        .sheet(item: $selectedBatchReviewMethod, onDismiss: clearReviewSession) { method in
             switch method {
             case .flashcard:
-                ReviewSessionView(verses: reviewVerses) { _ in
-                    reloadVerses()
+                ReviewSessionView(verses: reviewQueue) { _ in
+                    verses = VerseRepository.shared.loadVerses()
                 }
             case .progressiveWordHiding:
-                ProgressiveWordHidingReviewSessionView(verses: reviewVerses) { _ in
-                    reloadVerses()
+                ProgressiveWordHidingReviewSessionView(verses: reviewQueue) { _ in
+                    verses = VerseRepository.shared.loadVerses()
+                }
+            case .firstLetterTyping:
+                FirstLetterTypingReviewSessionView(verses: reviewQueue) { _ in
+                    verses = VerseRepository.shared.loadVerses()
                 }
             }
         }
@@ -191,7 +194,7 @@ struct HomeView: View {
 
     private var reviewButton: some View {
         Button {
-            showingBatchReviewMethodPicker = true
+            startSmartReview()
         } label: {
             HStack {
                 Image(systemName: "play.circle.fill")
@@ -203,10 +206,31 @@ struct HomeView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
-        .disabled(reviewVerses.isEmpty)
+        .disabled(smartReviewQueue.isEmpty)
     }
 
     private func reloadVerses() {
+        verses = VerseRepository.shared.loadVerses()
+    }
+
+    private var smartReviewQueue: [Verse] {
+        reviewQueueBuilder.buildQueue(from: verses)
+    }
+
+    private func startSmartReview() {
+        let queue = smartReviewQueue
+
+        guard !queue.isEmpty else {
+            return
+        }
+
+        reviewQueue = queue
+        showingBatchReviewMethodPicker = true
+    }
+
+    private func clearReviewSession() {
+        selectedBatchReviewMethod = nil
+        reviewQueue = []
         verses = VerseRepository.shared.loadVerses()
     }
 }

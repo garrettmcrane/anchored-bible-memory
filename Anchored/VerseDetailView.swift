@@ -3,26 +3,35 @@ import SwiftUI
 struct VerseDetailView: View {
     private static let uncategorizedFolderName = "Uncategorized"
     let verse: Verse
-    let onStartReview: (ReviewMethod) -> Void
+    let onStartReview: (Verse, ReviewMethod) -> Void
+    let onVerseUpdated: (Verse) -> Void
 
+    @State private var currentVerse: Verse
     @State private var isVerseRevealed = false
     @State private var showingReviewMethodPicker = false
+
+    init(
+        verse: Verse,
+        onStartReview: @escaping (Verse, ReviewMethod) -> Void,
+        onVerseUpdated: @escaping (Verse) -> Void = { _ in }
+    ) {
+        self.verse = verse
+        self.onStartReview = onStartReview
+        self.onVerseUpdated = onVerseUpdated
+        _currentVerse = State(initialValue: verse)
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(verse.reference)
+                    Text(currentVerse.reference)
                         .font(.largeTitle)
                         .fontWeight(.bold)
 
                     progressBar
 
-                    Text(statusText)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    masteryPicker
 
                     HStack(spacing: 12) {
                         signalCard(
@@ -32,8 +41,8 @@ struct VerseDetailView: View {
                         )
 
                         signalCard(
-                            title: "Streak",
-                            value: "Streak: \(streakCount)",
+                            title: "Correct Reviews",
+                            value: "\(streakCount)",
                             valueColor: .primary
                         )
                     }
@@ -55,7 +64,7 @@ struct VerseDetailView: View {
 
                     VStack(alignment: .leading, spacing: 16) {
                         if isVerseRevealed {
-                            Text(verse.text)
+                            Text(currentVerse.text)
                                 .font(.system(.title3, design: .serif))
                                 .lineSpacing(8)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -99,7 +108,7 @@ struct VerseDetailView: View {
                         detailDivider
                         detailRow(title: "Added", value: addedDateText)
                         detailDivider
-                        detailRow(title: "Times Reviewed", value: "\(verse.reviewCount)")
+                        detailRow(title: "Times Reviewed", value: "\(currentVerse.reviewCount)")
                         detailDivider
                         detailRow(title: "Confidence", value: "\(confidencePercent)%")
                     }
@@ -116,29 +125,37 @@ struct VerseDetailView: View {
         .navigationTitle("Verse")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(.systemBackground))
+        .onChange(of: verse) { _, newValue in
+            currentVerse = newValue
+        }
         .confirmationDialog("Choose Review Method", isPresented: $showingReviewMethodPicker, titleVisibility: .visible) {
             ForEach(ReviewMethod.allCases) { method in
                 Button(method.title) {
-                    onStartReview(method)
+                    onStartReview(currentVerse, method)
                 }
             }
 
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Select how you want to review \(verse.reference).")
+            Text("Select how you want to review \(currentVerse.reference).")
         }
     }
 
-    private var statusText: String {
-        verse.isMastered ? "Memorized" : "Learning"
+    private var masteryPicker: some View {
+        Picker("Status", selection: masteryStatusBinding) {
+            ForEach(VerseMasteryStatus.allCases) { status in
+                Text(status.rawValue).tag(status)
+            }
+        }
+        .pickerStyle(.segmented)
     }
 
     private var streakCount: Int {
-        verse.correctCount
+        currentVerse.correctCount
     }
 
     private var folderName: String {
-        let trimmedFolderName = verse.folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedFolderName = currentVerse.folderName.trimmingCharacters(in: .whitespacesAndNewlines)
         let collapsedWhitespaceFolderName = trimmedFolderName
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
@@ -152,7 +169,7 @@ struct VerseDetailView: View {
     }
 
     private var lastReviewedText: String {
-        guard let lastReviewedAt = verse.lastReviewedAt else {
+        guard let lastReviewedAt = currentVerse.lastReviewedAt else {
             return "Not reviewed yet"
         }
 
@@ -176,7 +193,7 @@ struct VerseDetailView: View {
     }
 
     private var lastReviewedColor: Color {
-        guard let lastReviewedAt = verse.lastReviewedAt else {
+        guard let lastReviewedAt = currentVerse.lastReviewedAt else {
             return Color(.secondaryLabel)
         }
 
@@ -198,15 +215,15 @@ struct VerseDetailView: View {
     }
 
     private var addedDateText: String {
-        verse.createdAt.formatted(.dateTime.month(.wide).day().year())
+        currentVerse.createdAt.formatted(.dateTime.month(.wide).day().year())
     }
 
     private var confidencePercent: Int {
-        guard verse.reviewCount > 0 else {
+        guard currentVerse.reviewCount > 0 else {
             return 0
         }
 
-        let ratio = Double(verse.correctCount) / Double(max(verse.reviewCount, 1))
+        let ratio = Double(currentVerse.correctCount) / Double(max(currentVerse.reviewCount, 1))
         return Int((ratio * 100).rounded())
     }
 
@@ -217,22 +234,35 @@ struct VerseDetailView: View {
                     .fill(Color(.tertiarySystemFill))
 
                 Capsule()
-                    .fill(verse.isMastered ? Color.green.opacity(0.8) : Color.accentColor.opacity(0.85))
+                    .fill(progressTint)
                     .frame(width: geometry.size.width * progressValue)
-            }
-            .overlay(alignment: .topTrailing) {
-                Text("\(verse.correctCount) / \(Verse.masteryGoal)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
-                    .offset(y: -24)
             }
         }
         .frame(height: 6)
     }
 
+    private var progressTint: Color {
+        switch currentVerse.urgencyLevel {
+        case .fresh:
+            return Color(red: 0.24, green: 0.55, blue: 0.41)
+        case .atRisk:
+            return Color(red: 0.72, green: 0.56, blue: 0.18)
+        case .needsReview:
+            return Color(red: 0.68, green: 0.36, blue: 0.34)
+        }
+    }
+
     private var progressValue: CGFloat {
-        CGFloat(min(max(verse.progress, 0), 1))
+        CGFloat(min(max(currentVerse.urgencyProgress, 0), 1))
+    }
+
+    private var masteryStatusBinding: Binding<VerseMasteryStatus> {
+        Binding(
+            get: { currentVerse.masteryStatus },
+            set: { newValue in
+                updateMasteryStatus(to: newValue)
+            }
+        )
     }
 
     private var detailDivider: some View {
@@ -272,6 +302,16 @@ struct VerseDetailView: View {
         .font(.subheadline)
         .padding(.vertical, 12)
     }
+
+    private func updateMasteryStatus(to status: VerseMasteryStatus) {
+        guard currentVerse.masteryStatus != status else {
+            return
+        }
+
+        currentVerse.masteryStatus = status
+        VerseRepository.shared.updateVerse(currentVerse)
+        onVerseUpdated(currentVerse)
+    }
 }
 
 #Preview {
@@ -286,7 +326,7 @@ struct VerseDetailView: View {
                 createdAt: .now.addingTimeInterval(-86400 * 14),
                 lastReviewedAt: .now.addingTimeInterval(-86400)
             ),
-            onStartReview: { _ in }
+            onStartReview: { _, _ in }
         )
     }
 }

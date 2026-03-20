@@ -23,6 +23,7 @@ struct AddVerseView: View {
     @State private var selectedFolder: String = Self.uncategorizedFolder
     @State private var isAddingNewFolder = false
     @State private var newFolderName = ""
+    @State private var masteryStatus: VerseMasteryStatus = .learning
     @State private var lookupMessage: String?
     @State private var referenceFocusRequestID = 0
     @FocusState private var focusedField: Field?
@@ -143,6 +144,15 @@ struct AddVerseView: View {
                     }
                     .padding(.vertical, 4)
                 }
+
+                Section("Status") {
+                    Picker("Status", selection: $masteryStatus) {
+                        ForEach(VerseMasteryStatus.allCases) { status in
+                            Text(status.rawValue).tag(status)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
             }
             .navigationTitle("Add Verse")
             .scrollDismissesKeyboard(.interactively)
@@ -180,7 +190,8 @@ struct AddVerseView: View {
                         let newVerse = Verse(
                             reference: reference.trimmingCharacters(in: .whitespacesAndNewlines),
                             text: text.trimmingCharacters(in: .whitespacesAndNewlines),
-                            folderName: selectedFolder
+                            folderName: selectedFolder,
+                            isMastered: masteryStatus == .memorized
                         )
                         onSave(newVerse)
                         handleSuccessfulSave()
@@ -226,6 +237,7 @@ struct AddVerseView: View {
             folderName = Self.uncategorizedFolder
             isAddingNewFolder = false
             newFolderName = ""
+            masteryStatus = .learning
             lookupMessage = "Verse saved."
 
             requestReferenceFocus(after: 0.3)

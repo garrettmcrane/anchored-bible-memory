@@ -8,6 +8,8 @@ struct ReviewSessionView: View {
 
     @State private var currentIndex = 0
     @State private var showingAnswer = false
+    @State private var summary = ReviewSessionSummary()
+    @State private var isSessionComplete = false
 
     private var currentVerse: Verse {
         verses[currentIndex]
@@ -15,86 +17,73 @@ struct ReviewSessionView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            SwiftUI.Group {
                 if verses.isEmpty {
-                    Spacer()
+                    VStack {
+                        Spacer()
 
-                    Text("No learning verses to review.")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-                } else {
-                    Spacer()
-
-                    Text("Verse \(currentIndex + 1) of \(verses.count)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text(currentVerse.reference)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
-
-                    if showingAnswer {
-                        Text(currentVerse.text)
-                            .font(.title3)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    } else {
-                        Text("Try to recite this verse before revealing it.")
+                        Text("No verses to review.")
                             .font(.headline)
                             .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+
+                        Spacer()
                     }
+                } else if isSessionComplete {
+                    ReviewSessionCompletionView(summary: summary)
+                } else {
+                    VStack(spacing: 20) {
+                        ReviewSessionProgressHeader(
+                            currentIndex: currentIndex,
+                            totalCount: verses.count,
+                            reference: currentVerse.reference
+                        )
 
-                    Spacer()
-
-                    if showingAnswer {
-                        HStack(spacing: 16) {
-                            Button {
-                                recordReview(result: .missed)
-                            } label: {
-                                Text("Missed")
-                                    .fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 56)
-                                    .background(Color.red.opacity(0.15))
-                                    .foregroundStyle(.red)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                        VStack(spacing: 24) {
+                            if showingAnswer {
+                                Text(currentVerse.text)
+                                    .font(.title3)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                            } else {
+                                Text("Try to recite this verse before revealing it.")
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
                             }
 
-                            Button {
-                                recordReview(result: .correct)
-                            } label: {
-                                Text("Got It")
-                                    .fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 56)
-                                    .background(Color.green.opacity(0.15))
-                                    .foregroundStyle(.green)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                            Spacer(minLength: 0)
+
+                            if showingAnswer {
+                                ReviewResultButtons(
+                                    onMissed: { recordReview(result: .missed) },
+                                    onCorrect: { recordReview(result: .correct) }
+                                )
+                                .padding(.horizontal)
+                            } else {
+                                Button {
+                                    showingAnswer = true
+                                } label: {
+                                    Text("Reveal Verse")
+                                        .fontWeight(.semibold)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 56)
+                                        .background(Color.blue)
+                                        .foregroundStyle(.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                                }
+                                .padding(.horizontal)
                             }
                         }
-                        .padding(.horizontal)
-                    } else {
-                        Button {
-                            showingAnswer = true
-                        } label: {
-                            Text("Reveal Verse")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(Color.blue)
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                        }
-                        .padding(.horizontal)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.vertical, 16)
+                        .id(currentVerse.id)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
                     }
                 }
             }
             .padding(.vertical, 32)
+            .padding(.horizontal, 20)
             .navigationTitle("Review Session")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -104,6 +93,8 @@ struct ReviewSessionView: View {
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: currentIndex)
+            .animation(.easeInOut(duration: 0.2), value: isSessionComplete)
         }
     }
 
@@ -115,6 +106,7 @@ struct ReviewSessionView: View {
         )
 
         onUpdate(updatedVerse)
+        summary.record(result)
         moveToNextVerseOrFinish()
     }
 
@@ -123,7 +115,7 @@ struct ReviewSessionView: View {
             currentIndex += 1
             showingAnswer = false
         } else {
-            dismiss()
+            isSessionComplete = true
         }
     }
 }

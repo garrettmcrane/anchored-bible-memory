@@ -8,6 +8,8 @@ struct ProgressiveWordHidingReviewSessionView: View {
 
     @State private var currentIndex = 0
     @State private var hidingState: ProgressiveWordHidingState
+    @State private var summary = ReviewSessionSummary()
+    @State private var isSessionComplete = false
 
     init(verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
         self.verses = verses
@@ -23,95 +25,77 @@ struct ProgressiveWordHidingReviewSessionView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            SwiftUI.Group {
                 if verses.isEmpty {
-                    Spacer()
+                    VStack {
+                        Spacer()
 
-                    Text("No learning verses to review.")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-                } else {
-                    VStack(spacing: 10) {
-                        Text("Verse \(currentIndex + 1) of \(verses.count)")
-                            .font(.subheadline)
+                        Text("No verses to review.")
+                            .font(.headline)
                             .foregroundStyle(.secondary)
 
-                        Text(currentVerse.reference)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .multilineTextAlignment(.center)
+                        Spacer()
                     }
-                    .padding(.horizontal)
+                } else if isSessionComplete {
+                    ReviewSessionCompletionView(summary: summary)
+                } else {
+                    VStack(spacing: 20) {
+                        ReviewSessionProgressHeader(
+                            currentIndex: currentIndex,
+                            totalCount: verses.count,
+                            reference: currentVerse.reference
+                        )
 
-                    ScrollView {
-                        Text(hidingState.displayedText)
-                            .font(.system(.title3, design: .serif))
-                            .lineSpacing(10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(24)
-                            .background(
-                                RoundedRectangle(cornerRadius: 24)
-                                    .fill(Color(.secondarySystemBackground))
+                        VStack(spacing: 20) {
+                            ScrollView {
+                                Text(hidingState.displayedText)
+                                    .font(.system(.title3, design: .serif))
+                                    .lineSpacing(10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(24)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .fill(Color(.secondarySystemBackground))
+                                    )
+                            }
+
+                            HStack(spacing: 12) {
+                                Button {
+                                    hidingState.hideMoreWords()
+                                } label: {
+                                    Text("Hide More Words")
+                                        .fontWeight(.semibold)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 50)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(!hidingState.canHideMoreWords)
+
+                                Button {
+                                    hidingState.reset()
+                                } label: {
+                                    Text("Reset")
+                                        .fontWeight(.semibold)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 50)
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(!hidingState.hasHiddenWords)
+                            }
+
+                            ReviewResultButtons(
+                                onMissed: { recordReview(result: .missed) },
+                                onCorrect: { recordReview(result: .correct) }
                             )
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .id(currentVerse.id)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
                     }
-                    .padding(.horizontal)
-
-                    HStack(spacing: 12) {
-                        Button {
-                            hidingState.hideMoreWords()
-                        } label: {
-                            Text("Hide More Words")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!hidingState.canHideMoreWords)
-
-                        Button {
-                            hidingState.reset()
-                        } label: {
-                            Text("Reset")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(!hidingState.hasHiddenWords)
-                    }
-                    .padding(.horizontal)
-
-                    HStack(spacing: 16) {
-                        Button {
-                            recordReview(result: .missed)
-                        } label: {
-                            Text("Missed")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(Color.red.opacity(0.15))
-                                .foregroundStyle(.red)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                        }
-
-                        Button {
-                            recordReview(result: .correct)
-                        } label: {
-                            Text("Got It")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(Color.green.opacity(0.15))
-                                .foregroundStyle(.green)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                        }
-                    }
-                    .padding(.horizontal)
                 }
             }
             .padding(.vertical, 32)
+            .padding(.horizontal, 20)
             .navigationTitle("Review Session")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -121,6 +105,8 @@ struct ProgressiveWordHidingReviewSessionView: View {
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: currentIndex)
+            .animation(.easeInOut(duration: 0.2), value: isSessionComplete)
         }
     }
 
@@ -132,6 +118,7 @@ struct ProgressiveWordHidingReviewSessionView: View {
         )
 
         onUpdate(updatedVerse)
+        summary.record(result)
         moveToNextVerseOrFinish()
     }
 
@@ -141,7 +128,7 @@ struct ProgressiveWordHidingReviewSessionView: View {
             currentIndex = nextIndex
             hidingState = ProgressiveWordHidingState(text: verses[nextIndex].text)
         } else {
-            dismiss()
+            isSessionComplete = true
         }
     }
 }

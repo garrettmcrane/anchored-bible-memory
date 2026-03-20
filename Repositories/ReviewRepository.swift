@@ -35,10 +35,8 @@ struct ReviewRepository {
         switch result {
         case .correct:
             updatedVerse.correctCount += 1
-            updatedVerse.isMastered = updatedVerse.correctCount >= Verse.masteryGoal
         case .missed:
             updatedVerse.correctCount = 0
-            updatedVerse.isMastered = false
         }
 
         if updatedVerse.syncStatus != .localOnly && updatedVerse.syncStatus != .pendingDelete {

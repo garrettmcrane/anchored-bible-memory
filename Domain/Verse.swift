@@ -1,5 +1,14 @@
 import Foundation
 
+enum VerseMasteryStatus: String, CaseIterable, Codable, Identifiable {
+    case learning = "Learning"
+    case memorized = "Memorized"
+
+    var id: String {
+        rawValue
+    }
+}
+
 struct Verse: Identifiable, Codable, Equatable {
     var id: String
     var reference: String
@@ -15,8 +24,6 @@ struct Verse: Identifiable, Codable, Equatable {
     var sourceType: VerseSourceType
     var syncStatus: SyncStatus
     var deletedAt: Date?
-
-    static let masteryGoal = 3
 
     init(
         id: String = UUID().uuidString,
@@ -50,12 +57,20 @@ struct Verse: Identifiable, Codable, Equatable {
         self.deletedAt = deletedAt
     }
 
-    var progress: Double {
-        Double(correctCount) / Double(Self.masteryGoal)
+    var masteryStatus: VerseMasteryStatus {
+        get { isMastered ? .memorized : .learning }
+        set { isMastered = newValue == .memorized }
     }
 
-    var progressText: String {
-        "\(correctCount)/\(Self.masteryGoal)"
+    var urgencyProgress: Double {
+        switch urgencyLevel {
+        case .fresh:
+            return 1
+        case .atRisk:
+            return 0.6
+        case .needsReview:
+            return 0.25
+        }
     }
 
     var urgencyLevel: UrgencyLevel {

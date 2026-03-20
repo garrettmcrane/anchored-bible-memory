@@ -34,11 +34,11 @@ struct VerseRowView: View {
                             .foregroundStyle(.secondary.opacity(0.75))
                             .lineLimit(1)
 
-                        ProgressView(value: verse.progress)
+                        ProgressView(value: verse.urgencyProgress)
                             .tint(progressTint)
                             .scaleEffect(x: 1, y: 0.7, anchor: .center)
 
-                        Text(verse.isMastered ? "Memorized" : verse.progressText)
+                        Text(verse.masteryStatus.rawValue)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
