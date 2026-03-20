@@ -1,17 +1,17 @@
 import SwiftUI
+import SwiftData
 
 struct ReviewView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     @State private var isRevealed = false
     @State private var verse: Verse
 
-    let onUpdate: (Verse) -> Void
-
-    init(verse: Verse, onUpdate: @escaping (Verse) -> Void) {
+    init(verse: Verse) {
         _verse = State(initialValue: verse)
-        self.onUpdate = onUpdate
     }
+
 
     var body: some View {
         VStack(spacing: 24) {
@@ -34,7 +34,7 @@ struct ReviewView: View {
                     }
                 }
 
-                ProgressView(value: verse.progressValue)
+                ProgressView(value: verse.progress)
                     .tint(verse.isMastered ? .green : .blue)
             }
             .padding()
@@ -64,8 +64,7 @@ struct ReviewView: View {
 
                     Button("Missed") {
                         verse.correctCount = 0
-                        verse.isMastered = false
-                        onUpdate(verse)
+                        try? modelContext.save()
                         dismiss()
                     }
                     .buttonStyle(.bordered)
@@ -75,7 +74,7 @@ struct ReviewView: View {
                         if verse.correctCount >= Verse.masteryGoal {
                             verse.isMastered = true
                         }
-                        onUpdate(verse)
+                        try? modelContext.save()
                         dismiss()
                     }
                     .buttonStyle(.borderedProminent)
@@ -89,8 +88,5 @@ struct ReviewView: View {
 }
 
 #Preview {
-    ReviewView(
-        verse: Verse(reference: "John 3:16", text: "Sample verse"),
-        onUpdate: { _ in }
-    )
+    ReviewView(verse: Verse(reference: "John 3:16", text: "Sample verse"))
 }

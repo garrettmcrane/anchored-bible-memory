@@ -82,7 +82,7 @@ struct VerseDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        ProgressView(value: verse.progressValue)
+                        ProgressView(value: verse.progress)
                     }
                     .padding()
                     .background(

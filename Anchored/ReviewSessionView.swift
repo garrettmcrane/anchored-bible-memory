@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct ReviewSessionView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     @State private var sessionVerses: [Verse]
@@ -202,7 +204,7 @@ struct ReviewSessionView: View {
 
     private func recordMissed() {
         sessionVerses[currentIndex].correctCount = 0
-        sessionVerses[currentIndex].isMastered = false
+        try? modelContext.save()
         moveToNextVerse()
     }
 
@@ -213,6 +215,7 @@ struct ReviewSessionView: View {
             sessionVerses[currentIndex].isMastered = true
         }
 
+        try? modelContext.save()
         correctAnswers += 1
         moveToNextVerse()
     }

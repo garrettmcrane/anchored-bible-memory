@@ -1,25 +1,18 @@
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var verses: [Verse]
+
     enum FilterType: String, CaseIterable {
         case all = "All"
         case learning = "Learning"
         case memorized = "Memorized"
     }
 
-    @State private var verses: [Verse] = VerseStore.load().isEmpty ? [
-        Verse(
-            reference: "John 3:16",
-            text: "For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life."
-        ),
-        Verse(
-            reference: "Romans 8:28",
-            text: "And we know that for those who love God all things work together for good, for those who are called according to his purpose."
-        )
-    ] : VerseStore.load()
-
     @State private var showingAddVerse = false
-    @State private var selectedIndex: Int? = nil
+    @State private var selectedVerse: Verse? = nil
     @State private var selectedFilter: FilterType = .all
     @State private var showingReviewSession = false
     @State private var scrollOffset: CGFloat = 0
@@ -72,11 +65,11 @@ struct ContentView: View {
                                     buttonHeight: currentReviewButtonHeight,
                                     spacing: currentControlsSpacing
                                 )
-                                    .background(
-                                        Color(.systemGroupedBackground)
-                                            .ignoresSafeArea(edges: .top)
-                                    )
-                                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                                .background(
+                                    Color(.systemGroupedBackground)
+                                        .ignoresSafeArea(edges: .top)
+                                )
+                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
                             }
                         }
                     }
@@ -97,41 +90,19 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingAddVerse) {
             AddVerseView { newVerse in
-                verses.append(newVerse)
+                modelContext.insert(newVerse)
             }
         }
-        .sheet(isPresented: Binding(
-            get: { selectedIndex != nil },
-            set: { if !$0 { selectedIndex = nil } }
-        )) {
-            if let index = selectedIndex {
-                ReviewView(
-                    verse: verses[index],
-                    onUpdate: { updatedVerse in
-                        verses[index] = updatedVerse
-                    }
-                )
-            }
+        .sheet(item: $selectedVerse) { verse in
+            ReviewView(verse: verse)
         }
         .sheet(isPresented: $showingReviewSession) {
             ReviewSessionView(
                 verses: learningVerses,
-                onComplete: { updatedSessionVerses in
-                    for updatedVerse in updatedSessionVerses {
-                        if let realIndex = verses.firstIndex(where: { $0.id == updatedVerse.id }) {
-                            verses[realIndex] = updatedVerse
-                        }
-                    }
+                onComplete: { _ in
+                    try? modelContext.save()
                 }
             )
-        }
-        .onChange(of: verses) { _, newValue in
-            VerseStore.save(newValue)
-        }
-        .onAppear {
-            if VerseStore.load().isEmpty {
-                VerseStore.save(verses)
-            }
         }
     }
 
@@ -271,9 +242,7 @@ struct ContentView: View {
                             VerseDetailView(
                                 verse: verse,
                                 onStartReview: {
-                                    if let realIndex = verses.firstIndex(of: verse) {
-                                        selectedIndex = realIndex
-                                    }
+                                    selectedVerse = verse
                                 }
                             )
                         } label: {
@@ -301,11 +270,15 @@ struct ContentView: View {
     }
 
     private func deleteVerses(at offsets: IndexSet) {
-        let idsToDelete = offsets.map { filteredVerses[$0].id }
-        verses.removeAll { idsToDelete.contains($0.id) }
+        let versesToDelete = offsets.map { filteredVerses[$0] }
+        for verse in versesToDelete {
+            modelContext.delete(verse)
+        }
+        try? modelContext.save()
     }
 }
 
 #Preview {
     ContentView()
+        .modelContainer(for: Verse.self, inMemory: true)
 }

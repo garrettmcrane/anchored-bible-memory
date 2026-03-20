@@ -1,11 +1,14 @@
 import Foundation
+import SwiftData
 
-struct Verse: Identifiable, Codable, Hashable {
-    let id: UUID
+@Model
+final class Verse {
+    var id: UUID
     var reference: String
     var text: String
     var isMastered: Bool
     var correctCount: Int
+
     static let masteryGoal = 3
 
     init(
@@ -22,15 +25,11 @@ struct Verse: Identifiable, Codable, Hashable {
         self.correctCount = correctCount
     }
 
-    var progressText: String {
-        if isMastered {
-            return "Mastered"
-        }
-
-        return "\(correctCount)/\(Self.masteryGoal) correct"
+    var progress: Double {
+        Double(correctCount) / Double(Self.masteryGoal)
     }
 
-    var progressValue: Double {
-        min(Double(correctCount) / Double(Self.masteryGoal), 1.0)
+    var progressText: String {
+        "\(correctCount)/\(Self.masteryGoal)"
     }
 }

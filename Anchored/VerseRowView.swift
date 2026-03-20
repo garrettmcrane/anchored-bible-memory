@@ -21,7 +21,7 @@ struct VerseRowView: View {
             }
 
             HStack(spacing: 12) {
-                ProgressView(value: verse.progressValue)
+                ProgressView(value: verse.progress)
                     .tint(verse.isMastered ? .green : .blue)
 
                 Text(verse.isMastered ? "Memorized" : verse.progressText)

@@ -124,10 +124,7 @@ struct ContentView: View {
         )) {
             if let index = selectedIndex {
                 ReviewView(
-                    verse: verses[index],
-                    onUpdate: { updatedVerse in
-                        verses[index] = updatedVerse
-                    }
+                    verse: verses[index]
                 )
             }
         }
