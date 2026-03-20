@@ -23,6 +23,7 @@ struct LibraryView: View {
     }
 
     private static let allFoldersOption = "All Folders"
+    private static let uncategorizedFolderName = "Uncategorized"
 
     @State private var showingAddVerse = false
     @State private var showingFolderFilterSheet = false
@@ -33,12 +34,11 @@ struct LibraryView: View {
     @State private var sortMode: SortMode = .newest
     @State private var selectedBatchReviewMethod: ReviewMethod? = nil
     @State private var showingBatchReviewMethodPicker = false
-    @State private var swipedVerseID: String? = nil
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
 
-    private let expandedReviewButtonHeight: CGFloat = 66
-    private let collapsedReviewButtonHeight: CGFloat = 34
+    private let floatingButtonHeight: CGFloat = 50
+    private let floatingButtonVerticalInset: CGFloat = 8
     private let summaryFadeDistance: CGFloat = 100
 
     private var folderOptions: [String] {
@@ -109,8 +109,12 @@ struct LibraryView: View {
         verses.count
     }
 
-    private var learningVerses: [Verse] {
-        VerseQueries.learningVerses(verses)
+    private var reviewVerses: [Verse] {
+        verses
+    }
+
+    private var floatingButtonClearance: CGFloat {
+        floatingButtonHeight + (floatingButtonVerticalInset * 2) + 16
     }
 
     private var hasActiveFolderFilter: Bool {
@@ -131,41 +135,55 @@ struct LibraryView: View {
         return "\(selected.count) folders"
     }
 
-    private var reviewButtonBottomInset: CGFloat {
-        88
-    }
-
     var body: some View {
         GeometryReader { proxy in
             let safeTop = proxy.safeAreaInsets.top
-            let safeBottom = proxy.safeAreaInsets.bottom
 
             NavigationStack {
                 ZStack(alignment: .top) {
                     Color(.systemGroupedBackground)
                         .ignoresSafeArea()
 
-                    ScrollView(showsIndicators: false) {
-                        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                            topSummarySection
-                                .opacity(summaryOpacity)
+                    List {
+                        topSummarySection
+                            .opacity(summaryOpacity)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
 
-                            Section {
-                                versesSection
-                            } header: {
-                                controlsSection(
-                                    buttonHeight: currentReviewButtonHeight,
-                                    spacing: currentControlsSpacing
-                                )
-                                .background(
-                                    Color(.systemGroupedBackground)
-                                        .ignoresSafeArea(edges: .top)
-                                )
-                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        controlsSection(spacing: currentControlsSpacing)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+
+                        Section {
+                            verseSectionHeader
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+
+                            if filteredVerses.isEmpty {
+                                emptyVersesState
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                            } else {
+                                ForEach(Array(filteredVerses.enumerated()), id: \.element.id) { index, verse in
+                                    verseListRow(
+                                        verse: verse,
+                                        index: index,
+                                        totalCount: filteredVerses.count
+                                    )
+                                }
                             }
                         }
-                        .padding(.bottom, reviewButtonBottomInset + safeBottom)
+                        .listSectionSeparator(.hidden)
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .contentMargins(.horizontal, 20, for: .scrollContent)
+                    .contentMargins(.bottom, floatingButtonClearance, for: .scrollContent)
+                    .environment(\.defaultMinListRowHeight, 1)
                     .overlay(alignment: .top) {
                         Color(.systemGroupedBackground)
                             .frame(height: safeTop)
@@ -179,7 +197,7 @@ struct LibraryView: View {
                     }
                 }
                 .overlay(alignment: .bottom) {
-                    floatingReviewButton(safeBottom: safeBottom)
+                    floatingReviewButton()
                 }
                 .navigationBarHidden(true)
                 .navigationDestination(isPresented: detailVersePresented) {
@@ -224,11 +242,11 @@ struct LibraryView: View {
         .sheet(item: $selectedBatchReviewMethod) { method in
             switch method {
             case .flashcard:
-                ReviewSessionView(verses: learningVerses) { _ in
+                ReviewSessionView(verses: reviewVerses) { _ in
                     reloadVerses()
                 }
             case .progressiveWordHiding:
-                ProgressiveWordHidingReviewSessionView(verses: learningVerses) { _ in
+                ProgressiveWordHidingReviewSessionView(verses: reviewVerses) { _ in
                     reloadVerses()
                 }
             }
@@ -255,10 +273,6 @@ struct LibraryView: View {
 
     private var scrollProgress: CGFloat {
         min(scrollOffset / summaryFadeDistance, 1)
-    }
-
-    private var currentReviewButtonHeight: CGFloat {
-        expandedReviewButtonHeight - ((expandedReviewButtonHeight - collapsedReviewButtonHeight) * scrollProgress)
     }
 
     private var currentControlsSpacing: CGFloat {
@@ -320,24 +334,16 @@ struct LibraryView: View {
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 0)
         .padding(.top, 18)
-        .padding(.bottom, 12)
+        .padding(.bottom, 4)
     }
 
-    @ViewBuilder
-    private func controlsSection(
-        buttonHeight: CGFloat,
-        spacing: CGFloat
-    ) -> some View {
-        VStack(spacing: spacing) {
+    private func controlsSection(spacing: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: spacing) {
             HStack(spacing: 12) {
-                Picker("Filter", selection: $selectedFilter) {
-                    ForEach(FilterType.allCases, id: \.self) { filter in
-                        Text(filter.rawValue).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
+                LibraryFilterSegmentedControl(selection: $selectedFilter)
+                    .frame(height: 34)
 
                 Menu {
                     Picker("Sort", selection: $sortMode) {
@@ -346,13 +352,13 @@ struct LibraryView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "arrow.up.arrow.down.circle")
-                        .font(.title3)
-                        .foregroundStyle(.primary)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            Circle()
-                                .fill(Color(.secondarySystemBackground))
+                        Image(systemName: "arrow.up.arrow.down.circle")
+                            .font(.title3)
+                            .foregroundStyle(.primary)
+                            .frame(width: 38, height: 38)
+                            .background(
+                                Circle()
+                                    .fill(Color(.systemBackground))
                         )
                 }
                 .buttonStyle(.plain)
@@ -361,13 +367,13 @@ struct LibraryView: View {
                 Button {
                     showingFolderFilterSheet = true
                 } label: {
-                    Image(systemName: hasActiveFolderFilter ? "folder.badge.gearshape.fill" : "folder.badge.gearshape")
-                        .font(.title3)
-                        .foregroundStyle(hasActiveFolderFilter ? .blue : .primary)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            Circle()
-                                .fill(Color(.secondarySystemBackground))
+                        Image(systemName: hasActiveFolderFilter ? "folder.badge.gearshape.fill" : "folder.badge.gearshape")
+                            .font(.title3)
+                            .foregroundStyle(hasActiveFolderFilter ? .blue : .primary)
+                            .frame(width: 38, height: 38)
+                            .background(
+                                Circle()
+                                    .fill(Color(.systemBackground))
                         )
                 }
                 .buttonStyle(.plain)
@@ -381,81 +387,109 @@ struct LibraryView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .background(Color(.systemGroupedBackground))
-        .overlay(alignment: .bottom) {
-            Divider()
-        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .padding(.top, 2)
+        .padding(.bottom, 2)
     }
 
-    private var versesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Your Verses")
-                .font(.title3)
-                .fontWeight(.semibold)
+    private var verseSectionHeader: some View {
+        Text("Your Verses")
+            .font(.title3)
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 0)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
+    }
+
+    private var emptyVersesState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "book.closed")
+                .font(.system(size: 34))
                 .foregroundStyle(.secondary)
 
-            if filteredVerses.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "book.closed")
-                        .font(.system(size: 34))
-                        .foregroundStyle(.secondary)
+            Text("No verses here yet")
+                .font(.headline)
 
-                    Text("No verses here yet")
-                        .font(.headline)
-
-                    Text("Add a verse to start memorizing Scripture.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(28)
-                .background(
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color(.secondarySystemBackground))
-                )
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(filteredVerses) { verse in
-                        SwipeToDeleteVerseRow(
-                            id: verse.id,
-                            openRowID: $swipedVerseID,
-                            onDelete: {
-                                deleteVerse(verse)
-                            },
-                            onTap: {
-                                detailVerse = verse
-                            },
-                            label: {
-                                VerseRowView(verse: verse)
-                                    .contentShape(Rectangle())
-                            }
-                        )
-
-                        if verse.id != filteredVerses.last?.id {
-                            Divider()
-                                .padding(.horizontal, 18)
-                        }
-                    }
-                }
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 26)
-                        .fill(Color(.systemBackground))
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 26))
-            }
+            Text("Add a verse to start memorizing Scripture.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
+        .frame(maxWidth: .infinity)
+        .padding(28)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .padding(.horizontal, 0)
         .padding(.bottom, 16)
     }
 
+    private func verseListRow(verse: Verse, index: Int, totalCount: Int) -> some View {
+        let rowShape = UnevenRoundedRectangle(
+            cornerRadii: rowCornerRadii(for: index, totalCount: totalCount),
+            style: .continuous
+        )
+
+        return Button {
+            detailVerse = verse
+        } label: {
+            VerseRowView(verse: verse)
+                .contentShape(Rectangle())
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .overlay(alignment: .bottom) {
+                    if index < totalCount - 1 {
+                        Divider()
+                            .padding(.horizontal, 18)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .containerShape(rowShape)
+        .clipShape(rowShape)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                deleteVerse(verse)
+            } label: {
+                Image(systemName: "trash")
+            }
+        }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(
+            rowBackground(for: index, totalCount: totalCount)
+        )
+        .listRowSeparator(.hidden)
+    }
+
+    private func rowBackground(for index: Int, totalCount: Int) -> some View {
+        let radii = rowCornerRadii(for: index, totalCount: totalCount)
+
+        return UnevenRoundedRectangle(cornerRadii: radii, style: .continuous)
+            .fill(Color(.systemBackground))
+    }
+
+    private func rowCornerRadii(for index: Int, totalCount: Int) -> RectangleCornerRadii {
+        let radius: CGFloat = 26
+        let isFirstRow = index == 0
+        let isLastRow = index == totalCount - 1
+
+        return RectangleCornerRadii(
+            topLeading: isFirstRow ? radius : 0,
+            bottomLeading: isLastRow ? radius : 0,
+            bottomTrailing: isLastRow ? radius : 0,
+            topTrailing: isFirstRow ? radius : 0
+        )
+    }
+
     @ViewBuilder
-    private func floatingReviewButton(safeBottom: CGFloat) -> some View {
+    private func floatingReviewButton() -> some View {
         Button {
             showingBatchReviewMethodPicker = true
         } label: {
@@ -475,9 +509,7 @@ struct LibraryView: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
-        .padding(.bottom, 8)
-        .disabled(learningVerses.isEmpty)
-        .opacity(learningVerses.isEmpty ? 0.55 : 1)
+        .padding(.bottom, floatingButtonVerticalInset)
     }
 
     private func reloadVerses() {
@@ -489,22 +521,19 @@ struct LibraryView: View {
 
         selectedFolders = selectedFolders.intersection(Set(folderOptions))
 
-        if let swipedVerseID, !verses.contains(where: { $0.id == swipedVerseID }) {
-            self.swipedVerseID = nil
-        }
     }
 
     private func normalizedFolderName(_ folderName: String) -> String {
         let trimmedFolderName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !trimmedFolderName.isEmpty else {
-            return "General"
-        }
-
         let collapsedWhitespaceFolderName = trimmedFolderName
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+
+        guard !collapsedWhitespaceFolderName.isEmpty else {
+            return Self.uncategorizedFolderName
+        }
 
         return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
     }
@@ -555,12 +584,70 @@ struct LibraryView: View {
             selectedVerseReview = nil
         }
 
-        if swipedVerseID == verse.id {
-            swipedVerseID = nil
-        }
-
         VerseRepository.shared.softDeleteVerse(id: verse.id)
         reloadVerses()
+    }
+}
+
+private struct LibraryFilterSegmentedControl: UIViewRepresentable {
+    @Binding var selection: LibraryView.FilterType
+
+    func makeUIView(context: Context) -> UISegmentedControl {
+        let control = UISegmentedControl(items: LibraryView.FilterType.allCases.map(\.rawValue))
+        control.selectedSegmentIndex = selectedIndex
+        control.selectedSegmentTintColor = UIColor.systemBackground
+        control.backgroundColor = UIColor.tertiarySystemFill
+        control.setTitleTextAttributes(
+            [
+                .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
+                .foregroundColor: UIColor.label
+            ],
+            for: .normal
+        )
+        control.setTitleTextAttributes(
+            [
+                .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
+                .foregroundColor: UIColor.label
+            ],
+            for: .selected
+        )
+        control.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.valueChanged(_:)),
+            for: .valueChanged
+        )
+        return control
+    }
+
+    func updateUIView(_ uiView: UISegmentedControl, context: Context) {
+        if uiView.selectedSegmentIndex != selectedIndex {
+            uiView.selectedSegmentIndex = selectedIndex
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(selection: $selection)
+    }
+
+    private var selectedIndex: Int {
+        LibraryView.FilterType.allCases.firstIndex(of: selection) ?? 0
+    }
+
+    final class Coordinator: NSObject {
+        @Binding private var selection: LibraryView.FilterType
+
+        init(selection: Binding<LibraryView.FilterType>) {
+            _selection = selection
+        }
+
+        @objc func valueChanged(_ sender: UISegmentedControl) {
+            let allCases = LibraryView.FilterType.allCases
+            guard allCases.indices.contains(sender.selectedSegmentIndex) else {
+                return
+            }
+
+            selection = allCases[sender.selectedSegmentIndex]
+        }
     }
 }
 
@@ -648,144 +735,6 @@ private struct FolderFilterSheet: View {
         } else {
             draftSelection.insert(folder)
         }
-    }
-}
-
-private struct SwipeToDeleteVerseRow<Label: View>: View {
-    let id: String
-    @Binding var openRowID: String?
-    let onDelete: () -> Void
-    let onTap: () -> Void
-    @ViewBuilder let label: () -> Label
-
-    @State private var settledOffset: CGFloat = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var isDragging = false
-
-    private let actionWidth: CGFloat = 84
-    private let revealThreshold: CGFloat = 52
-    private let fullSwipeThreshold: CGFloat = 148
-
-    private var contentOffset: CGFloat {
-        let proposedOffset = settledOffset + dragOffset
-        return min(0, max(-fullSwipeThreshold, proposedOffset))
-    }
-
-    private var deleteActionOpacity: CGFloat {
-        contentOffset == 0 ? 0 : 1
-    }
-
-    var body: some View {
-        ZStack(alignment: .trailing) {
-            deleteAction
-
-            label()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .background(Color(.systemBackground))
-                .offset(x: contentOffset)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    guard !isDragging else {
-                        return
-                    }
-
-                    if settledOffset == 0 {
-                        onTap()
-                    } else {
-                        closeRow()
-                    }
-                }
-                .highPriorityGesture(dragGesture)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .clipped()
-        .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.86), value: settledOffset)
-        .onChange(of: openRowID) { _, newValue in
-            if newValue != id, settledOffset != 0 {
-                settledOffset = 0
-                dragOffset = 0
-            }
-        }
-    }
-
-    private var deleteAction: some View {
-        HStack {
-            Spacer()
-
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Image(systemName: "trash.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .background(
-                        Circle()
-                            .fill(Color(uiColor: .systemRed))
-                    )
-                    .frame(width: actionWidth, height: 64)
-                    .opacity(deleteActionOpacity)
-            }
-            .buttonStyle(.plain)
-            .disabled(settledOffset == 0)
-        }
-        .padding(.trailing, 12)
-    }
-
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 10, coordinateSpace: .local)
-            .onChanged { value in
-                if !isDragging {
-                    isDragging = true
-                }
-
-                if openRowID != id, value.translation.width < 0 {
-                    openRowID = id
-                }
-
-                if value.translation.width < 0 || settledOffset < 0 {
-                    dragOffset = value.translation.width
-                } else {
-                    dragOffset = 0
-                }
-            }
-            .onEnded { value in
-                defer {
-                    dragOffset = 0
-                    DispatchQueue.main.async {
-                        isDragging = false
-                    }
-                }
-
-                let finalOffset = settledOffset + value.translation.width
-                let predictedOffset = settledOffset + value.predictedEndTranslation.width
-
-                if predictedOffset <= -fullSwipeThreshold {
-                    onDelete()
-                    return
-                }
-
-                if finalOffset <= -revealThreshold {
-                    openRow()
-                } else {
-                    closeRow()
-                }
-            }
-    }
-
-    private func openRow() {
-        openRowID = id
-        settledOffset = -actionWidth
-    }
-
-    private func closeRow() {
-        if openRowID == id {
-            openRowID = nil
-        }
-
-        settledOffset = 0
     }
 }
 

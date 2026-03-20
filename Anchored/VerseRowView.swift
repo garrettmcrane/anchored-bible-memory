@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VerseRowView: View {
     let verse: Verse
+    private static let uncategorizedFolderName = "Uncategorized"
 
     private var progressTint: Color {
         switch verse.urgencyLevel {
@@ -28,7 +29,7 @@ struct VerseRowView: View {
                         .truncationMode(.tail)
 
                     HStack(spacing: 8) {
-                        Text(verse.folderName)
+                        Text(folderName)
                             .font(.caption2)
                             .foregroundStyle(.secondary.opacity(0.75))
                             .lineLimit(1)
@@ -53,6 +54,20 @@ struct VerseRowView: View {
             }
         }
         .padding(.vertical, 1)
+    }
+
+    private var folderName: String {
+        let trimmedFolderName = verse.folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let collapsedWhitespaceFolderName = trimmedFolderName
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        guard !collapsedWhitespaceFolderName.isEmpty else {
+            return Self.uncategorizedFolderName
+        }
+
+        return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
     }
 }
 

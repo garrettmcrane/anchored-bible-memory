@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct VerseDetailView: View {
+    private static let uncategorizedFolderName = "Uncategorized"
     let verse: Verse
     let onStartReview: (ReviewMethod) -> Void
 
@@ -94,7 +95,7 @@ struct VerseDetailView: View {
                         .font(.headline)
 
                     VStack(spacing: 0) {
-                        detailRow(title: "Folder", value: verse.folderName)
+                        detailRow(title: "Folder", value: folderName)
                         detailDivider
                         detailRow(title: "Added", value: addedDateText)
                         detailDivider
@@ -134,6 +135,20 @@ struct VerseDetailView: View {
 
     private var streakCount: Int {
         verse.correctCount
+    }
+
+    private var folderName: String {
+        let trimmedFolderName = verse.folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let collapsedWhitespaceFolderName = trimmedFolderName
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        guard !collapsedWhitespaceFolderName.isEmpty else {
+            return Self.uncategorizedFolderName
+        }
+
+        return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
     }
 
     private var lastReviewedText: String {
