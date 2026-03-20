@@ -58,6 +58,23 @@ struct Verse: Identifiable, Codable, Equatable {
         "\(correctCount)/\(Self.masteryGoal)"
     }
 
+    var urgencyLevel: UrgencyLevel {
+        guard let lastReviewedAt else {
+            return .fresh
+        }
+
+        let daysSinceReview = Calendar.current.dateComponents([.day], from: lastReviewedAt, to: Date()).day ?? 0
+
+        switch daysSinceReview {
+        case ..<3:
+            return .fresh
+        case 3..<7:
+            return .atRisk
+        default:
+            return .needsReview
+        }
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id
         case reference

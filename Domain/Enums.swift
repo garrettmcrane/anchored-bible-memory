@@ -71,3 +71,9 @@ enum ReviewResult: String, Codable {
     case correct
     case missed
 }
+
+enum UrgencyLevel {
+    case fresh
+    case atRisk
+    case needsReview
+}

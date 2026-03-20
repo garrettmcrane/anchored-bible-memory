@@ -3,6 +3,17 @@ import SwiftUI
 struct VerseRowView: View {
     let verse: Verse
 
+    private var progressTint: Color {
+        switch verse.urgencyLevel {
+        case .fresh:
+            return Color(red: 0.34, green: 0.69, blue: 0.48)
+        case .atRisk:
+            return Color(red: 0.85, green: 0.72, blue: 0.31)
+        case .needsReview:
+            return Color(red: 0.78, green: 0.39, blue: 0.37)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
@@ -26,7 +37,7 @@ struct VerseRowView: View {
 
             HStack(spacing: 12) {
                 ProgressView(value: verse.progress)
-                    .tint(verse.isMastered ? .green : .blue)
+                    .tint(progressTint)
 
                 Text(verse.isMastered ? "Memorized" : verse.progressText)
                     .font(.caption)

@@ -16,6 +16,12 @@ struct ContentView: View {
         case memorized = "Memorized"
     }
 
+    private enum SortMode: String, CaseIterable {
+        case newest = "Newest"
+        case review = "Review"
+        case aToZ = "A–Z"
+    }
+
     private static let allFoldersOption = "All Folders"
 
     @State private var showingAddVerse = false
@@ -23,6 +29,7 @@ struct ContentView: View {
     @State private var selectedVerseReview: SingleVerseReviewPresentation? = nil
     @State private var selectedFilter: FilterType = .all
     @State private var selectedFolder: String = Self.allFoldersOption
+    @State private var sortMode: SortMode = .newest
     @State private var selectedBatchReviewMethod: ReviewMethod? = nil
     @State private var showingBatchReviewMethodPicker = false
     @State private var swipedVerseID: String? = nil
@@ -54,13 +61,38 @@ struct ContentView: View {
         }
     }
 
-    private var filteredVerses: [Verse] {
+    private var folderFilteredVerses: [Verse] {
         guard selectedFolder != Self.allFoldersOption else {
             return statusFilteredVerses
         }
 
         return statusFilteredVerses.filter { verse in
             normalizedFolderName(verse.folderName) == selectedFolder
+        }
+    }
+
+    private var filteredVerses: [Verse] {
+        switch sortMode {
+        case .newest:
+            return folderFilteredVerses.sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt > rhs.createdAt
+                }
+
+                return lhs.reference.localizedCaseInsensitiveCompare(rhs.reference) == .orderedAscending
+            }
+        case .review:
+            return folderFilteredVerses.sorted(by: reviewSort)
+        case .aToZ:
+            return folderFilteredVerses.sorted { lhs, rhs in
+                let comparison = lhs.reference.localizedCaseInsensitiveCompare(rhs.reference)
+
+                if comparison == .orderedSame {
+                    return lhs.createdAt > rhs.createdAt
+                }
+
+                return comparison == .orderedAscending
+            }
         }
     }
 
@@ -307,6 +339,38 @@ struct ContentView: View {
                     }
                 }
             }
+
+            HStack {
+                Text("Sort")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Menu {
+                    Picker("Sort", selection: $sortMode) {
+                        ForEach(SortMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(sortMode.rawValue)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -384,6 +448,10 @@ struct ContentView: View {
     private func reloadVerses() {
         verses = VerseRepository.shared.loadVerses()
 
+        if let detailVerse {
+            self.detailVerse = verses.first(where: { $0.id == detailVerse.id })
+        }
+
         if !folderOptions.contains(selectedFolder) {
             selectedFolder = Self.allFoldersOption
         }
@@ -406,6 +474,43 @@ struct ContentView: View {
             .joined(separator: " ")
 
         return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
+    }
+
+    private func reviewSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
+        let lhsPriority = urgencyPriority(for: lhs.urgencyLevel)
+        let rhsPriority = urgencyPriority(for: rhs.urgencyLevel)
+
+        if lhsPriority != rhsPriority {
+            return lhsPriority < rhsPriority
+        }
+
+        switch (lhs.lastReviewedAt, rhs.lastReviewedAt) {
+        case let (lhsDate?, rhsDate?) where lhsDate != rhsDate:
+            return lhsDate < rhsDate
+        case (.some, nil):
+            return true
+        case (nil, .some):
+            return false
+        default:
+            break
+        }
+
+        if lhs.createdAt != rhs.createdAt {
+            return lhs.createdAt > rhs.createdAt
+        }
+
+        return lhs.reference.localizedCaseInsensitiveCompare(rhs.reference) == .orderedAscending
+    }
+
+    private func urgencyPriority(for urgencyLevel: UrgencyLevel) -> Int {
+        switch urgencyLevel {
+        case .needsReview:
+            return 0
+        case .atRisk:
+            return 1
+        case .fresh:
+            return 2
+        }
     }
 
     private func deleteVerse(_ verse: Verse) {
