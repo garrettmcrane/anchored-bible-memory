@@ -1,46 +1,365 @@
 import SwiftUI
 
+struct FirstLetterTypingToken: Identifiable, Equatable {
+    let id = UUID()
+    let text: String
+    let normalizedLeadingLetter: Character?
+
+    var isRevealable: Bool {
+        normalizedLeadingLetter != nil
+    }
+}
+
+struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
+    let verseID: String
+    let reference: String
+    let totalPrompts: Int
+    let incorrectAttempts: Int
+    let correctReveals: Int
+
+    var id: String {
+        verseID
+    }
+
+    var scorePercent: Int {
+        let totalAttempts = correctReveals + incorrectAttempts
+        guard totalAttempts > 0 else {
+            return 0
+        }
+
+        return Int(((Double(correctReveals) / Double(totalAttempts)) * 100).rounded())
+    }
+
+    var qualityLabel: String {
+        switch scorePercent {
+        case 100:
+            return "Perfect"
+        case 85...:
+            return "Strong"
+        default:
+            return "Needs Work"
+        }
+    }
+
+    var summaryText: String {
+        switch scorePercent {
+        case 100:
+            return "Perfect recall"
+        case 85...:
+            return "\(scorePercent)% accurate"
+        default:
+            return "A few misses"
+        }
+    }
+}
+
+struct FirstLetterTypingState {
+    let tokens: [FirstLetterTypingToken]
+    private(set) var revealedWordCount: Int = 0
+    private(set) var incorrectAttempts: Int = 0
+
+    init(text: String) {
+        self.tokens = FirstLetterTypingSupport.tokens(for: text)
+    }
+
+    var isComplete: Bool {
+        revealedWordCount >= revealableWordCount
+    }
+
+    var currentPrompt: String {
+        isComplete ? "Verse completed. Score your recall." : "Type the first letter of the next word."
+    }
+
+    var progressText: String {
+        "\(revealedWordCount) of \(revealableWordCount) words revealed"
+    }
+
+    func isRevealed(_ token: FirstLetterTypingToken) -> Bool {
+        guard token.isRevealable else {
+            return false
+        }
+
+        var revealableIndex = 0
+
+        for currentToken in tokens where currentToken.isRevealable {
+            if currentToken.id == token.id {
+                return revealableIndex < revealedWordCount
+            }
+
+            revealableIndex += 1
+        }
+
+        return false
+    }
+
+    mutating func submit(_ input: String) -> Bool {
+        guard let expectedLetter = nextExpectedLetter,
+              let typedLetter = FirstLetterTypingSupport.normalizedLeadingLetter(from: input) else {
+            return false
+        }
+
+        guard typedLetter == expectedLetter else {
+            incorrectAttempts += 1
+            return false
+        }
+
+        revealedWordCount += 1
+        return true
+    }
+
+    func performance(for verse: Verse) -> FirstLetterTypingVersePerformance {
+        FirstLetterTypingVersePerformance(
+            verseID: verse.id,
+            reference: verse.reference,
+            totalPrompts: revealableWordCount,
+            incorrectAttempts: incorrectAttempts,
+            correctReveals: revealedWordCount
+        )
+    }
+
+    private var nextExpectedLetter: Character? {
+        var revealableIndex = 0
+
+        for token in tokens where token.isRevealable {
+            if revealableIndex == revealedWordCount {
+                return token.normalizedLeadingLetter
+            }
+
+            revealableIndex += 1
+        }
+
+        return nil
+    }
+
+    private var revealableWordCount: Int {
+        tokens.filter(\.isRevealable).count
+    }
+}
+
 enum FirstLetterTypingSupport {
-    static func pattern(for text: String) -> String {
+    static func tokens(for text: String) -> [FirstLetterTypingToken] {
         text
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
-            .map { firstLetterToken(for: $0) }
-            .joined(separator: " ")
+            .map { token in
+                FirstLetterTypingToken(
+                    text: token,
+                    normalizedLeadingLetter: normalizedLeadingLetter(from: token)
+                )
+            }
     }
 
-    static func normalizedText(_ text: String) -> String {
-        let cleanedScalars = text.lowercased().unicodeScalars.map { scalar -> Character in
-            if CharacterSet.alphanumerics.contains(scalar) {
-                return Character(scalar)
+    static func normalizedLeadingLetter(from text: String) -> Character? {
+        text.lowercased().first(where: { $0.isLetter || $0.isNumber })
+    }
+}
+
+struct FirstLetterTypingVerseCard: View {
+    let state: FirstLetterTypingState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Verse Reconstruction")
+                    .font(.headline)
+
+                Spacer()
+
+                Text(state.progressText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
 
-            return " "
+            FirstLetterTypingFlowingText(state: state)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+    }
+}
 
-        return String(cleanedScalars)
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
+struct FirstLetterTypingFlowingText: View {
+    let state: FirstLetterTypingState
+
+    var body: some View {
+        visibleText
+            .overlay(alignment: .topLeading) {
+                skeletonText
+                    .allowsHitTesting(false)
+            }
+            .font(.system(.title3, design: .serif))
+            .lineSpacing(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 120, alignment: .topLeading)
     }
 
-    static func evaluateResponse(_ response: String, against target: String) -> ReviewResult {
-        normalizedText(response) == normalizedText(target) ? .correct : .missed
+    private var visibleText: Text {
+        composedText(showAllWords: false)
     }
 
-    private static func firstLetterToken(for token: String) -> String {
-        let characters = Array(token)
+    private var skeletonText: some View {
+        composedText(showAllWords: true)
+            .foregroundStyle(.clear)
+    }
 
-        guard let firstLetterIndex = characters.firstIndex(where: { $0.isLetter || $0.isNumber }) else {
-            return token
+    private func composedText(showAllWords: Bool) -> Text {
+        state.tokens.enumerated().reduce(Text("")) { partial, element in
+            let index = element.offset
+            let token = element.element
+            let suffix = index == state.tokens.count - 1 ? "" : " "
+
+            let visibleToken: String
+            if token.isRevealable {
+                visibleToken = showAllWords || state.isRevealed(token) ? token.text : ""
+            } else {
+                visibleToken = showAllWords || state.hasAnyRevealedWords ? token.text : ""
+            }
+
+            return partial + Text(visibleToken + suffix)
         }
+    }
+}
 
-        let leading = String(characters[..<firstLetterIndex])
-        let firstLetter = String(characters[firstLetterIndex])
-        let trailingStart = characters.index(after: firstLetterIndex)
-        let trailing = trailingStart < characters.endIndex ? String(characters[trailingStart...].filter { !$0.isLetter && !$0.isNumber }) : ""
+private extension FirstLetterTypingState {
+    var hasAnyRevealedWords: Bool {
+        revealedWordCount > 0
+    }
+}
 
-        return leading + firstLetter + trailing
+struct FirstLetterTypingPerformanceCard: View {
+    let performance: FirstLetterTypingVersePerformance
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(performance.qualityLabel)
+                    .font(.headline)
+
+                Spacer()
+
+                Text("\(performance.scorePercent)%")
+                    .font(.headline.weight(.semibold))
+            }
+
+            Text(performance.summaryText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Text("\(performance.correctReveals) correct reveals, \(performance.incorrectAttempts) misses")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(backgroundTint)
+        )
+    }
+
+    private var backgroundTint: Color {
+        switch performance.scorePercent {
+        case 100:
+            return Color.green.opacity(0.12)
+        case 85...:
+            return Color.blue.opacity(0.10)
+        default:
+            return Color.orange.opacity(0.12)
+        }
+    }
+}
+
+struct FirstLetterTypingSessionCompletionView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let summary: ReviewSessionSummary
+    let verseReports: [FirstLetterTypingVersePerformance]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                VStack(spacing: 14) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 42, weight: .medium))
+                        .foregroundStyle(.green)
+
+                    Text("Session Completed")
+                        .font(.title2.weight(.semibold))
+
+                    Text("You reviewed \(summary.reviewedCount) verse\(summary.reviewedCount == 1 ? "" : "s").")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                HStack(spacing: 12) {
+                    completionMetric(title: "Correct", value: summary.correctCount, tint: .green)
+                    completionMetric(title: "Missed", value: summary.missedCount, tint: .red)
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Verse Report")
+                        .font(.headline)
+
+                    ForEach(verseReports) { report in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(report.reference)
+                                    .font(.subheadline.weight(.semibold))
+
+                                Text(report.qualityLabel)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Text("\(report.scorePercent)%")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Color(.secondarySystemBackground))
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button("Return") {
+                    dismiss()
+                }
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(Color.blue)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 32)
+        }
+    }
+
+    private func completionMetric(title: String, value: Int, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("\(value)")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(tint)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
     }
 }
 

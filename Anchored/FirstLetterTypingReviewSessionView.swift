@@ -2,16 +2,25 @@ import SwiftUI
 
 struct FirstLetterTypingReviewSessionView: View {
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var isResponseFieldFocused: Bool
+    @FocusState private var isStepFieldFocused: Bool
 
     let verses: [Verse]
     let onUpdate: (Verse) -> Void
 
     @State private var currentIndex = 0
-    @State private var typedResponse = ""
-    @State private var evaluationResult: ReviewResult? = nil
+    @State private var reconstructionState: FirstLetterTypingState
+    @State private var stepInput = ""
+    @State private var showIncorrectHint = false
+    @State private var incorrectFlashToken = 0
     @State private var summary = ReviewSessionSummary()
     @State private var isSessionComplete = false
+    @State private var verseReports: [FirstLetterTypingVersePerformance] = []
+
+    init(verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
+        self.verses = verses
+        self.onUpdate = onUpdate
+        _reconstructionState = State(initialValue: FirstLetterTypingState(text: verses.first?.text ?? ""))
+    }
 
     private var currentVerse: Verse {
         verses[currentIndex]
@@ -23,7 +32,7 @@ struct FirstLetterTypingReviewSessionView: View {
                 if verses.isEmpty {
                     emptyState
                 } else if isSessionComplete {
-                    ReviewSessionCompletionView(summary: summary)
+                    FirstLetterTypingSessionCompletionView(summary: summary, verseReports: verseReports)
                 } else {
                     ScrollView {
                         VStack(spacing: 20) {
@@ -58,88 +67,60 @@ struct FirstLetterTypingReviewSessionView: View {
 
     private var verseStep: some View {
         VStack(spacing: 20) {
-            promptCard
-            responseCard
+            VStack(spacing: 10) {
+                Text(reconstructionState.currentPrompt)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
 
-            if let evaluationResult {
-                feedbackCard(for: evaluationResult)
+            FirstLetterTypingVerseCard(state: reconstructionState)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Target Verse")
-                        .font(.headline)
-
-                    Text(currentVerse.text)
-                        .font(.system(.body, design: .serif))
-                        .lineSpacing(6)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Color(.secondarySystemBackground))
-                )
+            if reconstructionState.isComplete {
+                FirstLetterTypingPerformanceCard(performance: reconstructionState.performance(for: currentVerse))
 
                 ReviewResultButtons(
                     onMissed: { recordReview(result: .missed) },
                     onCorrect: { recordReview(result: .correct) }
                 )
             } else {
-                Button {
-                    evaluationResult = FirstLetterTypingSupport.evaluateResponse(typedResponse, against: currentVerse.text)
-                    isResponseFieldFocused = false
-                } label: {
-                    Text("Check")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color.blue)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                }
-                .disabled(FirstLetterTypingSupport.normalizedText(typedResponse).isEmpty)
+                inputCard
             }
         }
         .onAppear {
-            isResponseFieldFocused = true
+            isStepFieldFocused = !reconstructionState.isComplete
         }
     }
 
-    private var promptCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("First-Letter Pattern")
+    private var inputCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Next Letter")
                 .font(.headline)
 
-            Text(FirstLetterTypingSupport.pattern(for: currentVerse.text))
-                .font(.system(.title3, design: .serif))
-                .lineSpacing(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
-    }
-
-    private var responseCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Your Response")
-                .font(.headline)
-
-            TextEditor(text: $typedResponse)
-                .focused($isResponseFieldFocused)
-                .frame(minHeight: 180)
-                .scrollContentBackground(.hidden)
-                .padding(12)
+            TextField("Type the next first letter", text: $stepInput)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($isStepFieldFocused)
+                .font(.title3.weight(.semibold))
+                .padding(.horizontal, 16)
+                .frame(height: 56)
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(Color(.systemBackground))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color(.separator), lineWidth: 1)
+                        .stroke(showIncorrectHint ? Color.red : Color(.separator), lineWidth: 1)
                 )
+                .offset(x: showIncorrectHint ? shakeOffset : 0)
+                .onChange(of: stepInput) { _, newValue in
+                    handleInputChange(newValue)
+                }
+
+            Text(showIncorrectHint ? "Try again" : "Enter one letter at a time to reveal the next word.")
+                .font(.subheadline)
+                .foregroundStyle(showIncorrectHint ? .red : .secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -147,30 +128,7 @@ struct FirstLetterTypingReviewSessionView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
-    }
-
-    private func feedbackCard(for result: ReviewResult) -> some View {
-        let isCorrect = result == .correct
-
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(isCorrect ? "Close Enough" : "Needs Work")
-                .font(.headline)
-                .foregroundStyle(isCorrect ? .green : .red)
-
-            Text(
-                isCorrect
-                ? "Your response matched closely enough after ignoring punctuation, case, and spacing noise."
-                : "Your response did not match closely enough. Review the verse, then choose the score that best reflects your recall."
-            )
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill((isCorrect ? Color.green : Color.red).opacity(0.1))
-        )
+        .animation(.easeInOut(duration: 0.12), value: incorrectFlashToken)
     }
 
     private var emptyState: some View {
@@ -186,7 +144,31 @@ struct FirstLetterTypingReviewSessionView: View {
         .padding(.vertical, 32)
     }
 
+    private func handleInputChange(_ newValue: String) {
+        guard let typedLetter = FirstLetterTypingSupport.normalizedLeadingLetter(from: newValue) else {
+            showIncorrectHint = false
+            return
+        }
+
+        if reconstructionState.submit(String(typedLetter)) {
+            stepInput = ""
+            showIncorrectHint = false
+            isStepFieldFocused = !reconstructionState.isComplete
+        } else {
+            showIncorrectHint = true
+            incorrectFlashToken += 1
+            stepInput = ""
+            isStepFieldFocused = true
+        }
+    }
+
+    private var shakeOffset: CGFloat {
+        incorrectFlashToken.isMultiple(of: 2) ? -6 : 6
+    }
+
     private func recordReview(result: ReviewResult) {
+        verseReports.append(reconstructionState.performance(for: currentVerse))
+
         let updatedVerse = ReviewRepository.shared.recordReview(
             for: currentVerse,
             method: .firstLetterTyping,
@@ -200,10 +182,13 @@ struct FirstLetterTypingReviewSessionView: View {
 
     private func moveToNextVerseOrFinish() {
         if currentIndex + 1 < verses.count {
-            currentIndex += 1
-            typedResponse = ""
-            evaluationResult = nil
-            isResponseFieldFocused = true
+            let nextIndex = currentIndex + 1
+            currentIndex = nextIndex
+            reconstructionState = FirstLetterTypingState(text: verses[nextIndex].text)
+            stepInput = ""
+            showIncorrectHint = false
+            incorrectFlashToken = 0
+            isStepFieldFocused = true
         } else {
             isSessionComplete = true
         }
