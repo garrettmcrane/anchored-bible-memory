@@ -5,7 +5,6 @@ import SwiftUI
 import UIKit
 
 struct VoiceRecitationReviewSessionView: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var transcriber = VoiceRecitationTranscriber()
 
     let descriptor: ReviewSessionDescriptor
@@ -48,7 +47,7 @@ struct VoiceRecitationReviewSessionView: View {
                 .toolbar(content: toolbarContent)
                 .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
                     Button("End Review") {
-                        transcriber.stopTranscribing()
+                        transcriber.stopImmediately()
                         endedEarly = true
                         isSessionComplete = true
                     }
@@ -64,7 +63,7 @@ struct VoiceRecitationReviewSessionView: View {
                     transcriber.prepareForVerse(reference: currentVerse.reference)
                 }
                 .onDisappear {
-                    transcriber.stopTranscribing()
+                    transcriber.stopImmediately()
                 }
                 .animation(.easeInOut(duration: 0.2), value: currentIndex)
                 .animation(.easeInOut(duration: 0.2), value: isSessionComplete)
@@ -119,14 +118,19 @@ struct VoiceRecitationReviewSessionView: View {
                 )
 
                 VStack(spacing: 18) {
-                    referenceCard
-                    statusCard
+                    referenceHeader
+
+                    if transcriber.showsTranscriptCard {
+                        transcriptCard
+                    }
 
                     if transcriber.hasComparisonReady {
                         comparisonCard
                         resultButtons
+                    } else if case .denied = transcriber.permissionState {
+                        permissionCard
                     } else {
-                        controlButtons
+                        recordControls
                     }
                 }
                 .id(currentVerse.id)
@@ -137,155 +141,149 @@ struct VoiceRecitationReviewSessionView: View {
         }
     }
 
-    private var referenceCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Recite From Memory")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
+    private var referenceHeader: some View {
+        VStack(spacing: 14) {
             Text(currentVerse.reference)
-                .font(.system(size: 30, weight: .semibold, design: .serif))
-                .foregroundStyle(.primary)
-
-            Text("The app reads the reference aloud. Recite the verse, then compare your transcript with the actual text before scoring yourself.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 34, weight: .semibold, design: .serif))
+                .multilineTextAlignment(.center)
 
             Button {
                 transcriber.speakReference(currentVerse.reference)
             } label: {
-                Label("Hear Reference Again", systemImage: "speaker.wave.2.fill")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+                Label("Hear Reference", systemImage: "speaker.wave.2.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(height: 44)
+                    .padding(.horizontal, 16)
             }
             .buttonStyle(.bordered)
-            .disabled(transcriber.isRecording)
+            .disabled(transcriber.isRecording || transcriber.isProcessing)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 
-    private var statusCard: some View {
+    private var transcriptCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label(statusTitle, systemImage: statusSystemImage)
+                Text(transcriber.stateTitle)
                     .font(.headline)
 
                 Spacer()
 
                 if transcriber.isRecording {
-                    Text("Listening")
+                    Text("Live")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.red)
                 }
             }
 
-            Text(statusMessage)
+            if let message = transcriber.stateMessage {
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            transcriptText
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(cardBackground)
+    }
+
+    @ViewBuilder
+    private var transcriptText: some View {
+        if transcriber.transcript.isEmpty {
+            Text(transcriber.transcriptPlaceholder)
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 92, alignment: .topLeading)
+        } else {
+            Text(transcriber.transcriptPlaceholder)
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 92, alignment: .topLeading)
+                .textSelection(.enabled)
+        }
+    }
+
+    private var permissionCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Permissions Required")
+                .font(.headline)
+
+            Text("Microphone and speech recognition access are both required.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            if transcriber.isRecording || !transcriber.transcript.isEmpty {
-                ScrollView {
-                    Text(transcriber.transcript.isEmpty ? "Waiting for speech..." : transcriber.transcript)
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
+            HStack(spacing: 12) {
+                Button("Try Again") {
+                    Task {
+                        await transcriber.preparePermissions(forceRefresh: true)
+                    }
                 }
-                .frame(minHeight: 96, alignment: .top)
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color(.systemBackground))
-                )
-            }
+                .buttonStyle(.bordered)
 
-            if case .denied = transcriber.permissionState {
-                permissionActions
+                Button("Open Settings") {
+                    guard let url = URL(string: UIApplication.openSettingsURLString) else {
+                        return
+                    }
+
+                    UIApplication.shared.open(url)
+                }
+                .buttonStyle(.bordered)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
+        .padding(20)
+        .background(cardBackground)
     }
 
     private var comparisonCard: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Compare")
-                .font(.headline)
-
-            comparisonSection(
-                title: "Your Transcription",
-                content: comparison.spokenAttributedText,
-                emptyState: "Nothing was transcribed."
-            )
-
-            comparisonSection(
-                title: "Actual Verse",
-                content: comparison.actualAttributedText,
-                emptyState: currentVerse.text
-            )
+            comparisonSection(title: "Transcript", content: comparison.spokenAttributedText)
+            comparisonSection(title: "Verse", content: comparison.actualAttributedText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
+        .padding(20)
+        .background(cardBackground)
     }
 
-    private func comparisonSection(title: String, content: AttributedString, emptyState: String) -> some View {
+    private func comparisonSection(title: String, content: AttributedString) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+                .textCase(.uppercase)
 
-            if content.characters.isEmpty {
-                Text(emptyState)
-                    .font(.body)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Text(content)
-                    .font(.body)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
+            Text(content.characters.isEmpty ? AttributedString(" ") : content)
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
         }
     }
 
-    private var controlButtons: some View {
+    private var recordControls: some View {
         VStack(spacing: 12) {
-            if transcriber.isRecording {
-                Button {
-                    transcriber.finishCurrentCapture()
-                } label: {
-                    Label("Stop Recording", systemImage: "stop.circle.fill")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-            } else {
-                Button {
+            Button {
+                switch transcriber.captureState {
+                case .ready, .failed, .noSpeechDetected, .completed:
                     Task {
                         await transcriber.startTranscribing()
                     }
-                } label: {
-                    Label("Start Recording", systemImage: "mic.fill")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
+                case .recording:
+                    transcriber.finishCurrentCapture()
+                case .requestingPermissions, .processing:
+                    break
                 }
-                .buttonStyle(.borderedProminent)
+            } label: {
+                Label(primaryButtonTitle, systemImage: primaryButtonSystemImage)
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
             }
+            .buttonStyle(.borderedProminent)
+            .tint(primaryButtonTint)
+            .disabled(transcriber.isPrimaryButtonDisabled)
 
             if transcriber.canRetryCurrentVerse {
                 Button("Retry Verse") {
@@ -331,90 +329,42 @@ struct VoiceRecitationReviewSessionView: View {
         }
     }
 
-    private var permissionActions: some View {
-        HStack(spacing: 12) {
-            Button("Try Again") {
-                Task {
-                    await transcriber.preparePermissions(forceRefresh: true)
-                }
-            }
-            .buttonStyle(.bordered)
-
-            Button("Open Settings") {
-                guard let url = URL(string: UIApplication.openSettingsURLString) else {
-                    return
-                }
-
-                UIApplication.shared.open(url)
-            }
-            .buttonStyle(.bordered)
+    private var primaryButtonTitle: String {
+        switch transcriber.captureState {
+        case .ready, .failed, .noSpeechDetected, .completed:
+            return "Start Recording"
+        case .recording:
+            return "Stop Recording"
+        case .requestingPermissions:
+            return "Requesting Access"
+        case .processing:
+            return "Processing"
         }
     }
 
-    private var statusTitle: String {
-        switch transcriber.permissionState {
-        case .unknown, .requesting:
-            return "Preparing Voice Review"
-        case .denied:
-            return "Permissions Required"
-        case .ready:
-            switch transcriber.captureState {
-            case .idle:
-                return "Ready to Listen"
-            case .recording:
-                return "Recording in Progress"
-            case .transcribed:
-                return "Transcription Complete"
-            case .failed:
-                return "Transcription Failed"
-            case .noSpeechDetected:
-                return "No Speech Detected"
-            }
-        }
-    }
-
-    private var statusSystemImage: String {
-        switch transcriber.permissionState {
-        case .unknown, .requesting:
+    private var primaryButtonSystemImage: String {
+        switch transcriber.captureState {
+        case .ready, .failed, .noSpeechDetected, .completed:
+            return "mic.fill"
+        case .recording:
+            return "stop.circle.fill"
+        case .requestingPermissions, .processing:
             return "ellipsis.circle"
-        case .denied:
-            return "mic.slash"
-        case .ready:
-            switch transcriber.captureState {
-            case .idle:
-                return "mic"
-            case .recording:
-                return "waveform"
-            case .transcribed:
-                return "checkmark.bubble"
-            case .failed:
-                return "exclamationmark.triangle"
-            case .noSpeechDetected:
-                return "bubble.left.and.exclamationmark.bubble.right"
-            }
         }
     }
 
-    private var statusMessage: String {
-        switch transcriber.permissionState {
-        case .unknown, .requesting:
-            return "Requesting microphone and speech recognition access."
-        case .denied:
-            return "Voice Recitation needs both microphone and speech recognition permission."
-        case .ready:
-            switch transcriber.captureState {
-            case .idle:
-                return "Tap Start Recording when you’re ready to recite the verse aloud."
-            case .recording:
-                return "Speak naturally. Recording will stop when you tap Stop or after a short pause."
-            case .transcribed:
-                return "Review the transcript against the verse text, then choose Correct or Incorrect."
-            case .failed(let message):
-                return message
-            case .noSpeechDetected:
-                return "No speech was captured for this attempt. Try again and speak after recording starts."
-            }
+    private var primaryButtonTint: Color {
+        switch transcriber.captureState {
+        case .recording:
+            return .red
+        default:
+            return .blue
         }
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(Color(.secondarySystemBackground))
     }
 
     private func recordReview(result: ReviewResult) {
@@ -442,7 +392,7 @@ struct VoiceRecitationReviewSessionView: View {
     }
 
     private func moveToNextVerseOrFinish() {
-        transcriber.stopTranscribing()
+        transcriber.stopImmediately()
 
         if currentIndex + 1 < verses.count {
             withAnimation(.easeInOut(duration: 0.22)) {
@@ -458,7 +408,7 @@ struct VoiceRecitationReviewSessionView: View {
     }
 
     private func resetSession() {
-        transcriber.stopTranscribing()
+        transcriber.stopImmediately()
         currentIndex = 0
         summary = ReviewSessionSummary()
         isSessionComplete = false
@@ -489,31 +439,114 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
     }
 
     enum CaptureState: Equatable {
-        case idle
+        case ready
+        case requestingPermissions
         case recording
-        case transcribed
+        case processing
+        case completed
         case failed(String)
         case noSpeechDetected
     }
 
     @Published private(set) var permissionState: PermissionState = .unknown
-    @Published private(set) var captureState: CaptureState = .idle
+    @Published private(set) var captureState: CaptureState = .requestingPermissions
     @Published private(set) var transcript = ""
 
     var isRecording: Bool {
         captureState == .recording
     }
 
+    var isProcessing: Bool {
+        captureState == .processing
+    }
+
     var hasComparisonReady: Bool {
-        captureState == .transcribed
+        captureState == .completed
+    }
+
+    var showsTranscriptCard: Bool {
+        switch captureState {
+        case .recording, .processing, .completed, .failed, .noSpeechDetected:
+            return true
+        case .ready, .requestingPermissions:
+            return false
+        }
+    }
+
+    var transcriptPlaceholder: String {
+        transcript.isEmpty ? transcriptPlaceholderText : transcript
+    }
+
+    var transcriptPlaceholderText: String {
+        switch captureState {
+        case .recording:
+            return "Listening…"
+        case .processing:
+            return transcript.isEmpty ? "Finishing capture…" : transcript
+        case .failed:
+            return "No usable transcript."
+        case .noSpeechDetected:
+            return "No speech detected."
+        case .completed:
+            return transcript
+        case .ready, .requestingPermissions:
+            return ""
+        }
+    }
+
+    var stateTitle: String {
+        switch captureState {
+        case .ready:
+            return "Ready"
+        case .requestingPermissions:
+            return "Requesting Permissions"
+        case .recording:
+            return "Recording"
+        case .processing:
+            return "Processing"
+        case .completed:
+            return "Completed"
+        case .failed:
+            return "Transcription Failed"
+        case .noSpeechDetected:
+            return "No Speech Detected"
+        }
+    }
+
+    var stateMessage: String? {
+        switch captureState {
+        case .ready:
+            return nil
+        case .requestingPermissions:
+            return "Waiting for microphone and speech access."
+        case .recording:
+            return nil
+        case .processing:
+            return "Finalizing your transcript."
+        case .completed:
+            return nil
+        case .failed(let message):
+            return message
+        case .noSpeechDetected:
+            return "Try again and start speaking after recording begins."
+        }
     }
 
     var canRetryCurrentVerse: Bool {
         switch captureState {
-        case .idle, .recording:
-            return false
-        case .transcribed, .failed, .noSpeechDetected:
+        case .completed, .failed, .noSpeechDetected:
             return true
+        case .ready, .requestingPermissions, .recording, .processing:
+            return false
+        }
+    }
+
+    var isPrimaryButtonDisabled: Bool {
+        switch captureState {
+        case .requestingPermissions, .processing:
+            return true
+        default:
+            return false
         }
     }
 
@@ -524,13 +557,21 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var silenceTask: Task<Void, Never>?
+    private var processingTimeoutTask: Task<Void, Never>?
+    private var isFinishingCapture = false
+    private var shouldIgnoreRecognizerErrors = false
+    private var hasReceivedRecognitionResult = false
 
     override init() {
         super.init()
+        speechSynthesizer.usesApplicationAudioSession = true
     }
 
     func preparePermissionsIfNeeded() async {
         guard permissionState == .unknown else {
+            if permissionState == .ready, captureState == .requestingPermissions {
+                captureState = .ready
+            }
             return
         }
 
@@ -539,21 +580,26 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
 
     func preparePermissions(forceRefresh: Bool) async {
         guard forceRefresh || permissionState != .ready else {
+            captureState = .ready
             return
         }
 
         permissionState = .requesting
+        captureState = .requestingPermissions
 
         let speechAuthorized = await requestSpeechAuthorization()
         let microphoneAuthorized = await requestMicrophoneAuthorization()
 
         permissionState = speechAuthorized && microphoneAuthorized ? .ready : .denied
+        captureState = permissionState == .ready ? .ready : .failed("Voice Recitation needs microphone and speech recognition access.")
     }
 
     func prepareForVerse(reference: String) {
-        stopTranscribing()
+        stopImmediately()
         transcript = ""
-        captureState = .idle
+        hasReceivedRecognitionResult = false
+
+        captureState = permissionState == .ready ? .ready : .requestingPermissions
 
         guard !reference.isEmpty else {
             return
@@ -572,6 +618,7 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
         }
 
         stopSpeaking()
+        configureReferencePlayback()
 
         let utterance = AVSpeechUtterance(string: reference)
         utterance.rate = 0.48
@@ -592,10 +639,12 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
         }
 
         stopSpeaking()
-        stopTranscribing()
+        stopImmediately()
 
         transcript = ""
-        captureState = .idle
+        hasReceivedRecognitionResult = false
+        shouldIgnoreRecognizerErrors = false
+        isFinishingCapture = false
 
         do {
             try startAudioSession()
@@ -603,29 +652,28 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
             captureState = .recording
             scheduleSilenceTimeout(after: 5)
         } catch {
-            stopTranscribing()
-            captureState = .failed("Unable to start recording. Check permissions and try again.")
+            stopImmediately()
+            captureState = .failed("Unable to start recording. Try the verse again.")
         }
     }
 
     func finishCurrentCapture() {
-        finishCapture(markNoSpeechIfNeeded: true)
-    }
-
-    func stopTranscribing() {
-        silenceTask?.cancel()
-        silenceTask = nil
-
-        if audioEngine.isRunning {
-            audioEngine.stop()
-            audioEngine.inputNode.removeTap(onBus: 0)
+        guard captureState == .recording else {
+            return
         }
 
+        finishCapture(userInitiated: true)
+    }
+
+    func stopImmediately() {
+        cancelTimers()
+        stopAudioEngine()
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionRequest = nil
         recognitionTask = nil
-
+        isFinishingCapture = false
+        shouldIgnoreRecognizerErrors = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -635,9 +683,21 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
     }
 
+    private func configureReferencePlayback() {
+        let audioSession = AVAudioSession.sharedInstance()
+
+        do {
+            try audioSession.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers])
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            // If speaker routing fails, fall back to the system-managed route.
+        }
+    }
+
     private func startRecognition(with speechRecognizer: SFSpeechRecognizer) throws {
         let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         recognitionRequest.shouldReportPartialResults = true
+        recognitionRequest.requiresOnDeviceRecognition = false
         self.recognitionRequest = recognitionRequest
 
         let inputNode = audioEngine.inputNode
@@ -660,46 +720,112 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
 
     private func handleRecognition(result: SFSpeechRecognitionResult?, error: Error?) {
         if let result {
-            transcript = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
-            scheduleSilenceTimeout(after: transcript.isEmpty ? 5 : 1.6)
+            let newTranscript = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !newTranscript.isEmpty {
+                transcript = newTranscript
+                hasReceivedRecognitionResult = true
+            }
+
+            if captureState == .recording {
+                scheduleSilenceTimeout(after: transcript.isEmpty ? 5 : 1.6)
+            }
 
             if result.isFinal {
-                finishCapture(markNoSpeechIfNeeded: true)
+                finalizeCapture(successFromRecognizer: true)
                 return
             }
         }
 
-        if error != nil {
-            let hasTranscript = !transcript.isEmpty
-            finishCapture(markNoSpeechIfNeeded: !hasTranscript)
+        guard let error else {
+            return
+        }
 
-            if !hasTranscript {
-                captureState = .failed("Transcription failed. Try the verse again.")
+        if shouldIgnoreRecognizerErrors, !transcript.isEmpty {
+            finalizeCapture(successFromRecognizer: false)
+            return
+        }
+
+        if isBenignStopError(error), !transcript.isEmpty {
+            finalizeCapture(successFromRecognizer: false)
+            return
+        }
+
+        if isFinishingCapture, !transcript.isEmpty {
+            finalizeCapture(successFromRecognizer: false)
+            return
+        }
+
+        stopImmediately()
+        captureState = transcript.isEmpty ? .failed("Transcription failed. Try again.") : .completed
+    }
+
+    private func finishCapture(userInitiated: Bool) {
+        guard !isFinishingCapture else {
+            return
+        }
+
+        isFinishingCapture = true
+        shouldIgnoreRecognizerErrors = userInitiated
+        cancelTimers()
+        stopAudioEngine()
+        recognitionRequest?.endAudio()
+
+        if !transcript.isEmpty || hasReceivedRecognitionResult {
+            captureState = .processing
+        } else {
+            captureState = .processing
+        }
+
+        processingTimeoutTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else {
+                return
             }
+
+            self?.finalizeCapture(successFromRecognizer: false)
         }
     }
 
-    private func finishCapture(markNoSpeechIfNeeded: Bool) {
+    private func finalizeCapture(successFromRecognizer: Bool) {
+        processingTimeoutTask?.cancel()
+        processingTimeoutTask = nil
+
+        stopAudioEngine()
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        recognitionRequest = nil
+        isFinishingCapture = false
+        shouldIgnoreRecognizerErrors = false
+
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+
+        if !transcript.isEmpty {
+            captureState = .completed
+        } else if successFromRecognizer {
+            captureState = .noSpeechDetected
+        } else if hasReceivedRecognitionResult {
+            captureState = .completed
+        } else {
+            captureState = .noSpeechDetected
+        }
+    }
+
+    private func stopAudioEngine() {
         silenceTask?.cancel()
         silenceTask = nil
 
         if audioEngine.isRunning {
             audioEngine.stop()
-            audioEngine.inputNode.removeTap(onBus: 0)
         }
 
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        recognitionRequest = nil
-        recognitionTask = nil
+        audioEngine.inputNode.removeTap(onBus: 0)
+    }
 
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-
-        if markNoSpeechIfNeeded && transcript.isEmpty {
-            captureState = .noSpeechDetected
-        } else if !transcript.isEmpty {
-            captureState = .transcribed
-        }
+    private func cancelTimers() {
+        silenceTask?.cancel()
+        silenceTask = nil
+        processingTimeoutTask?.cancel()
+        processingTimeoutTask = nil
     }
 
     private func stopSpeaking() {
@@ -716,8 +842,13 @@ final class VoiceRecitationTranscriber: NSObject, ObservableObject {
                 return
             }
 
-            self?.finishCapture(markNoSpeechIfNeeded: true)
+            self?.finishCapture(userInitiated: false)
         }
+    }
+
+    private func isBenignStopError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == "kAFAssistantErrorDomain" || nsError.code == 301
     }
 
     private func requestSpeechAuthorization() async -> Bool {
