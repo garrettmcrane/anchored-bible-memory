@@ -14,6 +14,12 @@ enum ReferenceParserError: LocalizedError {
     }
 }
 
+struct ReferenceImportParseResult {
+    let references: [ScriptureReference]
+    let unresolvedEntries: [String]
+    let duplicateReferenceCount: Int
+}
+
 enum ReferenceParser {
     nonisolated static func parse(_ input: String) throws -> [ScriptureReference] {
         let components = input
@@ -26,6 +32,57 @@ enum ReferenceParser {
         }
 
         return try components.map(parseSingle)
+    }
+
+    nonisolated static func parseImportBlock(_ input: String) throws -> ReferenceImportParseResult {
+        let normalizedInput = input.replacingOccurrences(of: "\r\n", with: "\n")
+        guard !normalizeWhitespace(normalizedInput).isEmpty else {
+            throw ReferenceParserError.emptyInput
+        }
+
+        let matches = importReferenceRegularExpression.matches(
+            in: normalizedInput,
+            range: NSRange(normalizedInput.startIndex..., in: normalizedInput)
+        )
+
+        var references: [ScriptureReference] = []
+        var consumedRanges: [Range<String.Index>] = []
+        var seenReferenceKeys: Set<String> = []
+        var duplicateReferenceCount = 0
+
+        for match in matches {
+            guard let range = Range(match.range, in: normalizedInput) else {
+                continue
+            }
+
+            let candidate = normalizedImportCandidate(String(normalizedInput[range]))
+
+            do {
+                let reference = try parseSingle(candidate)
+                let referenceKey = canonicalReferenceKey(reference.normalizedReference)
+
+                if seenReferenceKeys.insert(referenceKey).inserted {
+                    references.append(reference)
+                } else {
+                    duplicateReferenceCount += 1
+                }
+
+                consumedRanges.append(range)
+            } catch {
+                continue
+            }
+        }
+
+        let unresolvedEntries = unresolvedImportEntries(
+            in: normalizedInput,
+            consumedRanges: consumedRanges
+        )
+
+        return ReferenceImportParseResult(
+            references: references,
+            unresolvedEntries: unresolvedEntries,
+            duplicateReferenceCount: duplicateReferenceCount
+        )
     }
 
     nonisolated static func parseSingle(_ input: String) throws -> ScriptureReference {
@@ -139,4 +196,77 @@ enum ReferenceParser {
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    nonisolated private static func normalizedImportCandidate(_ value: String) -> String {
+        normalizeWhitespace(
+            value
+                .replacingOccurrences(of: "\\s*:\\s*", with: ":", options: .regularExpression)
+                .replacingOccurrences(of: "\\s*-\\s*", with: "-", options: .regularExpression)
+        )
+    }
+
+    nonisolated private static func unresolvedImportEntries(
+        in input: String,
+        consumedRanges: [Range<String.Index>]
+    ) -> [String] {
+        guard !consumedRanges.isEmpty else {
+            return cleanedUnresolvedChunks(from: input)
+        }
+
+        var segments: [String] = []
+        var currentIndex = input.startIndex
+
+        for range in consumedRanges.sorted(by: { $0.lowerBound < $1.lowerBound }) {
+            if currentIndex < range.lowerBound {
+                segments.append(String(input[currentIndex..<range.lowerBound]))
+            }
+
+            currentIndex = range.upperBound
+        }
+
+        if currentIndex < input.endIndex {
+            segments.append(String(input[currentIndex..<input.endIndex]))
+        }
+
+        return cleanedUnresolvedChunks(from: segments.joined(separator: "\n"))
+    }
+
+    nonisolated private static func cleanedUnresolvedChunks(from value: String) -> [String] {
+        var seen: Set<String> = []
+        var entries: [String] = []
+        let separatorSet = CharacterSet(charactersIn: ",;\n")
+
+        for chunk in value.components(separatedBy: separatorSet) {
+            let cleanedChunk = normalizeWhitespace(
+                chunk.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+            )
+
+            guard !cleanedChunk.isEmpty else {
+                continue
+            }
+
+            let entryKey = canonicalReferenceKey(cleanedChunk)
+            if seen.insert(entryKey).inserted {
+                entries.append(cleanedChunk)
+            }
+        }
+
+        return entries
+    }
+
+    nonisolated private static func canonicalReferenceKey(_ value: String) -> String {
+        normalizeWhitespace(value).lowercased()
+    }
+
+    nonisolated private static let importReferenceRegularExpression: NSRegularExpression = {
+        let aliasPattern = BibleBookCatalog.sortedAliases
+            .map { alias in
+                NSRegularExpression.escapedPattern(for: alias)
+                    .replacingOccurrences(of: "\\ ", with: "\\s*")
+            }
+            .joined(separator: "|")
+
+        let pattern = "(?i)(?<![A-Za-z0-9])(?:\(aliasPattern))\\s+\\d+(?::\\d+(?:\\s*-\\s*\\d+)?)?"
+        return try! NSRegularExpression(pattern: pattern)
+    }()
 }

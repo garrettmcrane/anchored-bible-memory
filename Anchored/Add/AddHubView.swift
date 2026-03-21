@@ -59,17 +59,15 @@ struct AddHubView: View {
                         .buttonStyle(.plain)
 
                         NavigationLink {
-                            PlaceholderAddMethodView(
-                                title: "Import",
-                                message: "Bulk import is coming soon. This space is reserved for adding many verses at once from a file."
+                            ImportReferencesView(
+                                onComplete: onComplete
                             )
                         } label: {
                             AddHubOptionCard(
                                 title: "Import",
-                                subtitle: "Add many verses at once from a file when import becomes available.",
+                                subtitle: "Paste a list of references, review what resolves, and import the valid passages in one pass.",
                                 systemImage: "square.and.arrow.down",
-                                tint: Color(red: 0.74, green: 0.44, blue: 0.12),
-                                isPlaceholder: true
+                                tint: Color(red: 0.74, green: 0.44, blue: 0.12)
                             )
                         }
                         .buttonStyle(.plain)
@@ -113,7 +111,7 @@ struct AddHubView: View {
             Text("Build your Scripture library")
                 .font(.system(size: 30, weight: .bold))
 
-            Text("Choose how you want to add verses. Type references, browse the Bible, or explore the sections reserved for import and collections.")
+            Text("Choose how you want to add verses. Type references, browse the Bible, or paste a list to import many passages at once.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

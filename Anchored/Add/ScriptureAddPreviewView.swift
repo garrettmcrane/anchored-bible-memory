@@ -16,17 +16,9 @@ struct ScriptureAddPreviewView: View {
     @State private var isSaving = false
 
     private var existingFolders: [String] {
-        var normalizedFolders = Set(
-            VerseRepository.shared.loadVerses().map { ScriptureAddPipeline.normalizedFolderName($0.folderName) }
+        ScriptureAddPipeline.existingFolderNames(
+            including: [selectedFolder] + Array(folderOverrides.values)
         )
-        normalizedFolders.remove("Uncategorized")
-        if selectedFolder != "Uncategorized" {
-            normalizedFolders.insert(selectedFolder)
-        }
-        for folder in folderOverrides.values where folder != "Uncategorized" {
-            normalizedFolders.insert(folder)
-        }
-        return normalizedFolders.sorted()
     }
 
     var body: some View {

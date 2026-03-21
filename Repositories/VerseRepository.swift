@@ -21,6 +21,16 @@ struct VerseRepository {
         VerseStore.save(allVerses)
     }
 
+    func addVerses(_ verses: [Verse]) {
+        guard !verses.isEmpty else {
+            return
+        }
+
+        var allVerses = VerseStore.load()
+        allVerses.append(contentsOf: verses)
+        VerseStore.save(allVerses)
+    }
+
     func updateVerse(_ verse: Verse) {
         var allVerses = VerseStore.load()
 

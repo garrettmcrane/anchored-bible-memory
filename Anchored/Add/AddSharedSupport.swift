@@ -42,6 +42,30 @@ enum ScriptureAddPipeline {
 
         return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
     }
+
+    static func existingFolderNames(including additionalFolders: [String] = []) -> [String] {
+        var normalizedFolders = Set(
+            VerseRepository.shared.loadVerses().map { normalizedFolderName($0.folderName) }
+        )
+        normalizedFolders.remove("Uncategorized")
+
+        for folder in additionalFolders {
+            let normalizedFolder = normalizedFolderName(folder)
+            if !normalizedFolder.isEmpty, normalizedFolder != "Uncategorized" {
+                normalizedFolders.insert(normalizedFolder)
+            }
+        }
+
+        return normalizedFolders.sorted()
+    }
+
+    static func normalizedReferenceKey(_ reference: String) -> String {
+        reference
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .lowercased()
+    }
 }
 
 struct TranslationPickerSection: View {
