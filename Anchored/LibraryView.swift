@@ -30,19 +30,19 @@ struct LibraryView: View {
             VStack(spacing: 4) {
                 Text(value.formatted())
                     .font(.system(size: 27, weight: .bold, design: .rounded))
-                    .foregroundStyle(isSelected ? AppColors.lightTextPrimary : AppColors.lightTextSecondary)
+                    .foregroundStyle(isSelected ? AppColors.darkTextPrimary : AppColors.darkTextSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(isSelected ? AppColors.lightTextPrimary : AppColors.lightTextSecondary)
+                    .foregroundStyle(isSelected ? AppColors.darkTextPrimary : AppColors.darkTextSecondary)
                     .textCase(.uppercase)
                     .tracking(0.4)
                     .lineLimit(1)
 
                 Capsule(style: .continuous)
-                    .fill(isSelected ? AppColors.lightTextPrimary.opacity(0.14) : Color.clear)
+                    .fill(isSelected ? AppColors.gold.opacity(0.2) : Color.clear)
                     .frame(width: 28, height: 4)
             }
             .frame(maxWidth: .infinity)
@@ -52,7 +52,7 @@ struct LibraryView: View {
     private struct SummaryDivider: View {
         var body: some View {
             Rectangle()
-                .fill(AppColors.lightTextPrimary.opacity(0.12))
+                .fill(AppColors.darkDivider)
                 .frame(width: 1, height: 32)
         }
     }
@@ -231,7 +231,7 @@ struct LibraryView: View {
 
             NavigationStack {
                 ZStack(alignment: .top) {
-                    AppColors.lightBackground
+                    AppColors.darkBackground
                         .ignoresSafeArea()
 
                     List {
@@ -273,7 +273,7 @@ struct LibraryView: View {
                     .contentMargins(.bottom, bottomOverlayClearance, for: .scrollContent)
                     .environment(\.defaultMinListRowHeight, 1)
                     .overlay(alignment: .top) {
-                        AppColors.lightBackground
+                        AppColors.darkBackground
                             .frame(height: safeTop)
                             .ignoresSafeArea(edges: .top)
                             .allowsHitTesting(false)
@@ -467,7 +467,7 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(AppColors.lightTextPrimary)
+                        .foregroundStyle(AppColors.darkTextPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -486,11 +486,11 @@ struct LibraryView: View {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AppColors.lightSurface)
+                    .fill(AppColors.darkSurface)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(AppColors.lightTextPrimary.opacity(0.05), lineWidth: 1)
+                    .stroke(AppColors.darkDivider, lineWidth: 1)
             }
         }
         .padding(.horizontal, 0)
@@ -504,7 +504,7 @@ struct LibraryView: View {
             HStack(spacing: 12) {
                 Text("\(selectedVisibleCount) Selected")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(AppColors.lightTextPrimary)
+                    .foregroundStyle(AppColors.darkTextPrimary)
 
                 Spacer(minLength: 12)
 
@@ -529,7 +529,7 @@ struct LibraryView: View {
                 if hasActiveFolderFilter {
                     Text("Folders: \(folderSelectionSummary)")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.darkTextSecondary)
                         .padding(.top, 8)
                         .padding(.horizontal, 2)
                 }
@@ -544,7 +544,7 @@ struct LibraryView: View {
             } label: {
                 Text("Select")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(AppColors.lightTextPrimary)
+                    .foregroundStyle(AppColors.darkTextPrimary)
                     .padding(.horizontal, 14)
                     .frame(height: 44)
             }
@@ -564,13 +564,13 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(hasNonDefaultSortMode ? AppColors.brandBlue : AppColors.lightTextPrimary)
+                        .foregroundStyle(hasNonDefaultSortMode ? AppColors.gold : AppColors.darkTextPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .glassEffect(
                     hasNonDefaultSortMode
-                        ? .regular.tint(.accentColor).interactive()
+                        ? .regular.tint(AppColors.gold).interactive()
                         : .regular.interactive(),
                     in: .circle
                 )
@@ -581,13 +581,13 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: hasActiveFolderFilter ? "folder.fill" : "folder")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(hasActiveFolderFilter ? AppColors.brandBlue : AppColors.lightTextPrimary)
+                        .foregroundStyle(hasActiveFolderFilter ? AppColors.gold : AppColors.darkTextPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .glassEffect(
                     hasActiveFolderFilter
-                        ? .regular.tint(.accentColor).interactive()
+                        ? .regular.tint(AppColors.gold).interactive()
                         : .regular.interactive(),
                     in: .circle
                 )
@@ -599,7 +599,7 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color(uiColor: .label))
+                        .foregroundColor(AppColors.darkTextPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -612,7 +612,7 @@ struct LibraryView: View {
     private var librarySearchField: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.darkTextSecondary)
 
             TextField("Search reference or text", text: $searchText)
                 .textInputAutocapitalization(.never)
@@ -626,7 +626,7 @@ struct LibraryView: View {
                     isSearchFieldFocused = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.darkTextSecondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear search")
@@ -643,11 +643,11 @@ struct LibraryView: View {
         .frame(height: 48)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.darkSurface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(AppColors.lightTextPrimary.opacity(0.05), lineWidth: 1)
+                .stroke(AppColors.darkDivider, lineWidth: 1)
         }
         .onAppear {
             isSearchFieldFocused = true
@@ -671,21 +671,21 @@ struct LibraryView: View {
         VStack(spacing: 12) {
             Image(systemName: hasActiveSearch ? "magnifyingglass" : "book.closed")
                 .font(.system(size: 34))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.darkTextSecondary)
 
             Text(hasActiveSearch ? "No matches found" : "No verses here yet")
                 .font(.headline)
 
             Text(emptyStateMessage)
                 .font(.subheadline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.darkTextSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.darkSurface)
         )
         .padding(.horizontal, 0)
         .padding(.top, 4)
@@ -791,14 +791,14 @@ struct LibraryView: View {
 
     private var utilityControlBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(AppColors.lightSurface)
+            .fill(AppColors.darkSurface)
     }
 
     private func rowBackground(for index: Int, totalCount: Int) -> some View {
         let radii = rowCornerRadii(for: index, totalCount: totalCount)
 
         return UnevenRoundedRectangle(cornerRadii: radii, style: .continuous)
-            .fill(AppColors.lightSurface)
+            .fill(AppColors.darkSurface)
     }
 
     private func rowCornerRadii(for index: Int, totalCount: Int) -> RectangleCornerRadii {
@@ -833,7 +833,7 @@ struct LibraryView: View {
             .frame(height: 50)
             .background(
                 Capsule()
-                    .fill(AppColors.brandBlue)
+                    .fill(AppColors.gold)
             )
             .shadow(color: AppColors.darkBackground.opacity(0.12), radius: 12, x: 0, y: 6)
         }
@@ -856,7 +856,7 @@ struct LibraryView: View {
             batchActionButton(
                 title: "Mark Learning",
                 systemImage: "arrow.uturn.backward.circle",
-                tint: AppColors.brandBlue,
+                tint: AppColors.gold,
                 isEnabled: hasSelection
             ) {
                 updateMasteryStatusForSelectedVerses(to: .learning)
@@ -879,7 +879,7 @@ struct LibraryView: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.lightTextPrimary.opacity(0.06), lineWidth: 1)
+                .stroke(AppColors.darkDivider, lineWidth: 1)
         }
         .shadow(color: AppColors.darkBackground.opacity(0.08), radius: 18, x: 0, y: 8)
         .padding(.horizontal, 20)
@@ -903,12 +903,12 @@ struct LibraryView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(isEnabled ? tint : AppColors.lightTextSecondary)
+            .foregroundStyle(isEnabled ? tint : AppColors.darkTextSecondary)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isEnabled ? tint.opacity(0.12) : AppColors.lightSurface.opacity(0.85))
+                    .fill(isEnabled ? tint.opacity(0.12) : AppColors.darkSurface.opacity(0.85))
             )
         }
         .buttonStyle(.plain)
@@ -1013,7 +1013,7 @@ struct LibraryView: View {
     }
 
     private func toggleActionTint(for verse: Verse) -> Color {
-        verse.masteryStatus == .learning ? AppColors.gold : AppColors.brandBlue
+        AppColors.gold
     }
 
     private func enterSelectionMode() {
@@ -1161,10 +1161,10 @@ private struct FolderFilterSheet: View {
         HStack(spacing: 12) {
             Image(systemName: isSelected ? "checkmark.square.fill" : "square")
                 .font(.title3)
-                .foregroundStyle(isSelected ? AppColors.brandBlue : AppColors.lightTextSecondary)
+                .foregroundStyle(isSelected ? AppColors.gold : AppColors.darkTextSecondary)
 
             Text(title)
-                .foregroundStyle(AppColors.lightTextPrimary)
+                .foregroundStyle(AppColors.darkTextPrimary)
 
             Spacer()
         }

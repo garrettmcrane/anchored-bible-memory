@@ -45,6 +45,10 @@ struct RootTabView: View {
                     Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
                 }
         }
+        .tint(AppColors.gold)
+        .toolbarBackground(AppColors.darkSurface, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .toolbarColorScheme(.dark, for: .tabBar)
         .onAppear {
             if selectedTab == .add {
                 addFocusTrigger += 1

@@ -10,74 +10,82 @@ struct ReviewView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
+            ZStack {
+                AppColors.darkBackground
+                    .ignoresSafeArea()
 
-                Text(verse.reference)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: 24) {
+                    Spacer()
 
-                if showingAnswer {
-                    Text(verse.text)
-                        .font(.title3)
+                    Text(verse.reference)
+                        .font(.title2)
+                        .fontWeight(.semibold)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                } else {
-                    Text("Try to recite this verse before revealing it.")
-                        .font(.headline)
-                        .foregroundStyle(AppColors.lightTextSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
+                        .foregroundStyle(AppColors.gold)
 
-                Spacer()
-
-                if showingAnswer {
-                    HStack(spacing: 16) {
-                        Button {
-                            recordReview(result: .missed)
-                        } label: {
-                            Text("Missed")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(AppColors.gold.opacity(0.15))
-                                .foregroundStyle(AppColors.gold)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                        }
-
-                        Button {
-                            recordReview(result: .correct)
-                        } label: {
-                            Text("Got It")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(AppColors.gold.opacity(0.15))
-                                .foregroundStyle(.green)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                        }
-                    }
-                    .padding(.horizontal)
-                } else {
-                    Button {
-                        showingAnswer = true
-                    } label: {
-                        Text("Reveal Verse")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(AppColors.brandBlue)
+                    if showingAnswer {
+                        Text(verse.text)
+                            .font(.title3)
+                            .multilineTextAlignment(.center)
                             .foregroundStyle(AppColors.darkTextPrimary)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .padding(.horizontal)
+                    } else {
+                        Text("Try to recite this verse before revealing it.")
+                            .font(.headline)
+                            .foregroundStyle(AppColors.darkTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+
+                    Spacer()
+
+                    if showingAnswer {
+                        HStack(spacing: 16) {
+                            Button {
+                                recordReview(result: .missed)
+                            } label: {
+                                Text("Missed")
+                                    .fontWeight(.semibold)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(AppColors.darkSurface)
+                                    .foregroundStyle(AppColors.darkTextPrimary)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                            }
+
+                            Button {
+                                recordReview(result: .correct)
+                            } label: {
+                                Text("Got It")
+                                    .fontWeight(.semibold)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(AppColors.gold)
+                                    .foregroundStyle(AppColors.darkBackground)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                            }
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        Button {
+                            showingAnswer = true
+                        } label: {
+                            Text("Reveal Verse")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(AppColors.gold)
+                                .foregroundStyle(AppColors.darkBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
+                        .padding(.horizontal)
+                    }
                 }
+                .padding(.vertical, 32)
             }
-            .padding(.vertical, 32)
             .navigationTitle("Review")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(AppColors.gold)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
