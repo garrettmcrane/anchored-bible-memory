@@ -103,7 +103,7 @@ struct HomeView: View {
                 }
             }
         }
-        .confirmationDialog("Choose Review Method", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
+        .confirmationDialog("Choose Review Style", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
             ForEach(ReviewMethod.allCases) { method in
                 Button(method.title) {
                     selectedBatchReviewMethod = method
@@ -112,7 +112,7 @@ struct HomeView: View {
 
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Select one method for this personal review session.")
+            Text("Choose how you want to review this session.")
         }
         .onAppear {
             reloadVerses()

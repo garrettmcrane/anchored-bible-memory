@@ -11,7 +11,9 @@ struct ScriptureAddPreviewView: View {
     @State private var isAddingNewFolder = false
     @State private var newFolderName = ""
     @State private var masteryStatus: VerseMasteryStatus = .learning
-    @State private var didSave = false
+    @State private var folderOverrides: [String: String] = [:]
+    @State private var successMessage: String?
+    @State private var isSaving = false
 
     private var existingFolders: [String] {
         var normalizedFolders = Set(
@@ -21,6 +23,9 @@ struct ScriptureAddPreviewView: View {
         if selectedFolder != "Uncategorized" {
             normalizedFolders.insert(selectedFolder)
         }
+        for folder in folderOverrides.values where folder != "Uncategorized" {
+            normalizedFolders.insert(folder)
+        }
         return normalizedFolders.sorted()
     }
 
@@ -28,29 +33,13 @@ struct ScriptureAddPreviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 summaryCard
+                saveButton
+                defaultsCard
 
-                ForEach(passages) { passage in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(passage.normalizedReference)
-                            .font(.headline)
-
-                        Text(passage.text)
-                            .font(.system(.body, design: .serif))
-                            .foregroundStyle(.primary)
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(passages) { passage in
+                        previewCard(for: passage)
                     }
-                    .padding(18)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                }
-
-                folderSection
-                statusSection
-
-                if didSave {
-                    AddFlowMessageCard(message: "Verses saved.", tint: .green)
                 }
             }
             .padding(20)
@@ -58,14 +47,15 @@ struct ScriptureAddPreviewView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Preview")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
-                    savePassages()
-                }
-                .fontWeight(.semibold)
+        .overlay(alignment: .bottom) {
+            if let successMessage {
+                SuccessToast(message: successMessage)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: successMessage)
     }
 
     private var summaryCard: some View {
@@ -85,88 +75,183 @@ struct ScriptureAddPreviewView: View {
         )
     }
 
-    private var folderSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Folder")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+    private var defaultsCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Status")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
 
-            Menu {
-                Button("Uncategorized") {
-                    selectedFolder = "Uncategorized"
-                }
-
-                ForEach(existingFolders, id: \.self) { folder in
-                    Button(folder) {
-                        selectedFolder = folder
+                Picker("Status", selection: $masteryStatus) {
+                    ForEach(VerseMasteryStatus.allCases) { status in
+                        Text(status.rawValue).tag(status)
                     }
                 }
-            } label: {
-                HStack {
-                    Text(selectedFolder)
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 14)
-                .frame(height: 48)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(.secondarySystemBackground))
-                )
+                .pickerStyle(.segmented)
             }
-            .buttonStyle(.plain)
 
-            Button(isAddingNewFolder ? "Cancel New Folder" : "New Folder") {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isAddingNewFolder.toggle()
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Default Folder")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                folderMenu(
+                    selection: selectedFolder,
+                    title: selectedFolder,
+                    tint: .primary
+                ) { folder in
+                    selectedFolder = folder
                 }
-            }
-            .font(.subheadline.weight(.semibold))
 
-            if isAddingNewFolder {
-                VStack(spacing: 8) {
-                    TextField("New folder name", text: $newFolderName)
-                        .textInputAutocapitalization(.words)
-                        .padding(.horizontal, 14)
-                        .frame(height: 44)
+                Button(isAddingNewFolder ? "Cancel New Folder" : "New Folder") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isAddingNewFolder.toggle()
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+
+                if isAddingNewFolder {
+                    VStack(spacing: 8) {
+                        TextField("New folder name", text: $newFolderName)
+                            .textInputAutocapitalization(.words)
+                            .padding(.horizontal, 14)
+                            .frame(height: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(.systemBackground))
+                            )
+
+                        Button("Save Folder") {
+                            saveNewFolder()
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 42)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color(.secondarySystemBackground))
+                                .fill(Color.blue.opacity(0.12))
                         )
-
-                    Button("Save Folder") {
-                        saveNewFolder()
+                        .disabled(normalizedCandidateFolderName == nil)
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 42)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.blue.opacity(0.12))
-                    )
-                    .disabled(normalizedCandidateFolderName == nil)
                 }
             }
         }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
     }
 
-    private var statusSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Status")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+    private var saveButton: some View {
+        Button {
+            savePassages()
+        } label: {
+            Text(isSaving ? "Saving..." : "Save Verses")
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    Capsule()
+                        .fill(Color.blue)
+                )
+                .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
+    }
 
-            Picker("Status", selection: $masteryStatus) {
-                ForEach(VerseMasteryStatus.allCases) { status in
-                    Text(status.rawValue).tag(status)
+    private func previewCard(for passage: ScripturePassage) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(passage.normalizedReference)
+                        .font(.headline)
+
+                    Text(passage.text)
+                        .font(.system(.body, design: .serif))
+                        .foregroundStyle(.primary)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            HStack {
+                Text("Folder")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                let override = folderOverride(for: passage)
+                folderMenu(
+                    selection: override ?? selectedFolder,
+                    title: override ?? "Use Default",
+                    tint: override == nil ? .secondary : .primary,
+                    onSelect: { folder in
+                    if folder == selectedFolder {
+                        folderOverrides.removeValue(forKey: passage.id)
+                    } else {
+                        folderOverrides[passage.id] = folder
+                    }
+                },
+                    includeUseDefault: true
+                )
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+    }
+
+    private func folderMenu(
+        selection: String,
+        title: String,
+        tint: Color,
+        onSelect: @escaping (String) -> Void,
+        includeUseDefault: Bool = false
+    ) -> some View {
+        Menu {
+            if includeUseDefault {
+                Button("Use Default Folder") {
+                    onSelect(selectedFolder)
                 }
             }
-            .pickerStyle(.segmented)
+
+            Button("Uncategorized") {
+                onSelect("Uncategorized")
+            }
+
+            ForEach(existingFolders, id: \.self) { folder in
+                Button(folder) {
+                    onSelect(folder)
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(title)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color(.systemBackground))
+            )
         }
+        .buttonStyle(.plain)
+    }
+
+    private func folderOverride(for passage: ScripturePassage) -> String? {
+        folderOverrides[passage.id]
     }
 
     private var normalizedCandidateFolderName: String? {
@@ -179,27 +264,62 @@ struct ScriptureAddPreviewView: View {
             return
         }
 
-        selectedFolder = existingFolders.first(where: {
+        let savedFolder = existingFolders.first(where: {
             $0.compare(normalizedName, options: .caseInsensitive) == .orderedSame
         }) ?? normalizedName
+
+        selectedFolder = savedFolder
         newFolderName = ""
         isAddingNewFolder = false
     }
 
     private func savePassages() {
-        let verses = ScriptureAddPipeline.makeVerses(
-            from: passages,
-            options: ScriptureSaveOptions(folderName: selectedFolder, masteryStatus: masteryStatus)
-        )
+        guard !isSaving else {
+            return
+        }
 
-        for verse in verses {
+        isSaving = true
+
+        for passage in passages {
+            let folderName = folderOverride(for: passage) ?? selectedFolder
+            let verse = ScriptureAddPipeline.makeVerse(
+                from: passage,
+                options: ScriptureSaveOptions(folderName: folderName, masteryStatus: masteryStatus)
+            )
             onSaveVerse(verse)
         }
 
-        didSave = true
-        onComplete?()
-        if onComplete == nil {
-            dismiss()
+        successMessage = passages.count == 1 ? "1 verse added" : "\(passages.count) verses added"
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.1))
+            await MainActor.run {
+                onComplete?()
+                if onComplete == nil {
+                    dismiss()
+                }
+            }
         }
+    }
+}
+
+private struct SuccessToast: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+            Text(message)
+                .font(.subheadline.weight(.semibold))
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+        )
     }
 }

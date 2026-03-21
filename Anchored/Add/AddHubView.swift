@@ -35,8 +35,8 @@ struct AddHubView: View {
                             )
                         } label: {
                             AddHubOptionCard(
-                                title: "Paste / Type",
-                                subtitle: "Enter one or more references, fetch Scripture, then preview before saving.",
+                                title: "Type Verses",
+                                subtitle: "Enter one or more references, load the verses, and review them before saving.",
                                 systemImage: "doc.text",
                                 tint: Color(red: 0.16, green: 0.41, blue: 0.78)
                             )
@@ -61,12 +61,12 @@ struct AddHubView: View {
                         NavigationLink {
                             PlaceholderAddMethodView(
                                 title: "Import",
-                                message: "Bulk import is planned for a later milestone. The add pipeline is now ready for future CSV and other batch sources."
+                                message: "Bulk import is coming soon. This space is reserved for adding many verses at once from a file."
                             )
                         } label: {
                             AddHubOptionCard(
                                 title: "Import",
-                                subtitle: "Bulk import pipeline placeholder for later CSV and batch sources.",
+                                subtitle: "Add many verses at once from a file when import becomes available.",
                                 systemImage: "square.and.arrow.down",
                                 tint: Color(red: 0.74, green: 0.44, blue: 0.12),
                                 isPlaceholder: true
@@ -77,12 +77,12 @@ struct AddHubView: View {
                         NavigationLink {
                             PlaceholderAddMethodView(
                                 title: "Collections",
-                                message: "Collections will later feed the same reference -> passage -> preview -> save pipeline used by the working add methods."
+                                message: "Collections are coming soon. You’ll be able to add curated sets of verses from here."
                             )
                         } label: {
                             AddHubOptionCard(
                                 title: "Collections",
-                                subtitle: "Future curated sets will land here and reuse the normalized preview/save flow.",
+                                subtitle: "Browse curated verse sets here when collections become available.",
                                 systemImage: "square.stack.3d.up",
                                 tint: Color(red: 0.48, green: 0.33, blue: 0.67),
                                 isPlaceholder: true
@@ -113,7 +113,7 @@ struct AddHubView: View {
             Text("Build your Scripture library")
                 .font(.system(size: 30, weight: .bold))
 
-            Text("Choose how you want to add verses. Paste references, browse the Bible, or step into the next pipeline that is already reserved for import and collections.")
+            Text("Choose how you want to add verses. Type references, browse the Bible, or explore the sections reserved for import and collections.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

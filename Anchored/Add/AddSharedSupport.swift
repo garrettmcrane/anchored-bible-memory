@@ -11,17 +11,21 @@ struct ScriptureSaveOptions {
 }
 
 enum ScriptureAddPipeline {
-    static func makeVerses(from passages: [ScripturePassage], options: ScriptureSaveOptions) -> [Verse] {
+    static func makeVerse(from passage: ScripturePassage, options: ScriptureSaveOptions) -> Verse {
         let normalizedFolder = normalizedFolderName(options.folderName)
         let finalFolder = normalizedFolder.isEmpty ? "Uncategorized" : normalizedFolder
 
+        return Verse(
+            reference: passage.normalizedReference,
+            text: passage.text,
+            folderName: finalFolder,
+            isMastered: options.masteryStatus == .memorized
+        )
+    }
+
+    static func makeVerses(from passages: [ScripturePassage], options: ScriptureSaveOptions) -> [Verse] {
         return passages.map { passage in
-            Verse(
-                reference: passage.normalizedReference,
-                text: passage.text,
-                folderName: finalFolder,
-                isMastered: options.masteryStatus == .memorized
-            )
+            makeVerse(from: passage, options: options)
         }
     }
 
@@ -44,55 +48,48 @@ struct TranslationPickerSection: View {
     @Binding var selection: BibleTranslation
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        HStack {
             Text("Translation")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .textCase(.uppercase)
 
-            ForEach(BibleTranslation.allCases) { translation in
-                Button {
-                    selection = translation
-                } label: {
-                    HStack(spacing: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(translation.title)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
+            Spacer()
 
-                            Text(translation.subtitle)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+            Menu {
+                ForEach(BibleTranslation.allCases) { translation in
+                    if translation.isAvailable {
+                        Button {
+                            selection = translation
+                        } label: {
+                            if translation == selection {
+                                Label(translation.title, systemImage: "checkmark")
+                            } else {
+                                Text(translation.title)
+                            }
                         }
-
-                        Spacer()
-
-                        if translation == selection {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.title3)
-                                .foregroundStyle(.blue)
-                        } else if !translation.isAvailable {
-                            Text("Soon")
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
-                                .background(Capsule().fill(Color.orange.opacity(0.14)))
-                                .foregroundStyle(Color.orange)
-                        }
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(translation == selection ? Color.blue.opacity(0.25) : Color.clear, lineWidth: 1)
+                    } else {
+                        Text("\(translation.title) • Coming soon")
                     }
                 }
-                .buttonStyle(.plain)
+            } label: {
+                HStack(spacing: 8) {
+                    Text(selection.title)
+                        .font(.subheadline.weight(.semibold))
+                    Text(selection.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                )
             }
+            .buttonStyle(.plain)
         }
     }
 }

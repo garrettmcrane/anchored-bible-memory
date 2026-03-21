@@ -29,17 +29,13 @@ struct BrowseBibleAddView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 TranslationPickerSection(selection: $translation)
+                    .padding(.leading, 18)
 
                 if let message {
                     AddFlowMessageCard(message: message, tint: .orange)
                 }
 
-                selectorsSection
-
-                if !verses.isEmpty {
-                    selectionSection
-                    versePreviewSection
-                }
+                selectionFlowCard
             }
             .padding(20)
         }
@@ -65,138 +61,120 @@ struct BrowseBibleAddView: View {
         .onChange(of: selectedChapter) { _, _ in
             loadVerses()
         }
+        .onChange(of: selectionMode) { _, newMode in
+            guard let selectedStartVerse else {
+                selectedEndVerse = nil
+                return
+            }
+
+            if newMode == .singleVerse {
+                selectedEndVerse = selectedStartVerse
+            } else if let selectedEndVerse, selectedEndVerse < selectedStartVerse {
+                self.selectedEndVerse = selectedStartVerse
+            }
+        }
     }
 
-    private var selectorsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Browse")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
-            Menu {
-                ForEach(books) { book in
-                    Button(book.name) {
-                        selectedBook = book
+    private var selectionFlowCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                compactSelector(
+                    title: "Book",
+                    value: selectedBook?.name ?? "Choose a book",
+                    isEnabled: !books.isEmpty,
+                    menuContent: {
+                        ForEach(books) { book in
+                            Button(book.name) {
+                                selectedBook = book
+                            }
+                        }
                     }
-                }
-            } label: {
-                selectorLabel(title: "Book", value: selectedBook?.name ?? "Choose a book")
-            }
-            .buttonStyle(.plain)
-            .disabled(books.isEmpty)
+                )
 
-            Menu {
-                ForEach(chapters, id: \.self) { chapter in
-                    Button("Chapter \(chapter)") {
-                        selectedChapter = chapter
-                    }
-                }
-            } label: {
-                selectorLabel(
+                compactSelector(
                     title: "Chapter",
-                    value: selectedChapter.map { "Chapter \($0)" } ?? "Choose a chapter"
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(chapters.isEmpty)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
-    }
-
-    private var selectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Selection")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
-            Picker("Mode", selection: $selectionMode) {
-                ForEach(SelectionMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            Menu {
-                ForEach(verses, id: \.verse) { verse in
-                    Button("Verse \(verse.verse)") {
-                        selectedStartVerse = verse.verse
-                        if selectionMode == .singleVerse {
-                            selectedEndVerse = verse.verse
-                        } else if let selectedEndVerse, selectedEndVerse < verse.verse {
-                            self.selectedEndVerse = verse.verse
+                    value: selectedChapter.map(String.init) ?? "Choose",
+                    isEnabled: !chapters.isEmpty,
+                    menuContent: {
+                        ForEach(chapters, id: \.self) { chapter in
+                            Button("Chapter \(chapter)") {
+                                selectedChapter = chapter
+                            }
                         }
                     }
-                }
-            } label: {
-                selectorLabel(
-                    title: "Start",
-                    value: selectedStartVerse.map { "Verse \($0)" } ?? "Choose a verse"
                 )
-            }
-            .buttonStyle(.plain)
-
-            if selectionMode == .verseRange {
-                Menu {
-                    ForEach(verses.filter { verse in
-                        guard let selectedStartVerse else {
-                            return true
-                        }
-
-                        return verse.verse >= selectedStartVerse
-                    }, id: \.verse) { verse in
-                        Button("Verse \(verse.verse)") {
-                            selectedEndVerse = verse.verse
-                        }
-                    }
-                } label: {
-                    selectorLabel(
-                        title: "End",
-                        value: selectedEndVerse.map { "Verse \($0)" } ?? "Choose an ending verse"
-                    )
-                }
-                .buttonStyle(.plain)
+                .frame(width: 132)
             }
 
-            Button("Preview Passage") {
-                buildPreview()
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedReference == nil)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
-    }
-
-    private var versePreviewSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Chapter")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
-            ForEach(verses) { verse in
-                HStack(alignment: .top, spacing: 12) {
-                    Text("\(verse.verse)")
-                        .font(.caption.weight(.bold))
+            if !verses.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Selection")
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 26, alignment: .leading)
 
-                    Text(verse.text)
-                        .font(.system(.body, design: .serif))
-                        .foregroundStyle(.primary)
+                    Picker("Mode", selection: $selectionMode) {
+                        ForEach(SelectionMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if selectionMode == .singleVerse {
+                        compactSelector(
+                            title: "Verse",
+                            value: selectedStartVerse.map(String.init) ?? "Choose",
+                            isEnabled: !verses.isEmpty,
+                            menuContent: {
+                                verseButtons { verse in
+                                    selectedStartVerse = verse
+                                    selectedEndVerse = verse
+                                }
+                            }
+                        )
+                    } else {
+                        HStack(alignment: .top, spacing: 12) {
+                            compactSelector(
+                                title: "Start",
+                                value: selectedStartVerse.map(String.init) ?? "Choose",
+                                isEnabled: !verses.isEmpty,
+                                menuContent: {
+                                    verseButtons { verse in
+                                        selectedStartVerse = verse
+                                        if let selectedEndVerse, selectedEndVerse < verse {
+                                            self.selectedEndVerse = verse
+                                        } else if self.selectedEndVerse == nil {
+                                            self.selectedEndVerse = verse
+                                        }
+                                    }
+                                }
+                            )
+
+                            compactSelector(
+                                title: "End",
+                                value: selectedEndVerse.map(String.init) ?? "Choose",
+                                isEnabled: selectedStartVerse != nil,
+                                menuContent: {
+                                    verseButtons(filteringFrom: selectedStartVerse) { verse in
+                                        selectedEndVerse = verse
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    if let selectionSummary {
+                        Text(selectionSummary)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button(previewButtonTitle) {
+                        buildPreview()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(selectedReference == nil)
                 }
-                .padding(.vertical, 4)
             }
         }
         .padding(18)
@@ -205,6 +183,27 @@ struct BrowseBibleAddView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
+    }
+
+    private var selectionSummary: String? {
+        guard let selectedBook, let selectedChapter else {
+            return nil
+        }
+
+        guard let selectedReference else {
+            return "\(selectedBook.name) \(selectedChapter)"
+        }
+
+        return selectedReference.normalizedReference
+    }
+
+    private var previewButtonTitle: String {
+        switch selectionMode {
+        case .singleVerse:
+            return "Preview Verse"
+        case .verseRange:
+            return "Preview Verses"
+        }
     }
 
     private var selectedReference: ScriptureReference? {
@@ -240,27 +239,61 @@ struct BrowseBibleAddView: View {
         }
     }
 
-    private func selectorLabel(title: String, value: String) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .foregroundStyle(.primary)
+    private func compactSelector<MenuContent: View>(
+        title: String,
+        value: String,
+        isEnabled: Bool,
+        @ViewBuilder menuContent: () -> MenuContent
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Menu {
+                menuContent()
+            } label: {
+                HStack(spacing: 10) {
+                    Text(value)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(isEnabled ? .primary : .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(.systemBackground))
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(!isEnabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func verseButtons(
+        filteringFrom startVerse: Int? = nil,
+        onSelect: @escaping (Int) -> Void
+    ) -> some View {
+        ForEach(verses.filter { verse in
+            guard let startVerse else {
+                return true
             }
 
-            Spacer()
-
-            Image(systemName: "chevron.up.chevron.down")
-                .foregroundStyle(.secondary)
+            return verse.verse >= startVerse
+        }, id: \.verse) { verse in
+            Button("Verse \(verse.verse)") {
+                onSelect(verse.verse)
+            }
         }
-        .padding(.horizontal, 14)
-        .frame(height: 54)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
     }
 
     private func loadBooks() {
@@ -270,7 +303,9 @@ struct BrowseBibleAddView: View {
             verses = []
             selectedBook = nil
             selectedChapter = nil
-            message = "ESV is visible for the future, but it is not available until API approval is in place."
+            selectedStartVerse = nil
+            selectedEndVerse = nil
+            message = "ESV is shown here for what’s next, but it isn’t available yet."
             return
         }
 
@@ -285,6 +320,8 @@ struct BrowseBibleAddView: View {
             verses = []
             selectedBook = nil
             selectedChapter = nil
+            selectedStartVerse = nil
+            selectedEndVerse = nil
             message = error.localizedDescription
         }
     }
@@ -294,6 +331,8 @@ struct BrowseBibleAddView: View {
             chapters = []
             selectedChapter = nil
             verses = []
+            selectedStartVerse = nil
+            selectedEndVerse = nil
             return
         }
 
@@ -305,6 +344,8 @@ struct BrowseBibleAddView: View {
             chapters = []
             selectedChapter = nil
             verses = []
+            selectedStartVerse = nil
+            selectedEndVerse = nil
             message = error.localizedDescription
         }
     }
@@ -321,7 +362,7 @@ struct BrowseBibleAddView: View {
             let provider = try ScriptureProviderFactory.makeProvider(for: translation)
             verses = try provider.browseVerses(in: selectedBook, chapter: selectedChapter)
             selectedStartVerse = verses.first?.verse
-            selectedEndVerse = verses.first?.verse
+            selectedEndVerse = selectionMode == .singleVerse ? verses.first?.verse : verses.first?.verse
             message = nil
         } catch {
             verses = []

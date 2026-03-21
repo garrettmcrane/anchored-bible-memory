@@ -11,7 +11,7 @@ struct GroupsView: View {
                     Text("Groups")
                         .font(.system(size: 34, weight: .bold))
 
-                    Text("Shared memorization and group review will live here next.")
+                    Text("Shared memorization and group review will be here soon.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -23,7 +23,7 @@ struct GroupsView: View {
                         Text("Group memorization is coming soon")
                             .font(.headline)
 
-                        Text("You’ll be able to join a group, review together, and see shared momentum here in a future milestone.")
+                        Text("You’ll be able to join a group, review together, and track your progress with others here.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

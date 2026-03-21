@@ -271,7 +271,7 @@ struct LibraryView: View {
         .onAppear {
             reloadVerses()
         }
-        .confirmationDialog("Choose Review Method", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
+        .confirmationDialog("Choose Review Style", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
             ForEach(ReviewMethod.allCases) { method in
                 Button(method.title) {
                     selectedBatchReviewMethod = method
@@ -280,7 +280,7 @@ struct LibraryView: View {
 
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Select one method for this review session.")
+            Text("Choose how you want to review this session.")
         }
     }
 
@@ -359,8 +359,14 @@ struct LibraryView: View {
     private func controlsSection(spacing: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: spacing) {
             HStack(spacing: 12) {
-                LibraryFilterSegmentedControl(selection: $selectedFilter)
-                    .frame(height: 34)
+                Picker("Filter", selection: $selectedFilter) {
+                    ForEach(FilterType.allCases, id: \.self) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(height: 34)
 
                 Menu {
                     Picker("Sort", selection: $sortMode) {
@@ -631,68 +637,6 @@ struct LibraryView: View {
 
         VerseRepository.shared.softDeleteVerse(id: verse.id)
         reloadVerses()
-    }
-}
-
-private struct LibraryFilterSegmentedControl: UIViewRepresentable {
-    @Binding var selection: LibraryView.FilterType
-
-    func makeUIView(context: Context) -> UISegmentedControl {
-        let control = UISegmentedControl(items: LibraryView.FilterType.allCases.map(\.rawValue))
-        control.selectedSegmentIndex = selectedIndex
-        control.selectedSegmentTintColor = UIColor.systemBackground
-        control.backgroundColor = UIColor.tertiarySystemFill
-        control.setTitleTextAttributes(
-            [
-                .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
-                .foregroundColor: UIColor.label
-            ],
-            for: .normal
-        )
-        control.setTitleTextAttributes(
-            [
-                .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
-                .foregroundColor: UIColor.label
-            ],
-            for: .selected
-        )
-        control.addTarget(
-            context.coordinator,
-            action: #selector(Coordinator.valueChanged(_:)),
-            for: .valueChanged
-        )
-        return control
-    }
-
-    func updateUIView(_ uiView: UISegmentedControl, context: Context) {
-        if uiView.selectedSegmentIndex != selectedIndex {
-            uiView.selectedSegmentIndex = selectedIndex
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(selection: $selection)
-    }
-
-    private var selectedIndex: Int {
-        LibraryView.FilterType.allCases.firstIndex(of: selection) ?? 0
-    }
-
-    final class Coordinator: NSObject {
-        @Binding private var selection: LibraryView.FilterType
-
-        init(selection: Binding<LibraryView.FilterType>) {
-            _selection = selection
-        }
-
-        @objc func valueChanged(_ sender: UISegmentedControl) {
-            let allCases = LibraryView.FilterType.allCases
-            guard allCases.indices.contains(sender.selectedSegmentIndex) else {
-                return
-            }
-
-            selection = allCases[sender.selectedSegmentIndex]
-        }
     }
 }
 

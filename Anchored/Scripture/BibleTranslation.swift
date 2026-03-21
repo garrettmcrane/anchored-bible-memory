@@ -20,9 +20,9 @@ enum BibleTranslation: String, CaseIterable, Identifiable, Codable {
     var subtitle: String {
         switch self {
         case .kjv:
-            return "Bundled offline"
+            return "Available offline"
         case .esv:
-            return "API approval pending"
+            return "Coming soon"
         }
     }
 

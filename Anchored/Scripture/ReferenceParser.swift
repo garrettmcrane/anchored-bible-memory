@@ -9,7 +9,7 @@ enum ReferenceParserError: LocalizedError {
         case .emptyInput:
             return "Enter at least one Scripture reference."
         case .invalidReference(let value):
-            return "Could not parse \"\(value)\"."
+            return "We couldn't understand \"\(value)\". Check the reference and try again."
         }
     }
 }

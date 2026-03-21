@@ -128,7 +128,7 @@ struct VerseDetailView: View {
         .onChange(of: verse) { _, newValue in
             currentVerse = newValue
         }
-        .confirmationDialog("Choose Review Method", isPresented: $showingReviewMethodPicker, titleVisibility: .visible) {
+        .confirmationDialog("Choose Review Style", isPresented: $showingReviewMethodPicker, titleVisibility: .visible) {
             ForEach(ReviewMethod.allCases) { method in
                 Button(method.title) {
                     onStartReview(currentVerse, method)

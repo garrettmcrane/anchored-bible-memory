@@ -14,10 +14,10 @@
             filePath = "Anchored/LibraryView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "730"
-            endingLineNumber = "730"
-            landmarkName = "body"
-            landmarkType = "24">
+            startingLineNumber = "674"
+            endingLineNumber = "674"
+            landmarkName = "makeCoordinator()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -30,13 +30,13 @@
             filePath = "Anchored/LibraryView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "745"
-            endingLineNumber = "745"
-            landmarkName = "body"
-            landmarkType = "24">
+            startingLineNumber = "689"
+            endingLineNumber = "689"
+            landmarkName = "valueChanged(_:)"
+            landmarkType = "7">
             <Locations>
                <Location
-                  uuid = "670B171F-DF45-47A2-9804-50EE7B21F034 - 4ff8cf9ea90bfa22"
+                  uuid = "670B171F-DF45-47A2-9804-50EE7B21F034 - 4ff8cf9ea90bf2ea"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
@@ -46,11 +46,11 @@
                   urlString = "file:///Users/garrettcrane/Desktop/Anchored/Anchored/LibraryView.swift"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "745"
-                  endingLineNumber = "745">
+                  startingLineNumber = "689"
+                  endingLineNumber = "689">
                </Location>
                <Location
-                  uuid = "670B171F-DF45-47A2-9804-50EE7B21F034 - b62c406b6eb1c476"
+                  uuid = "670B171F-DF45-47A2-9804-50EE7B21F034 - b62c406b6eb1cd3e"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
@@ -60,58 +60,10 @@
                   urlString = "file:///Users/garrettcrane/Desktop/Anchored/Anchored/LibraryView.swift"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "746"
-                  endingLineNumber = "746">
+                  startingLineNumber = "690"
+                  endingLineNumber = "690">
                </Location>
             </Locations>
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "E487551F-F7C3-41A1-8A40-64CE29F71B37"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "Anchored/LibraryView.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "689"
-            endingLineNumber = "689"
-            landmarkName = "valueChanged(_:)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "D0D54243-D5BA-421C-95E2-7B64CD7EE979"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "Anchored/LibraryView.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "696"
-            endingLineNumber = "696"
-            landmarkName = "FolderFilterSheet"
-            landmarkType = "14">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "00E5F027-BCB6-41BB-B3EF-07114F622A89"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "Anchored/LibraryView.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "694"
-            endingLineNumber = "694"
-            landmarkName = "Coordinator"
-            landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -124,10 +76,10 @@
             filePath = "Anchored/LibraryView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "778"
-            endingLineNumber = "778"
-            landmarkName = "toggle(_:)"
-            landmarkType = "7">
+            startingLineNumber = "722"
+            endingLineNumber = "722"
+            landmarkName = "body"
+            landmarkType = "24">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -140,10 +92,10 @@
             filePath = "Anchored/LibraryView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "777"
-            endingLineNumber = "777"
-            landmarkName = "toggle(_:)"
-            landmarkType = "7">
+            startingLineNumber = "721"
+            endingLineNumber = "721"
+            landmarkName = "FolderFilterSheet"
+            landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

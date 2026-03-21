@@ -25,13 +25,13 @@ enum ScriptureProviderError: LocalizedError {
         case .databaseMissing(let message):
             return message
         case .databaseOpenFailed:
-            return "The scripture database could not be opened."
+            return "The Bible text couldn't be opened right now."
         case .queryFailed(let message):
             return message
         case .verseNotFound(let reference):
-            return "No passage was found for \(reference)."
+            return "We couldn't find a passage for \(reference)."
         case .unsupportedReference(let reference):
-            return "The reference format is not supported yet: \(reference)"
+            return "That reference isn't supported yet: \(reference)"
         }
     }
 }
