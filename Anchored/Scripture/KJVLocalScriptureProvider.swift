@@ -40,9 +40,12 @@ final class KJVLocalScriptureProvider: ScriptureProvider {
             var books: [BibleBook] = []
 
             while sqlite3_step(statement) == SQLITE_ROW {
+                let bookID = Int(sqlite3_column_int(statement, 0))
+                let canonicalBook = BibleBookCatalog.book(forID: bookID)
+
                 books.append(
-                    BibleBook(
-                        id: Int(sqlite3_column_int(statement, 0)),
+                    canonicalBook ?? BibleBook(
+                        id: bookID,
                         abbreviation: stringValue(from: statement, column: 1),
                         name: stringValue(from: statement, column: 2),
                         sortOrder: Int(sqlite3_column_int(statement, 3)),

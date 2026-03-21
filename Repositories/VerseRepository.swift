@@ -63,6 +63,35 @@ struct VerseRepository {
         return allVerses[index]
     }
 
+    func updateMasteryStatus(forVerseIDs ids: Set<String>, to status: VerseMasteryStatus) -> [Verse] {
+        guard !ids.isEmpty else {
+            return []
+        }
+
+        var allVerses = VerseStore.load()
+        let now = Date()
+        var updatedVerses: [Verse] = []
+
+        for index in allVerses.indices where ids.contains(allVerses[index].id) {
+            guard allVerses[index].masteryStatus != status else {
+                updatedVerses.append(allVerses[index])
+                continue
+            }
+
+            allVerses[index].masteryStatus = status
+            allVerses[index].updatedAt = now
+
+            if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
+                allVerses[index].syncStatus = .pendingUpload
+            }
+
+            updatedVerses.append(allVerses[index])
+        }
+
+        VerseStore.save(allVerses)
+        return updatedVerses
+    }
+
     func softDeleteVerse(id: String) {
         var allVerses = VerseStore.load()
 
@@ -73,6 +102,23 @@ struct VerseRepository {
         allVerses[index].deletedAt = Date()
         allVerses[index].updatedAt = Date()
         allVerses[index].syncStatus = .pendingDelete
+        VerseStore.save(allVerses)
+    }
+
+    func softDeleteVerses(ids: Set<String>) {
+        guard !ids.isEmpty else {
+            return
+        }
+
+        var allVerses = VerseStore.load()
+        let now = Date()
+
+        for index in allVerses.indices where ids.contains(allVerses[index].id) {
+            allVerses[index].deletedAt = now
+            allVerses[index].updatedAt = now
+            allVerses[index].syncStatus = .pendingDelete
+        }
+
         VerseStore.save(allVerses)
     }
 

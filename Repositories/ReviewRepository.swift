@@ -29,6 +29,7 @@ struct ReviewRepository {
 
         var updatedVerse = verse
         updatedVerse.reviewCount += 1
+        updatedVerse.strength = VerseStrengthService.updatedStoredStrength(for: verse, result: result, reviewedAt: reviewedAt)
         updatedVerse.lastReviewedAt = reviewedAt
         updatedVerse.updatedAt = reviewedAt
 

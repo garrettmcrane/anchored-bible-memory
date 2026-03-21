@@ -55,7 +55,7 @@ struct HomeView: View {
     }
 
     private var needsAttentionCount: Int {
-        verses.filter { $0.urgencyLevel == .needsReview }.count
+        verses.filter { VerseStrengthService.needsAttention(for: $0) }.count
     }
 
     var body: some View {

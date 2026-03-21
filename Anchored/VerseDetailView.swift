@@ -117,6 +117,10 @@ struct VerseDetailView: View {
         currentVerse.correctCount
     }
 
+    private var strength: Double {
+        VerseStrengthService.currentStrength(for: currentVerse)
+    }
+
     private var folderName: String {
         let trimmedFolderName = currentVerse.folderName.trimmingCharacters(in: .whitespacesAndNewlines)
         let collapsedWhitespaceFolderName = trimmedFolderName
@@ -156,23 +160,14 @@ struct VerseDetailView: View {
     }
 
     private var lastReviewedColor: Color {
-        guard let lastReviewedAt = currentVerse.lastReviewedAt else {
-            return Color(.secondaryLabel)
-        }
-
-        let calendar = Calendar.current
-        let daysAgo = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: lastReviewedAt),
-            to: calendar.startOfDay(for: Date())
-        ).day ?? 0
-
-        switch daysAgo {
-        case ..<3:
+        switch VerseStrengthService.band(for: strength) {
+        case .strong:
             return Color(red: 0.24, green: 0.55, blue: 0.41)
-        case 3..<7:
+        case .steady:
+            return Color(red: 0.56, green: 0.78, blue: 0.40)
+        case .warning:
             return Color(red: 0.72, green: 0.56, blue: 0.18)
-        default:
+        case .weak:
             return Color(red: 0.68, green: 0.36, blue: 0.34)
         }
     }
@@ -196,18 +191,20 @@ struct VerseDetailView: View {
     }
 
     private var progressTint: Color {
-        switch currentVerse.urgencyLevel {
-        case .fresh:
+        switch VerseStrengthService.band(for: strength) {
+        case .strong:
             return Color(red: 0.24, green: 0.55, blue: 0.41)
-        case .atRisk:
+        case .steady:
+            return Color(red: 0.56, green: 0.78, blue: 0.40)
+        case .warning:
             return Color(red: 0.72, green: 0.56, blue: 0.18)
-        case .needsReview:
+        case .weak:
             return Color(red: 0.68, green: 0.36, blue: 0.34)
         }
     }
 
     private var progressValue: CGFloat {
-        CGFloat(min(max(currentVerse.urgencyProgress, 0), 1))
+        CGFloat(strength)
     }
 
     private var masteryStatusBinding: Binding<VerseMasteryStatus> {

@@ -10,24 +10,39 @@ struct LibraryView: View {
         }
     }
 
-    private struct LibraryStatItem: View {
+    private struct LibrarySummaryMetric: View {
         let value: Int
         let title: String
+        let isSelected: Bool
 
         var body: some View {
-            VStack(spacing: 0) {
+            VStack(spacing: 4) {
                 Text(value.formatted())
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
                 Text(title)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.4)
                     .lineLimit(1)
+
+                Capsule(style: .continuous)
+                    .fill(isSelected ? Color.primary.opacity(0.14) : Color.clear)
+                    .frame(width: 28, height: 4)
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private struct SummaryDivider: View {
+        var body: some View {
+            Rectangle()
+                .fill(Color.primary.opacity(0.12))
+                .frame(width: 1, height: 32)
         }
     }
 
@@ -38,7 +53,7 @@ struct LibraryView: View {
     }
 
     private enum SortMode: String, CaseIterable {
-        case newest = "Newest"
+        case newest = "Default"
         case review = "Review"
         case aToZ = "A–Z"
     }
@@ -55,6 +70,9 @@ struct LibraryView: View {
     @State private var sortMode: SortMode = .newest
     @State private var selectedBatchReviewMethod: ReviewMethod? = nil
     @State private var showingBatchReviewMethodPicker = false
+    @State private var isSelectionMode = false
+    @State private var selectedVerseIDs: Set<String> = []
+    @State private var pendingBatchDeleteVerseIDs: Set<String> = []
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = []
 
@@ -131,15 +149,39 @@ struct LibraryView: View {
     }
 
     private var reviewVerses: [Verse] {
-        verses
+        filteredVerses.sorted { VerseStrengthService.reviewPriority($0, $1) }
     }
 
     private var floatingButtonClearance: CGFloat {
         floatingButtonHeight + (floatingButtonVerticalInset * 2) + 16
     }
 
+    private var batchActionBarClearance: CGFloat {
+        96
+    }
+
+    private var bottomOverlayClearance: CGFloat {
+        isSelectionMode ? batchActionBarClearance : floatingButtonClearance
+    }
+
     private var hasActiveFolderFilter: Bool {
         !selectedFolders.isEmpty
+    }
+
+    private var hasNonDefaultSortMode: Bool {
+        sortMode != .newest
+    }
+
+    private var selectedVisibleCount: Int {
+        selectedVerseIDs.intersection(Set(filteredVerses.map(\.id))).count
+    }
+
+    private var hasSelection: Bool {
+        selectedVisibleCount > 0
+    }
+
+    private var batchDeleteDialogTitle: String {
+        "Delete \(selectedVisibleCount) \(selectedVisibleCount == 1 ? "verse" : "verses")?"
     }
 
     private var folderSelectionSummary: String {
@@ -173,11 +215,6 @@ struct LibraryView: View {
                             .listRowSeparator(.hidden)
 
                         Section {
-                            verseSectionHeader
-                                .listRowInsets(EdgeInsets())
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-
                             if filteredVerses.isEmpty {
                                 emptyVersesState
                                     .listRowInsets(EdgeInsets())
@@ -193,17 +230,20 @@ struct LibraryView: View {
                                 }
                             }
                         } header: {
-                            controlsSection(spacing: currentControlsSpacing)
-                                .padding(.vertical, 0)
+                            managementRail
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, -16)
+                                .padding(.top, 8)
+                                .padding(.bottom, 8)
                         }
                         .textCase(nil)
                         .listSectionSeparator(.hidden)
                     }
                     .listStyle(.plain)
-                    .listSectionSpacing(.custom(4))
+                    .listSectionSpacing(.custom(0))
                     .scrollContentBackground(.hidden)
                     .contentMargins(.horizontal, 20, for: .scrollContent)
-                    .contentMargins(.bottom, floatingButtonClearance, for: .scrollContent)
+                    .contentMargins(.bottom, bottomOverlayClearance, for: .scrollContent)
                     .environment(\.defaultMinListRowHeight, 1)
                     .overlay(alignment: .top) {
                         Color(.systemGroupedBackground)
@@ -218,7 +258,7 @@ struct LibraryView: View {
                     }
                 }
                 .overlay(alignment: .bottom) {
-                    floatingReviewButton()
+                    bottomOverlay
                 }
                 .navigationBarHidden(true)
                 .navigationDestination(isPresented: detailVersePresented) {
@@ -289,6 +329,9 @@ struct LibraryView: View {
         .task {
             await loadInitialVersesIfNeeded()
         }
+        .onAppear {
+            reloadVerses()
+        }
         .confirmationDialog("Choose Review Style", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
             ForEach(ReviewMethod.allCases) { method in
                 Button(method.title) {
@@ -299,6 +342,18 @@ struct LibraryView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Choose how you want to review this session.")
+        }
+        .confirmationDialog(batchDeleteDialogTitle, isPresented: batchDeleteDialogPresented, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                deleteVerses(ids: pendingBatchDeleteVerseIDs)
+                pendingBatchDeleteVerseIDs.removeAll()
+            }
+
+            Button("Cancel", role: .cancel) {
+                pendingBatchDeleteVerseIDs.removeAll()
+            }
+        } message: {
+            Text("This action cannot be undone.")
         }
     }
 
@@ -325,11 +380,34 @@ struct LibraryView: View {
         )
     }
 
+    private var batchDeleteDialogPresented: Binding<Bool> {
+        Binding(
+            get: { !pendingBatchDeleteVerseIDs.isEmpty },
+            set: { isPresented in
+                if !isPresented {
+                    pendingBatchDeleteVerseIDs.removeAll()
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var bottomOverlay: some View {
+        if isSelectionMode {
+            batchActionBar
+        } else {
+            floatingReviewButton()
+        }
+    }
+
     private var topSummarySection: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center) {
-                Text("Library")
-                    .font(.system(size: 34, weight: .bold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Library")
+                        .font(.system(size: 34, weight: .bold))
+
+                }
 
                 Spacer()
 
@@ -337,41 +415,97 @@ struct LibraryView: View {
                     showingAddVerse = true
                 } label: {
                     Image(systemName: "plus")
-                        .font(.title2)
-                        .foregroundStyle(.blue)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.primary)
                         .frame(width: 44, height: 44)
-                        .background(
-                            Circle()
-                                .fill(Color(.secondarySystemBackground))
-                        )
                 }
                 .buttonStyle(.plain)
+                .background(
+                    Circle()
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .overlay {
+                    Circle()
+                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                }
+                .accessibilityLabel("Add verse")
             }
 
             HStack(spacing: 0) {
-                LibraryStatItem(value: totalCount, title: "Total")
-                LibraryStatItem(value: learningCount, title: "Learning")
-                LibraryStatItem(value: memorizedCount, title: "Memorized")
+                summaryFilterMetric(value: totalCount, title: "All", filter: .all)
+                SummaryDivider()
+                summaryFilterMetric(value: learningCount, title: "Learning", filter: .learning)
+                SummaryDivider()
+                summaryFilterMetric(value: memorizedCount, title: "Memorized", filter: .memorized)
             }
-            .padding(.trailing, 44)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+            }
         }
         .padding(.horizontal, 0)
-        .padding(.top, 12)
+        .padding(.top, 8)
         .padding(.bottom, 0)
     }
 
-    private func controlsSection(spacing: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: spacing) {
+    @ViewBuilder
+    private var managementRail: some View {
+        if isSelectionMode {
             HStack(spacing: 12) {
-                Picker("Filter", selection: $selectedFilter) {
-                    ForEach(FilterType.allCases, id: \.self) { filter in
-                        Text(filter.rawValue).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(height: 34)
+                Text("\(selectedVisibleCount) Selected")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.primary)
 
+                Spacer(minLength: 12)
+
+                Button("Cancel") {
+                    exitSelectionMode()
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .buttonStyle(.glass)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                utilityRail
+
+                if hasActiveFolderFilter {
+                    Text("Folders: \(folderSelectionSummary)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8)
+                        .padding(.horizontal, 2)
+                }
+            }
+        }
+    }
+
+    private var utilityRail: some View {
+        HStack(spacing: 8) {
+            Button {
+                enterSelectionMode()
+            } label: {
+                Text("Select")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 14)
+                    .frame(height: 44)
+            }
+            .buttonStyle(.plain)
+            .fixedSize()
+            .glassEffect(.regular.interactive(), in: .capsule)
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 6) {
                 Menu {
                     Picker("Sort", selection: $sortMode) {
                         ForEach(SortMode.allCases, id: \.self) { mode in
@@ -379,63 +513,51 @@ struct LibraryView: View {
                         }
                     }
                 } label: {
-                        Image(systemName: "arrow.up.arrow.down.circle")
-                            .font(.title3)
-                            .foregroundStyle(.primary)
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(Color(.systemBackground))
-                        )
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(hasNonDefaultSortMode ? .blue : .primary)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .glassEffect(
+                    hasNonDefaultSortMode
+                        ? .regular.tint(.accentColor).interactive()
+                        : .regular.interactive(),
+                    in: .circle
+                )
                 .accessibilityLabel("Sort")
 
                 Button {
                     showingFolderFilterSheet = true
                 } label: {
-                        Image(systemName: hasActiveFolderFilter ? "folder.badge.gearshape.fill" : "folder.badge.gearshape")
-                            .font(.title3)
-                            .foregroundStyle(hasActiveFolderFilter ? .blue : .primary)
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(Color(.systemBackground))
-                        )
+                    Image(systemName: hasActiveFolderFilter ? "folder.fill" : "folder")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(hasActiveFolderFilter ? .blue : .primary)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .glassEffect(
+                    hasActiveFolderFilter
+                        ? .regular.tint(.accentColor).interactive()
+                        : .regular.interactive(),
+                    in: .circle
+                )
                 .accessibilityLabel("Folders")
-
-#if DEBUG
-                DebugRecencyControls {
-                    reloadVerses()
-                }
-#endif
-            }
-
-            if hasActiveFolderFilter {
-                Text("Filtered: \(folderSelectionSummary)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
     }
 
-    private var verseSectionHeader: some View {
-        Text("Your Verses")
-            .font(.title3)
-            .fontWeight(.semibold)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 0)
-            .padding(.top, 2)
-            .padding(.bottom, 8)
+    private func summaryFilterMetric(value: Int, title: String, filter: FilterType) -> some View {
+        Button {
+            selectedFilter = filter
+        } label: {
+            LibrarySummaryMetric(
+                value: value,
+                title: title,
+                isSelected: selectedFilter == filter
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var emptyVersesState: some View {
@@ -459,53 +581,97 @@ struct LibraryView: View {
                 .fill(Color(.secondarySystemBackground))
         )
         .padding(.horizontal, 0)
+        .padding(.top, 4)
         .padding(.bottom, 16)
     }
 
+    @ViewBuilder
     private func verseListRow(verse: Verse, index: Int, totalCount: Int) -> some View {
         let rowShape = UnevenRoundedRectangle(
             cornerRadii: rowCornerRadii(for: index, totalCount: totalCount),
             style: .continuous
         )
 
-        return Button {
-            detailVerse = verse
-        } label: {
-            VerseRowView(verse: verse)
-                .contentShape(Rectangle())
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .overlay(alignment: .bottom) {
-                    if index < totalCount - 1 {
-                        Divider()
-                            .padding(.horizontal, 18)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-        .containerShape(rowShape)
-        .clipShape(rowShape)
-        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+        if isSelectionMode {
             Button {
-                toggleMasteryStatus(for: verse)
+                toggleSelection(for: verse)
             } label: {
-                Image(systemName: toggleActionSystemImage(for: verse))
+                rowContent(for: verse, index: index, totalCount: totalCount, showsChevron: false)
             }
-            .accessibilityLabel(toggleActionTitle(for: verse))
-            .tint(toggleActionTint(for: verse))
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                deleteVerse(verse)
+            .buttonStyle(.plain)
+            .containerShape(rowShape)
+            .clipShape(rowShape)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(
+                rowBackground(for: index, totalCount: totalCount)
+            )
+            .listRowSeparator(.hidden)
+        } else {
+            Button {
+                detailVerse = verse
             } label: {
-                Image(systemName: "trash")
+                rowContent(for: verse, index: index, totalCount: totalCount, showsChevron: true)
             }
+            .buttonStyle(.plain)
+            .contextMenu {
+                Button {
+                    toggleMasteryStatus(for: verse)
+                } label: {
+                    Label(toggleActionMenuTitle(for: verse), systemImage: toggleActionSystemImage(for: verse))
+                }
+
+                Button(role: .destructive) {
+                    deleteVerse(verse)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                Button {
+                    toggleMasteryStatus(for: verse)
+                } label: {
+                    Image(systemName: toggleActionSystemImage(for: verse))
+                }
+                .accessibilityLabel(toggleActionTitle(for: verse))
+                .tint(toggleActionTint(for: verse))
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    deleteVerse(verse)
+                } label: {
+                    Image(systemName: "trash")
+                }
+            }
+            .containerShape(rowShape)
+            .clipShape(rowShape)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(
+                rowBackground(for: index, totalCount: totalCount)
+            )
+            .listRowSeparator(.hidden)
         }
-        .listRowInsets(EdgeInsets())
-        .listRowBackground(
-            rowBackground(for: index, totalCount: totalCount)
+    }
+
+    private func rowContent(for verse: Verse, index: Int, totalCount: Int, showsChevron: Bool) -> some View {
+        VerseRowView(
+            verse: verse,
+            showsChevron: showsChevron,
+            selectionState: isSelectionMode ? .init(isSelected: selectedVerseIDs.contains(verse.id)) : nil
         )
-        .listRowSeparator(.hidden)
+        .contentShape(Rectangle())
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .overlay(alignment: .bottom) {
+            if index < totalCount - 1 {
+                Divider()
+                    .padding(.horizontal, 18)
+            }
+        }
+    }
+
+    private var utilityControlBackground: some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(Color(.systemBackground))
     }
 
     private func rowBackground(for index: Int, totalCount: Int) -> some View {
@@ -552,6 +718,79 @@ struct LibraryView: View {
         .padding(.bottom, floatingButtonVerticalInset)
     }
 
+    private var batchActionBar: some View {
+        HStack(spacing: 10) {
+            batchActionButton(
+                title: "Mark Memorized",
+                systemImage: "checkmark.circle.fill",
+                tint: .green,
+                isEnabled: hasSelection
+            ) {
+                updateMasteryStatusForSelectedVerses(to: .memorized)
+            }
+
+            batchActionButton(
+                title: "Mark Learning",
+                systemImage: "arrow.uturn.backward.circle",
+                tint: .blue,
+                isEnabled: hasSelection
+            ) {
+                updateMasteryStatusForSelectedVerses(to: .learning)
+            }
+
+            batchActionButton(
+                title: "Delete",
+                systemImage: "trash",
+                tint: .red,
+                isEnabled: hasSelection
+            ) {
+                pendingBatchDeleteVerseIDs = selectedVerseIDs.intersection(Set(filteredVerses.map(\.id)))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 8)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
+
+    private func batchActionButton(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .foregroundStyle(isEnabled ? tint : .secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(isEnabled ? tint.opacity(0.12) : Color(.secondarySystemBackground).opacity(0.85))
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+    }
+
     private func reloadVerses() {
         verses = VerseRepository.shared.loadVerses()
 
@@ -560,7 +799,7 @@ struct LibraryView: View {
         }
 
         selectedFolders = selectedFolders.intersection(Set(folderOptions))
-
+        pruneSelectionToVisibleVerses()
     }
 
     @MainActor
@@ -588,78 +827,24 @@ struct LibraryView: View {
     }
 
     private func reviewSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
-        let lhsPriority = urgencyPriority(for: lhs.urgencyLevel)
-        let rhsPriority = urgencyPriority(for: rhs.urgencyLevel)
-
-        if lhsPriority != rhsPriority {
-            return lhsPriority < rhsPriority
-        }
-
-        switch (lhs.lastReviewedAt, rhs.lastReviewedAt) {
-        case let (lhsDate?, rhsDate?) where lhsDate != rhsDate:
-            return lhsDate < rhsDate
-        case (.some, nil):
-            return true
-        case (nil, .some):
-            return false
-        default:
-            break
-        }
-
-        if lhs.createdAt != rhs.createdAt {
-            return lhs.createdAt > rhs.createdAt
-        }
-
-        return lhs.reference.localizedCaseInsensitiveCompare(rhs.reference) == .orderedAscending
-    }
-
-    private func urgencyPriority(for urgencyLevel: UrgencyLevel) -> Int {
-        switch urgencyLevel {
-        case .needsReview:
-            return 0
-        case .atRisk:
-            return 1
-        case .fresh:
-            return 2
-        }
+        VerseStrengthService.reviewPriority(lhs, rhs)
     }
 
     private func deleteVerse(_ verse: Verse) {
-        if detailVerse?.id == verse.id {
-            detailVerse = nil
-        }
-
-        if selectedVerseReview?.verse.id == verse.id {
-            selectedVerseReview = nil
-        }
-
-        VerseRepository.shared.softDeleteVerse(id: verse.id)
-        reloadVerses()
+        deleteVerses(ids: Set([verse.id]))
     }
 
     private func toggleMasteryStatus(for verse: Verse) {
         let targetStatus: VerseMasteryStatus = verse.masteryStatus == .learning ? .memorized : .learning
-
-        guard let updatedVerse = VerseRepository.shared.updateMasteryStatus(forVerseID: verse.id, to: targetStatus) else {
-            return
-        }
-
-        if detailVerse?.id == updatedVerse.id {
-            detailVerse = updatedVerse
-        }
-
-        if let selectedVerseReview, selectedVerseReview.verse.id == updatedVerse.id {
-            self.selectedVerseReview = SingleVerseReviewPresentation(
-                verse: updatedVerse,
-                method: selectedVerseReview.method
-            )
-        }
-
-        reloadVerses()
+        updateMasteryStatus(forVerseIDs: Set([verse.id]), to: targetStatus)
     }
 
     private func toggleActionTitle(for verse: Verse) -> String {
         verse.masteryStatus == .learning ? "Memorized" : "Learning"
+    }
+
+    private func toggleActionMenuTitle(for verse: Verse) -> String {
+        verse.masteryStatus == .learning ? "Mark Memorized" : "Mark Learning"
     }
 
     private func toggleActionSystemImage(for verse: Verse) -> String {
@@ -668,6 +853,82 @@ struct LibraryView: View {
 
     private func toggleActionTint(for verse: Verse) -> Color {
         verse.masteryStatus == .learning ? .green : .blue
+    }
+
+    private func enterSelectionMode() {
+        isSelectionMode = true
+        selectedVerseIDs.removeAll()
+    }
+
+    private func exitSelectionMode() {
+        isSelectionMode = false
+        selectedVerseIDs.removeAll()
+        pendingBatchDeleteVerseIDs.removeAll()
+    }
+
+    private func toggleSelection(for verse: Verse) {
+        if selectedVerseIDs.contains(verse.id) {
+            selectedVerseIDs.remove(verse.id)
+        } else {
+            selectedVerseIDs.insert(verse.id)
+        }
+    }
+
+    private func updateMasteryStatusForSelectedVerses(to status: VerseMasteryStatus) {
+        updateMasteryStatus(forVerseIDs: selectedVerseIDs.intersection(Set(filteredVerses.map(\.id))), to: status)
+    }
+
+    private func updateMasteryStatus(forVerseIDs ids: Set<String>, to status: VerseMasteryStatus) {
+        guard !ids.isEmpty else {
+            return
+        }
+
+        let updatedVerses = VerseRepository.shared.updateMasteryStatus(forVerseIDs: ids, to: status)
+        applyUpdatedVerses(updatedVerses)
+        reloadVerses()
+    }
+
+    private func deleteVerses(ids: Set<String>) {
+        guard !ids.isEmpty else {
+            return
+        }
+
+        if let detailVerse, ids.contains(detailVerse.id) {
+            self.detailVerse = nil
+        }
+
+        if let selectedVerseReview, ids.contains(selectedVerseReview.verse.id) {
+            self.selectedVerseReview = nil
+        }
+
+        VerseRepository.shared.softDeleteVerses(ids: ids)
+        selectedVerseIDs.subtract(ids)
+        reloadVerses()
+    }
+
+    private func applyUpdatedVerses(_ updatedVerses: [Verse]) {
+        guard !updatedVerses.isEmpty else {
+            return
+        }
+
+        let updatedVersesByID = Dictionary(uniqueKeysWithValues: updatedVerses.map { ($0.id, $0) })
+
+        if let detailVerse, let updatedVerse = updatedVersesByID[detailVerse.id] {
+            self.detailVerse = updatedVerse
+        }
+
+        if let selectedVerseReview, let updatedVerse = updatedVersesByID[selectedVerseReview.verse.id] {
+            self.selectedVerseReview = SingleVerseReviewPresentation(
+                verse: updatedVerse,
+                method: selectedVerseReview.method
+            )
+        }
+    }
+
+    private func pruneSelectionToVisibleVerses() {
+        let visibleVerseIDs = Set(filteredVerses.map(\.id))
+        selectedVerseIDs = selectedVerseIDs.intersection(visibleVerseIDs)
+        pendingBatchDeleteVerseIDs = pendingBatchDeleteVerseIDs.intersection(visibleVerseIDs)
     }
 }
 

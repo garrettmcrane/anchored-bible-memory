@@ -39,6 +39,15 @@ struct DebugVerseRecencySimulator {
                 return nil
             }
         }
+
+        var strength: Double {
+            switch self {
+            case .clear:
+                return VerseStrengthService.defaultUnreviewedStrength
+            default:
+                return 1
+            }
+        }
     }
 
     func apply(_ preset: Preset) {
@@ -51,6 +60,7 @@ struct DebugVerseRecencySimulator {
                 continue
             }
 
+            allVerses[index].strength = preset.strength
             allVerses[index].lastReviewedAt = preset.lastReviewedAt
             allVerses[index].updatedAt = Date()
         }

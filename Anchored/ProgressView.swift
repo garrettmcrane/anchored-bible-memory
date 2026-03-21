@@ -22,7 +22,7 @@ struct ProgressTabView: View {
 
     private var needsAttentionVerses: [Verse] {
         verses
-            .filter { $0.urgencyLevel == .needsReview }
+            .filter { VerseStrengthService.needsAttention(for: $0) }
             .sorted(by: needsAttentionSort)
     }
 
@@ -278,22 +278,7 @@ struct ProgressTabView: View {
     }
 
     private func needsAttentionSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
-        switch (lhs.lastReviewedAt, rhs.lastReviewedAt) {
-        case let (lhsDate?, rhsDate?) where lhsDate != rhsDate:
-            return lhsDate < rhsDate
-        case (.some, nil):
-            return true
-        case (nil, .some):
-            return false
-        default:
-            break
-        }
-
-        if lhs.reviewCount != rhs.reviewCount {
-            return lhs.reviewCount > rhs.reviewCount
-        }
-
-        return lhs.reference.localizedCaseInsensitiveCompare(rhs.reference) == .orderedAscending
+        VerseStrengthService.reviewPriority(lhs, rhs)
     }
 }
 

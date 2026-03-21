@@ -42,18 +42,30 @@ enum ReferenceParser {
             return try parseVerseReference(book: book, remainder: remainder, original: cleanedInput)
         }
 
-        guard let chapter = Int(remainder) else {
+        guard let numericValue = Int(remainder) else {
             throw ReferenceParserError.invalidReference(cleanedInput)
+        }
+
+        if BibleBookCatalog.isSingleChapterBook(book) {
+            return ScriptureReference(
+                book: book,
+                startChapter: 1,
+                startVerse: numericValue,
+                endChapter: nil,
+                endVerse: nil,
+                kind: .singleVerse,
+                normalizedReference: "\(book.name) 1:\(numericValue)"
+            )
         }
 
         return ScriptureReference(
             book: book,
-            startChapter: chapter,
+            startChapter: numericValue,
             startVerse: nil,
             endChapter: nil,
             endVerse: nil,
             kind: .chapter,
-            normalizedReference: "\(book.name) \(chapter)"
+            normalizedReference: "\(book.name) \(numericValue)"
         )
     }
 

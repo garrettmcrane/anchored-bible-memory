@@ -15,15 +15,12 @@ struct DebugRecencyControls: View {
             }
         } label: {
             Image(systemName: "ladybug")
-                .font(.title3)
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.orange)
-                .frame(width: 38, height: 38)
-                .background(
-                    Circle()
-                        .fill(Color(.systemBackground))
-                )
+                .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
         .accessibilityLabel("Debug recency simulator")
     }
 }

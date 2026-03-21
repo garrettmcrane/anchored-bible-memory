@@ -9,7 +9,7 @@ struct BibleBook: Identifiable, Hashable, Codable {
 }
 
 enum BibleBookCatalog {
-    static let books: [BibleBook] = [
+    nonisolated static let books: [BibleBook] = [
         BibleBook(id: 1, abbreviation: "Gen", name: "Genesis", sortOrder: 1, testament: "OT"),
         BibleBook(id: 2, abbreviation: "Exod", name: "Exodus", sortOrder: 2, testament: "OT"),
         BibleBook(id: 3, abbreviation: "Lev", name: "Leviticus", sortOrder: 3, testament: "OT"),
@@ -28,7 +28,7 @@ enum BibleBookCatalog {
         BibleBook(id: 16, abbreviation: "Neh", name: "Nehemiah", sortOrder: 16, testament: "OT"),
         BibleBook(id: 17, abbreviation: "Esth", name: "Esther", sortOrder: 17, testament: "OT"),
         BibleBook(id: 18, abbreviation: "Job", name: "Job", sortOrder: 18, testament: "OT"),
-        BibleBook(id: 19, abbreviation: "Ps", name: "Psalms", sortOrder: 19, testament: "OT"),
+        BibleBook(id: 19, abbreviation: "Ps", name: "Psalm", sortOrder: 19, testament: "OT"),
         BibleBook(id: 20, abbreviation: "Prov", name: "Proverbs", sortOrder: 20, testament: "OT"),
         BibleBook(id: 21, abbreviation: "Eccl", name: "Ecclesiastes", sortOrder: 21, testament: "OT"),
         BibleBook(id: 22, abbreviation: "Song", name: "Song of Solomon", sortOrder: 22, testament: "OT"),
@@ -84,7 +84,7 @@ enum BibleBookCatalog {
         "3": ["3", "3rd", "third", "iii"]
     ]
 
-    static let aliasMap: [String: BibleBook] = {
+    nonisolated static let aliasMap: [String: BibleBook] = {
         var map: [String: BibleBook] = [:]
 
         for book in books {
@@ -94,6 +94,7 @@ enum BibleBookCatalog {
         }
 
         map[normalize("psalm")] = books[18]
+        map[normalize("psa")] = books[18]
         map[normalize("ps")] = books[18]
         map[normalize("song of songs")] = books[21]
         map[normalize("song")] = books[21]
@@ -101,7 +102,7 @@ enum BibleBookCatalog {
         return map
     }()
 
-    static let sortedAliases: [String] = aliasMap.keys.sorted {
+    nonisolated static let sortedAliases: [String] = aliasMap.keys.sorted {
         if $0.count == $1.count {
             return $0 < $1
         }
@@ -109,11 +110,19 @@ enum BibleBookCatalog {
         return $0.count > $1.count
     }
 
-    static func book(for name: String) -> BibleBook? {
+    nonisolated static func book(for name: String) -> BibleBook? {
         aliasMap[normalize(name)]
     }
 
-    static func normalize(_ value: String) -> String {
+    nonisolated static func book(forID id: Int) -> BibleBook? {
+        books.first(where: { $0.id == id })
+    }
+
+    nonisolated static func isSingleChapterBook(_ book: BibleBook) -> Bool {
+        singleChapterBookIDs.contains(book.id)
+    }
+
+    nonisolated static func normalize(_ value: String) -> String {
         value
             .lowercased()
             .replacingOccurrences(of: ".", with: "")
@@ -171,4 +180,6 @@ enum BibleBookCatalog {
 
         return generated
     }
+
+    nonisolated private static let singleChapterBookIDs: Set<Int> = [31, 57, 63, 64, 65]
 }
