@@ -25,6 +25,7 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
     case flashcard
     case progressiveWordHiding
     case firstLetterTyping
+    case voiceRecitation
 
     var id: String {
         rawValue
@@ -38,6 +39,8 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
             return "Progressive Word Hiding"
         case .firstLetterTyping:
             return "First-Letter Typing"
+        case .voiceRecitation:
+            return "Voice Recitation"
         }
     }
 
@@ -49,6 +52,8 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
             return "Start with the full verse and hide more words as you go."
         case .firstLetterTyping:
             return "Type the verse from memory with first-letter prompts as your guide."
+        case .voiceRecitation:
+            return "Hear the reference, recite aloud, review the transcript, and score it manually."
         }
     }
 
@@ -63,6 +68,8 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
             self = .progressiveWordHiding
         case Self.firstLetterTyping.rawValue, "firstLetter":
             self = .firstLetterTyping
+        case Self.voiceRecitation.rawValue, "voiceRecitationV1":
+            self = .voiceRecitation
         default:
             self = .flashcard
         }

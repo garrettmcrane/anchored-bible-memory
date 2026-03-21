@@ -114,6 +114,10 @@ struct HomeView: View {
                 FirstLetterTypingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     verses = VerseRepository.shared.loadVerses()
                 }
+            case .voiceRecitation:
+                VoiceRecitationReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
+                    verses = VerseRepository.shared.loadVerses()
+                }
             }
         }
         .task {

@@ -33,25 +33,54 @@ struct ReviewSessionView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            sessionContent
-            .padding(.vertical, 32)
-            .padding(.horizontal, 20)
-            .navigationTitle(descriptor.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: toolbarContent)
-            .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
-                Button("End Review") {
-                    endedEarly = true
-                    isSessionComplete = true
-                }
+        routedContent
+    }
 
-                Button("Keep Reviewing", role: .cancel) {}
-            } message: {
-                Text("You’ll still see results for the verses you’ve already reviewed.")
+    @ViewBuilder
+    private var routedContent: some View {
+        switch descriptor.method {
+        case .flashcard:
+            NavigationStack {
+                sessionContent
+                .padding(.vertical, 32)
+                .padding(.horizontal, 20)
+                .navigationTitle(descriptor.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(content: toolbarContent)
+                .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
+                    Button("End Review") {
+                        endedEarly = true
+                        isSessionComplete = true
+                    }
+
+                    Button("Keep Reviewing", role: .cancel) {}
+                } message: {
+                    Text("You’ll still see results for the verses you’ve already reviewed.")
+                }
+                .animation(.easeInOut(duration: 0.2), value: currentIndex)
+                .animation(.easeInOut(duration: 0.2), value: isSessionComplete)
             }
-            .animation(.easeInOut(duration: 0.2), value: currentIndex)
-            .animation(.easeInOut(duration: 0.2), value: isSessionComplete)
+        case .progressiveWordHiding:
+            ProgressiveWordHidingReviewSessionView(
+                descriptor: descriptor,
+                verses: verses,
+                onUpdate: onUpdate,
+                groupID: groupID
+            )
+        case .firstLetterTyping:
+            FirstLetterTypingReviewSessionView(
+                descriptor: descriptor,
+                verses: verses,
+                onUpdate: onUpdate,
+                groupID: groupID
+            )
+        case .voiceRecitation:
+            VoiceRecitationReviewSessionView(
+                descriptor: descriptor,
+                verses: verses,
+                onUpdate: onUpdate,
+                groupID: groupID
+            )
         }
     }
 

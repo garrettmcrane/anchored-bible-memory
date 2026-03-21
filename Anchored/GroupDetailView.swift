@@ -263,6 +263,13 @@ struct GroupDetailView: View {
                     onUpdate: { _ in },
                     groupID: group.id
                 )
+            case .voiceRecitation:
+                VoiceRecitationReviewSessionView(
+                    descriptor: presentation.descriptor,
+                    verses: presentation.verses,
+                    onUpdate: { _ in },
+                    groupID: group.id
+                )
             }
         }
         .confirmationDialog(

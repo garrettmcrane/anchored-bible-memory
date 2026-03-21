@@ -350,6 +350,14 @@ struct LibraryView: View {
                 FirstLetterTypingReviewView(verse: presentation.verse) { _ in
                     reloadVerses()
                 }
+            case .voiceRecitation:
+                VoiceRecitationReviewSessionView(
+                    descriptor: ReviewSessionDescriptor(title: presentation.method.title, method: presentation.method),
+                    verses: [presentation.verse],
+                    onUpdate: { _ in
+                        reloadVerses()
+                    }
+                )
             }
         }
         .sheet(item: $reviewStartConfiguration) { configuration in
@@ -372,6 +380,10 @@ struct LibraryView: View {
                 }
             case .firstLetterTyping:
                 FirstLetterTypingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
+                    reloadVerses()
+                }
+            case .voiceRecitation:
+                VoiceRecitationReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     reloadVerses()
                 }
             }

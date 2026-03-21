@@ -486,6 +486,8 @@ struct ReviewStartSheet: View {
             return "Hide more words as you recite."
         case .firstLetterTyping:
             return "Type with first-letter prompts."
+        case .voiceRecitation:
+            return "Recite aloud and compare the transcript."
         }
     }
 }
