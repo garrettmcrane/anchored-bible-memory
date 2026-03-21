@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct AnchoredApp: App {
+    @StateObject private var settingsController = UserSettingsController()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(settingsController)
+                .preferredColorScheme(settingsController.preferredColorScheme)
         }
     }
 }

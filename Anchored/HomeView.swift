@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct HomeView: View {
+    private enum Destination: Hashable {
+        case settings
+    }
+
     private struct QuickAddFeedback: Identifiable, Equatable {
         let id = UUID()
         let message: String
@@ -76,6 +80,12 @@ struct HomeView: View {
                 .padding(.bottom, 12)
             }
             .navigationBarHidden(true)
+            .navigationDestination(for: Destination.self) { destination in
+                switch destination {
+                case .settings:
+                    SettingsView()
+                }
+            }
         }
         .sheet(item: $selectedBatchReviewMethod, onDismiss: clearReviewSession) { method in
             switch method {
@@ -142,7 +152,7 @@ struct HomeView: View {
 
             Spacer()
 
-            Button {} label: {
+            NavigationLink(value: Destination.settings) {
                 Image(systemName: "person.crop.circle")
                     .font(.system(size: 28))
                     .foregroundStyle(.primary)
