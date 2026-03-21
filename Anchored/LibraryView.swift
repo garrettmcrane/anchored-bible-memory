@@ -10,6 +10,27 @@ struct LibraryView: View {
         }
     }
 
+    private struct LibraryStatItem: View {
+        let value: Int
+        let title: String
+
+        var body: some View {
+            VStack(spacing: 0) {
+                Text(value.formatted())
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
     enum FilterType: String, CaseIterable {
         case all = "All"
         case learning = "Learning"
@@ -173,13 +194,13 @@ struct LibraryView: View {
                             }
                         } header: {
                             controlsSection(spacing: currentControlsSpacing)
-                                .padding(.top, 2)
-                                .padding(.bottom, 2)
+                                .padding(.vertical, 0)
                         }
                         .textCase(nil)
                         .listSectionSeparator(.hidden)
                     }
                     .listStyle(.plain)
+                    .listSectionSpacing(.custom(4))
                     .scrollContentBackground(.hidden)
                     .contentMargins(.horizontal, 20, for: .scrollContent)
                     .contentMargins(.bottom, floatingButtonClearance, for: .scrollContent)
@@ -290,7 +311,7 @@ struct LibraryView: View {
     }
 
     private var currentControlsSpacing: CGFloat {
-        12 - (4 * scrollProgress)
+        8 - (2 * scrollProgress)
     }
 
     private var detailVersePresented: Binding<Bool> {
@@ -305,16 +326,10 @@ struct LibraryView: View {
     }
 
     private var topSummarySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Library")
-                        .font(.system(size: 34, weight: .bold))
-
-                    Text("Manage your personal verses")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                Text("Library")
+                    .font(.system(size: 34, weight: .bold))
 
                 Spacer()
 
@@ -333,24 +348,16 @@ struct LibraryView: View {
                 .buttonStyle(.plain)
             }
 
-            HStack(spacing: 8) {
-                Text("Total \(totalCount)")
-                    .foregroundStyle(.primary)
-
-                Text("•")
-
-                Text("Learning \(learningCount)")
-
-                Text("•")
-
-                Text("Memorized \(memorizedCount)")
+            HStack(spacing: 0) {
+                LibraryStatItem(value: totalCount, title: "Total")
+                LibraryStatItem(value: learningCount, title: "Learning")
+                LibraryStatItem(value: memorizedCount, title: "Memorized")
             }
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(.secondary)
+            .padding(.trailing, 44)
         }
         .padding(.horizontal, 0)
-        .padding(.top, 18)
-        .padding(.bottom, 4)
+        .padding(.top, 12)
+        .padding(.bottom, 0)
     }
 
     private func controlsSection(spacing: CGFloat) -> some View {
@@ -413,10 +420,10 @@ struct LibraryView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
     }
@@ -427,8 +434,8 @@ struct LibraryView: View {
             .fontWeight(.semibold)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 0)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
+            .padding(.top, 2)
+            .padding(.bottom, 8)
     }
 
     private var emptyVersesState: some View {
