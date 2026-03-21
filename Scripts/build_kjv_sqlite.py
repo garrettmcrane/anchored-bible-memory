@@ -75,6 +75,8 @@ BOOKS = [
     (66, "Rev", "Revelation", 66, "NT"),
 ]
 
+REQUIRED_COLUMNS = ("book", "chapter", "verse", "text")
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -83,6 +85,10 @@ def parse_args():
     parser.add_argument("input_csv", type=Path, help="CSV with book,chapter,verse,text columns")
     parser.add_argument("output_sqlite", type=Path, help="Destination SQLite database path")
     return parser.parse_args()
+
+
+def normalize_key(value):
+    return " ".join(value.strip().lower().replace(".", "").split())
 
 
 def ensure_schema(connection):
@@ -132,25 +138,69 @@ def load_books(connection):
 def build_book_lookup():
     lookup = {}
     for book_id, abbreviation, name, sort_order, _ in BOOKS:
-        for key in {name.lower(), abbreviation.lower()}:
+        aliases = {
+            name,
+            abbreviation,
+            name.replace(" ", ""),
+            abbreviation.replace(" ", ""),
+        }
+
+        if name == "Psalms":
+            aliases.update({"Psalm", "Psalm"})
+        if name == "Song of Solomon":
+            aliases.update({"Song of Songs", "Song", "SOS"})
+
+        if name.startswith(("1 ", "2 ", "3 ")):
+            number, remainder = name.split(" ", 1)
+            number_aliases = {
+                "1": {"1", "First", "I"},
+                "2": {"2", "Second", "II"},
+                "3": {"3", "Third", "III"},
+            }[number]
+            for prefix in number_aliases:
+                aliases.add(f"{prefix} {remainder}")
+                aliases.add(f"{prefix}{remainder.replace(' ', '')}")
+
+        for key in aliases:
             lookup[key] = (book_id, name, sort_order)
-    lookup["psalm"] = lookup["psalms"]
-    lookup["song of songs"] = lookup["song of solomon"]
-    return lookup
+
+    return {normalize_key(key): value for key, value in lookup.items()}
+
+
+def clean_row(row, line_number):
+    normalized = {key.strip().lower(): (value.strip() if value is not None else "") for key, value in row.items()}
+    missing = [column for column in REQUIRED_COLUMNS if column not in normalized]
+    if missing:
+        raise ValueError(f"Missing required CSV columns at line {line_number}: {', '.join(missing)}")
+
+    if not normalized["book"]:
+        raise ValueError(f"Empty book value at line {line_number}")
+    if not normalized["text"]:
+        raise ValueError(f"Empty verse text at line {line_number}")
+
+    try:
+        chapter = int(normalized["chapter"])
+        verse = int(normalized["verse"])
+    except ValueError as error:
+        raise ValueError(f"Invalid chapter/verse at line {line_number}: {error}") from error
+
+    if chapter <= 0 or verse <= 0:
+        raise ValueError(f"Chapter and verse must be positive integers at line {line_number}")
+
+    return normalized["book"], chapter, verse, normalized["text"]
 
 
 def verse_rows(reader):
     book_lookup = build_book_lookup()
     next_id = 1
 
-    for row in reader:
-        book_key = row["book"].strip().lower()
+    for line_number, row in enumerate(reader, start=2):
+        book_value, chapter, verse, text = clean_row(row, line_number)
+        book_key = normalize_key(book_value)
         if book_key not in book_lookup:
-            raise ValueError(f"Unknown book name in source data: {row['book']}")
+            raise ValueError(f"Unknown book name in source data at line {line_number}: {book_value}")
 
         book_id, canonical_name, sort_order = book_lookup[book_key]
-        chapter = int(row["chapter"])
-        verse = int(row["verse"])
         reference = f"{canonical_name} {chapter}:{verse}"
         sort_key = sort_order * 1_000_000 + chapter * 1_000 + verse
 
@@ -160,7 +210,7 @@ def verse_rows(reader):
             chapter,
             verse,
             reference,
-            row["text"].strip(),
+            text,
             sort_key,
         )
         next_id += 1
@@ -176,9 +226,9 @@ def main():
 
         with args.input_csv.open(newline="", encoding="utf-8") as handle:
             reader = csv.DictReader(handle)
-            required_columns = {"book", "chapter", "verse", "text"}
-            if not required_columns.issubset(reader.fieldnames or []):
-                missing = ", ".join(sorted(required_columns - set(reader.fieldnames or [])))
+            fieldnames = [field.strip().lower() for field in (reader.fieldnames or [])]
+            if not set(REQUIRED_COLUMNS).issubset(fieldnames):
+                missing = ", ".join(sorted(set(REQUIRED_COLUMNS) - set(fieldnames)))
                 raise ValueError(f"Missing required CSV columns: {missing}")
 
             connection.executemany(
@@ -190,6 +240,13 @@ def main():
             )
 
         connection.commit()
+
+        verse_count = connection.execute("SELECT COUNT(*) FROM verses").fetchone()[0]
+        book_count = connection.execute("SELECT COUNT(*) FROM books").fetchone()[0]
+
+    print(f"Generated {args.output_sqlite}")
+    print(f"Books: {book_count}")
+    print(f"Verses: {verse_count}")
 
 
 if __name__ == "__main__":
