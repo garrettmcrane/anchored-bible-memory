@@ -7,7 +7,6 @@ struct VerseDetailView: View {
     let onVerseUpdated: (Verse) -> Void
 
     @State private var currentVerse: Verse
-    @State private var isVerseRevealed = false
     @State private var showingReviewMethodPicker = false
 
     init(
@@ -24,13 +23,21 @@ struct VerseDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 14) {
                     Text(currentVerse.reference)
                         .font(.largeTitle)
                         .fontWeight(.bold)
 
                     progressBar
 
+                    Text(currentVerse.text)
+                        .font(.system(.title3, design: .serif))
+                        .lineSpacing(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.top, 20)
+
+                VStack(alignment: .leading, spacing: 16) {
                     masteryPicker
 
                     HStack(spacing: 12) {
@@ -47,7 +54,6 @@ struct VerseDetailView: View {
                         )
                     }
                 }
-                .padding(.top, 20)
 
                 Button {
                     showingReviewMethodPicker = true
@@ -59,47 +65,6 @@ struct VerseDetailView: View {
                 .controlSize(.large)
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Try to recall before revealing")
-                        .font(.headline)
-
-                    VStack(alignment: .leading, spacing: 16) {
-                        if isVerseRevealed {
-                            Text(currentVerse.text)
-                                .font(.system(.title3, design: .serif))
-                                .lineSpacing(8)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        } else {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Use this space to test your recall before checking the wording.")
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
-
-                                Text("Start a review when you want to score yourself, or reveal the verse only when you need a reference.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isVerseRevealed.toggle()
-                            }
-                        } label: {
-                            Text(isVerseRevealed ? "Hide Verse" : "Reveal Verse")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 22)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
                     Text("Details")
                         .font(.headline)
 
@@ -109,8 +74,6 @@ struct VerseDetailView: View {
                         detailRow(title: "Added", value: addedDateText)
                         detailDivider
                         detailRow(title: "Times Reviewed", value: "\(currentVerse.reviewCount)")
-                        detailDivider
-                        detailRow(title: "Confidence", value: "\(confidencePercent)%")
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
@@ -216,15 +179,6 @@ struct VerseDetailView: View {
 
     private var addedDateText: String {
         currentVerse.createdAt.formatted(.dateTime.month(.wide).day().year())
-    }
-
-    private var confidencePercent: Int {
-        guard currentVerse.reviewCount > 0 else {
-            return 0
-        }
-
-        let ratio = Double(currentVerse.correctCount) / Double(max(currentVerse.reviewCount, 1))
-        return Int((ratio * 100).rounded())
     }
 
     private var progressBar: some View {
