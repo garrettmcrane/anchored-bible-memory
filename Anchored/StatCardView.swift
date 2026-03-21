@@ -17,21 +17,21 @@ struct StatCardView: View {
 
             Text(title)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 22)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 }
 
 #Preview {
     HStack {
-        StatCardView(title: "Learning", value: 4, systemImage: "brain.head.profile", iconColor: .blue)
-        StatCardView(title: "Memorized", value: 12, systemImage: "checkmark.circle.fill", iconColor: .green)
+        StatCardView(title: "Learning", value: 4, systemImage: "brain.head.profile", iconColor: AppColors.brandBlue)
+        StatCardView(title: "Memorized", value: 12, systemImage: "checkmark.circle.fill", iconColor: AppColors.gold)
     }
     .padding()
 }

@@ -16,14 +16,14 @@ struct SettingsView: View {
                 HStack(spacing: 14) {
                     Image(systemName: "person.crop.circle.fill")
                         .font(.system(size: 34))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(AppColors.brandBlue)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Local profile")
                             .font(.headline)
                         Text("Account features coming later")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.lightTextSecondary)
                     }
                 }
                 .padding(.vertical, 4)
@@ -34,13 +34,13 @@ struct SettingsView: View {
             Section {
                 LabeledContent("Translation") {
                     Text(settingsController.settings.selectedTranslation.title)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(AppColors.lightTextPrimary)
                 }
 
                 if !BibleTranslation.esv.isAvailable {
                     LabeledContent("ESV") {
                         Text("Coming later")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.lightTextSecondary)
                     }
                 }
             } header: {
@@ -64,7 +64,7 @@ struct SettingsView: View {
             Section {
                 LabeledContent("Reminders") {
                     Text("Coming later")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.lightTextSecondary)
                 }
             } header: {
                 Text("Reminders")
@@ -77,7 +77,7 @@ struct SettingsView: View {
 
                 LabeledContent("Version") {
                     Text(appVersionText)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.lightTextSecondary)
                 }
             } header: {
                 Text("About")

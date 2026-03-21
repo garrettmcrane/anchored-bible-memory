@@ -124,7 +124,7 @@ struct ProgressiveWordHidingReviewSessionView: View {
 
             Text("No verses to review.")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Spacer()
         }
@@ -169,7 +169,7 @@ struct ProgressiveWordHidingReviewSessionView: View {
                     .padding(24)
                     .background(
                         RoundedRectangle(cornerRadius: 24)
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(AppColors.lightSurface)
                     )
             }
 

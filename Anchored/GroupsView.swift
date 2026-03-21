@@ -7,7 +7,7 @@ struct GroupsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemGroupedBackground)
+                AppColors.lightBackground
                     .ignoresSafeArea()
 
                 if groups.isEmpty {
@@ -48,7 +48,7 @@ struct GroupsView: View {
 
                 Text("Create a group for the verses you want to memorize together. Group passages stay separate from your personal memorization library, so your own progress stays focused.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
 
             VStack(alignment: .leading, spacing: 14) {
@@ -57,7 +57,7 @@ struct GroupsView: View {
                 Label("Keep group passages separate from your personal memorization library", systemImage: "square.stack.3d.down.right.fill")
             }
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppColors.lightTextSecondary)
 
             Button("Create Group") {
                 isShowingCreateGroupSheet = true
@@ -69,11 +69,11 @@ struct GroupsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                .stroke(AppColors.lightTextPrimary.opacity(0.05), lineWidth: 1)
         }
         .padding(20)
     }
@@ -114,7 +114,7 @@ struct GroupsView: View {
                 Label("\(assignmentCount) passage\(assignmentCount == 1 ? "" : "s")", systemImage: "text.book.closed.fill")
             }
             .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppColors.lightTextSecondary)
         }
         .padding(.vertical, 4)
     }

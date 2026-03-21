@@ -114,7 +114,7 @@ struct TranslationPickerSection: View {
         HStack {
             Text("Translation")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Spacer()
 
@@ -140,16 +140,16 @@ struct TranslationPickerSection: View {
                         .font(.subheadline.weight(.semibold))
                     Text(selection.subtitle)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.lightTextSecondary)
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.lightTextSecondary)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(Color(.secondarySystemBackground))
+                        .fill(AppColors.lightSurface)
                 )
             }
             .buttonStyle(.plain)
@@ -159,7 +159,7 @@ struct TranslationPickerSection: View {
 
 struct AddFlowMessageCard: View {
     let message: String
-    var tint: Color = .secondary
+    var tint: Color = AppColors.lightTextSecondary
 
     var body: some View {
         Text(message)
@@ -186,13 +186,13 @@ struct FeedbackToast: View {
             Text(message)
                 .font(.subheadline.weight(.semibold))
         }
-        .foregroundStyle(.primary)
+        .foregroundStyle(AppColors.lightTextPrimary)
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(
             Capsule(style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-                .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+                .fill(AppColors.lightSurface)
+                .shadow(color: AppColors.darkBackground.opacity(0.08), radius: 10, y: 3)
         )
     }
 }

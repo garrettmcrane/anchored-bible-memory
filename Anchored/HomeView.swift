@@ -70,7 +70,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemGroupedBackground)
+                AppColors.darkBackground
                     .ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 20) {
@@ -153,7 +153,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(greetingText)
                     .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppColors.darkTextPrimary)
             }
 
             Spacer()
@@ -161,12 +161,16 @@ struct HomeView: View {
             NavigationLink(value: Destination.settings) {
                 Image(systemName: "person.crop.circle")
                     .font(.system(size: 28))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppColors.darkTextPrimary)
                     .frame(width: 44, height: 44)
                     .background(
                         Circle()
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(AppColors.darkSurface)
                     )
+                    .overlay {
+                        Circle()
+                            .stroke(AppColors.darkDivider, lineWidth: 1)
+                    }
             }
             .buttonStyle(.plain)
         }
@@ -177,7 +181,7 @@ struct HomeView: View {
             HStack(alignment: .top, spacing: 12) {
                 Text("Verse of the Day")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.darkTextSecondary)
 
                 Spacer(minLength: 0)
 
@@ -186,15 +190,15 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: verseOfTheDayIsInLibrary ? "checkmark" : "plus")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.96))
+                        .foregroundStyle(AppColors.darkTextPrimary.opacity(0.96))
                         .frame(width: 28, height: 28)
                         .background(
                             Circle()
-                                .fill(Color.white.opacity(verseOfTheDayIsInLibrary ? 0.22 : 0.16))
+                                .fill(AppColors.darkTextPrimary.opacity(verseOfTheDayIsInLibrary ? 0.22 : 0.16))
                         )
                         .overlay {
                             Circle()
-                                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                                .stroke(AppColors.darkTextPrimary.opacity(0.14), lineWidth: 1)
                         }
                 }
                 .buttonStyle(.plain)
@@ -204,31 +208,23 @@ struct HomeView: View {
 
             Text(verseOfTheDay.reference)
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(AppColors.gold)
 
             Text(verseOfTheDay.text)
                 .font(.system(.body, design: .serif))
                 .lineSpacing(5)
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColors.darkTextPrimary)
         }
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.12, green: 0.27, blue: 0.53),
-                            Color(red: 0.22, green: 0.46, blue: 0.72)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(AppColors.darkSurface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                .stroke(AppColors.darkDivider, lineWidth: 1)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(AppColors.darkTextPrimary)
     }
 
     private var summarySection: some View {
@@ -241,7 +237,11 @@ struct HomeView: View {
         .padding(.vertical, 16)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.blue.opacity(0.08))
+                .fill(AppColors.darkSurface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(AppColors.darkDivider, lineWidth: 1)
         )
     }
 
@@ -259,6 +259,8 @@ struct HomeView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
+        .tint(AppColors.gold)
+        .foregroundStyle(AppColors.darkBackground)
         .disabled(smartReviewQueue.isEmpty)
     }
 
@@ -333,13 +335,13 @@ struct HomeView: View {
             feedback = QuickAddFeedback(
                 message: "Added to Library",
                 systemImage: "checkmark.circle.fill",
-                tint: .green
+                tint: AppColors.gold
             )
         } else {
             feedback = QuickAddFeedback(
                 message: "Unable to add verse",
                 systemImage: "exclamationmark.circle.fill",
-                tint: .orange
+                tint: AppColors.darkTextSecondary
             )
         }
 
@@ -387,13 +389,13 @@ private struct HomeMetricColumn: View {
         VStack(spacing: 6) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(.secondary.opacity(0.8))
+                .foregroundStyle(AppColors.darkTextSecondary.opacity(0.8))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
 
             Text("\(value)")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColors.darkTextPrimary)
         }
         .frame(maxWidth: .infinity)
     }

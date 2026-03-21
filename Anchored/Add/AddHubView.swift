@@ -69,7 +69,7 @@ struct AddHubView: View {
                 }
                 .padding(20)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(AppColors.lightBackground)
             .navigationTitle("Add")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -91,7 +91,7 @@ struct AddHubView: View {
 
             Text("Choose how you want to add verses. Paste references, search the bundled Bible, or come back soon for bulk import.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -108,7 +108,7 @@ struct AddHubView: View {
                     )
                 )
         )
-        .foregroundStyle(.white)
+        .foregroundStyle(AppColors.darkTextPrimary)
     }
 }
 
@@ -135,7 +135,7 @@ private struct AddHubOptionCard: View {
                 HStack(spacing: 8) {
                     Text(title)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(AppColors.lightTextPrimary)
 
                     if isPlaceholder {
                         Text("Coming Later")
@@ -149,7 +149,7 @@ private struct AddHubOptionCard: View {
 
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
                     .multilineTextAlignment(.leading)
             }
 
@@ -164,7 +164,7 @@ private struct AddHubOptionCard: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
         .opacity(isPlaceholder ? 0.72 : 1)
     }

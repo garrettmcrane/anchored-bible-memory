@@ -42,15 +42,15 @@ struct ImportReferencesView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Pasted References")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.lightTextSecondary)
 
                     ZStack(alignment: .topLeading) {
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(AppColors.lightSurface)
                             .overlay {
                                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                                     .stroke(
-                                        isEditorFocused ? Color.blue.opacity(0.28) : Color.black.opacity(0.05),
+                                        isEditorFocused ? AppColors.brandBlue.opacity(0.28) : AppColors.darkBackground.opacity(0.05),
                                         lineWidth: 1
                                     )
                             }
@@ -76,7 +76,7 @@ struct ImportReferencesView: View {
                     HStack {
                         Text("We’ll extract recognized references, merge exact repeats, and show anything unresolved separately.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.lightTextSecondary)
 
                         Spacer()
 
@@ -104,7 +104,7 @@ struct ImportReferencesView: View {
             }
             .padding(20)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(AppColors.lightBackground)
         .navigationTitle("Import References")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $previewContext) { context in
@@ -122,7 +122,7 @@ struct ImportReferencesView: View {
 
             Text("Import V1 supports pasted plain text references. File uploads, images, and OCR stay out of this flow.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,7 +265,7 @@ private struct ImportReferencesPreviewView: View {
                 if context.importablePassages.isEmpty {
                     AddFlowMessageCard(
                         message: "Everything that resolved is already in your library. Nothing new will be imported.",
-                        tint: .orange
+                        tint: AppColors.gold
                     )
                 } else {
                     passageSection(
@@ -291,7 +291,7 @@ private struct ImportReferencesPreviewView: View {
             }
             .padding(20)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(AppColors.lightBackground)
         .navigationTitle("Import Preview")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) {
@@ -312,19 +312,19 @@ private struct ImportReferencesPreviewView: View {
 
             Text(summaryDetail)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             if context.duplicateReferenceCount > 0 {
                 Text("\(context.duplicateReferenceCount) repeated reference\(context.duplicateReferenceCount == 1 ? "" : "s") in the pasted text \(context.duplicateReferenceCount == 1 ? "was" : "were") merged automatically.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.blue.opacity(0.1))
+                .fill(AppColors.brandBlue.opacity(0.1))
         )
     }
 
@@ -333,7 +333,7 @@ private struct ImportReferencesPreviewView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Default Status")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
 
                 Picker("Status", selection: $masteryStatus) {
                     ForEach(VerseMasteryStatus.allCases) { status in
@@ -346,12 +346,12 @@ private struct ImportReferencesPreviewView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Default Folder")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
 
                 folderMenu(
                     selection: selectedFolder,
                     title: selectedFolder,
-                    tint: .primary
+                    tint: AppColors.lightTextPrimary
                 ) { folder in
                     selectedFolder = folder
                 }
@@ -371,7 +371,7 @@ private struct ImportReferencesPreviewView: View {
                             .frame(height: 44)
                             .background(
                                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color(.systemBackground))
+                                    .fill(AppColors.lightSurface)
                             )
 
                         Button("Save Folder") {
@@ -382,7 +382,7 @@ private struct ImportReferencesPreviewView: View {
                         .frame(height: 42)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.blue.opacity(0.12))
+                                .fill(AppColors.brandBlue.opacity(0.12))
                         )
                         .disabled(normalizedCandidateFolderName == nil)
                     }
@@ -392,7 +392,7 @@ private struct ImportReferencesPreviewView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 
@@ -402,14 +402,14 @@ private struct ImportReferencesPreviewView: View {
         } label: {
             Text(isSaving ? "Importing..." : saveButtonTitle)
                 .fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColors.darkTextPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
                 .background(
                     Capsule()
-                        .fill(context.importablePassages.isEmpty ? Color.gray : Color.blue)
+                        .fill(context.importablePassages.isEmpty ? AppColors.lightTextSecondary : AppColors.brandBlue)
                 )
-                .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+                .shadow(color: AppColors.darkBackground.opacity(0.12), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(.plain)
         .disabled(isSaving || context.importablePassages.isEmpty)
@@ -422,7 +422,7 @@ private struct ImportReferencesPreviewView: View {
 
             Text("These could not be parsed or resolved, and they will not be saved.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             ForEach(context.unresolvedEntries, id: \.self) { entry in
                 Text(entry)
@@ -431,7 +431,7 @@ private struct ImportReferencesPreviewView: View {
                     .padding(14)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.orange.opacity(0.1))
+                            .fill(AppColors.gold.opacity(0.1))
                     )
             }
         }
@@ -471,7 +471,7 @@ private struct ImportReferencesPreviewView: View {
         subtitle: String,
         passages: [ScripturePassage],
         badgeTitle: String? = nil,
-        badgeTint: Color = .secondary
+        badgeTint: Color = AppColors.lightTextSecondary
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
@@ -479,7 +479,7 @@ private struct ImportReferencesPreviewView: View {
 
             Text(subtitle)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             ForEach(passages) { passage in
                 importPassageCard(
@@ -515,13 +515,13 @@ private struct ImportReferencesPreviewView: View {
 
             Text(passage.text)
                 .font(.system(.body, design: .serif))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColors.lightTextPrimary)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 
@@ -554,7 +554,7 @@ private struct ImportReferencesPreviewView: View {
             .padding(.vertical, 9)
             .background(
                 Capsule(style: .continuous)
-                    .fill(Color(.systemBackground))
+                    .fill(AppColors.lightSurface)
             )
         }
         .buttonStyle(.plain)

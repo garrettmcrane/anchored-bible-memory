@@ -41,14 +41,14 @@ struct VerseRowView: View {
 
                     Text(verse.text)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.lightTextSecondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
 
                     HStack(spacing: 8) {
                         Text(folderName)
                             .font(.caption2)
-                            .foregroundStyle(.secondary.opacity(0.75))
+                            .foregroundStyle(AppColors.lightTextSecondary.opacity(0.75))
                             .lineLimit(1)
 
                         ProgressView(value: strength)
@@ -57,7 +57,7 @@ struct VerseRowView: View {
 
                         Text(verse.masteryStatus.rawValue)
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.lightTextSecondary)
                             .lineLimit(1)
                     }
                 }
@@ -66,7 +66,7 @@ struct VerseRowView: View {
 
                 if showsChevron {
                     Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppColors.lightTextSecondary)
                         .font(.system(size: 12, weight: .semibold))
                         .padding(.top, 2)
                 }
@@ -79,18 +79,18 @@ struct VerseRowView: View {
         ZStack {
             Circle()
                 .strokeBorder(
-                    isSelected ? Color.accentColor.opacity(0.16) : Color.secondary.opacity(0.3),
+                    isSelected ? AppColors.gold.opacity(0.16) : AppColors.lightTextSecondary.opacity(0.3),
                     lineWidth: 1.5
                 )
                 .background(
                     Circle()
-                        .fill(isSelected ? Color.accentColor : Color.clear)
+                        .fill(isSelected ? AppColors.gold : Color.clear)
                 )
 
             if isSelected {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColors.darkTextPrimary)
             }
         }
         .frame(width: 26, height: 26)

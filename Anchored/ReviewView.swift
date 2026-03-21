@@ -26,7 +26,7 @@ struct ReviewView: View {
                 } else {
                     Text("Try to recite this verse before revealing it.")
                         .font(.headline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.lightTextSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -42,8 +42,8 @@ struct ReviewView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 56)
-                                .background(Color.red.opacity(0.15))
-                                .foregroundStyle(.red)
+                                .background(AppColors.gold.opacity(0.15))
+                                .foregroundStyle(AppColors.gold)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
 
@@ -54,7 +54,7 @@ struct ReviewView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 56)
-                                .background(Color.green.opacity(0.15))
+                                .background(AppColors.gold.opacity(0.15))
                                 .foregroundStyle(.green)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
@@ -68,8 +68,8 @@ struct ReviewView: View {
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(Color.blue)
-                            .foregroundStyle(.white)
+                            .background(AppColors.brandBlue)
+                            .foregroundStyle(AppColors.darkTextPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
                     .padding(.horizontal)

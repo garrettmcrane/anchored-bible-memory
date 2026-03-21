@@ -87,7 +87,7 @@ struct VoiceRecitationReviewSessionView: View {
 
             Text("No verses to review.")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Spacer()
         }
@@ -173,14 +173,14 @@ struct VoiceRecitationReviewSessionView: View {
                 if transcriber.isRecording {
                     Text("Live")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(AppColors.gold)
                 }
             }
 
             if let message = transcriber.stateMessage {
                 Text(message)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
 
             transcriptText
@@ -213,7 +213,7 @@ struct VoiceRecitationReviewSessionView: View {
 
             Text("Microphone and speech recognition access are both required.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             HStack(spacing: 12) {
                 Button("Try Again") {
@@ -252,7 +252,7 @@ struct VoiceRecitationReviewSessionView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
                 .textCase(.uppercase)
 
             Text(content.characters.isEmpty ? AttributedString(" ") : content)
@@ -305,8 +305,8 @@ struct VoiceRecitationReviewSessionView: View {
             .fontWeight(.semibold)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(Color.green)
-            .foregroundStyle(.white)
+            .background(AppColors.gold)
+            .foregroundStyle(AppColors.darkTextPrimary)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             Button("Incorrect") {
@@ -315,8 +315,8 @@ struct VoiceRecitationReviewSessionView: View {
             .fontWeight(.semibold)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(Color.red)
-            .foregroundStyle(.white)
+            .background(AppColors.gold)
+            .foregroundStyle(AppColors.darkTextPrimary)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             Button("Retry Verse") {
@@ -356,15 +356,15 @@ struct VoiceRecitationReviewSessionView: View {
     private var primaryButtonTint: Color {
         switch transcriber.captureState {
         case .recording:
-            return .red
+            return AppColors.gold
         default:
-            return .blue
+            return AppColors.brandBlue
         }
     }
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(Color(.secondarySystemBackground))
+            .fill(AppColors.lightSurface)
     }
 
     private func recordReview(result: ReviewResult) {
@@ -875,8 +875,8 @@ private struct VoiceRecitationComparison {
         let spokenMatches = Set(matchedPairs.map(\.spokenIndex))
         let actualMatches = Set(matchedPairs.map(\.actualIndex))
 
-        spokenAttributedText = Self.attributedText(for: spokenTokens, matchedIndexes: spokenMatches, mismatchColor: .orange)
-        actualAttributedText = Self.attributedText(for: actualTokens, matchedIndexes: actualMatches, mismatchColor: .red)
+        spokenAttributedText = Self.attributedText(for: spokenTokens, matchedIndexes: spokenMatches, mismatchColor: AppColors.gold)
+        actualAttributedText = Self.attributedText(for: actualTokens, matchedIndexes: actualMatches, mismatchColor: AppColors.gold)
     }
 
     private struct Token {

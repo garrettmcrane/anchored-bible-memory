@@ -84,7 +84,7 @@ struct ProgressTabView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemGroupedBackground)
+                AppColors.lightBackground
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
@@ -115,11 +115,11 @@ struct ProgressTabView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Progress")
                 .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColors.lightTextPrimary)
 
             Text("A simple view of your memorization activity")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
         }
     }
 
@@ -204,11 +204,11 @@ struct ProgressTabView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Insight")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Text(text)
                 .font(.body.weight(.medium))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColors.lightTextPrimary)
         }
         .padding(18)
         .background(
@@ -216,7 +216,7 @@ struct ProgressTabView: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.blue.opacity(0.10),
+                            AppColors.brandBlue.opacity(0.10),
                             Color.teal.opacity(0.08)
                         ],
                         startPoint: .topLeading,
@@ -228,19 +228,19 @@ struct ProgressTabView: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(Color(.secondarySystemBackground))
+            .fill(AppColors.lightSurface)
     }
 
     private func sectionHeader(title: String, subtitle: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColors.lightTextPrimary)
 
             if let subtitle {
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
         }
     }
@@ -290,11 +290,11 @@ private struct ProgressMetricCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Text(value.formatted())
                 .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColors.lightTextPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -302,7 +302,7 @@ private struct ProgressMetricCard: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 }
@@ -319,11 +319,11 @@ private struct ReviewActivityCard: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(days.reduce(0) { $0 + $1.count }.formatted())
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppColors.lightTextPrimary)
 
                 Text("reviews this week")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
 
             HStack(alignment: .bottom, spacing: 10) {
@@ -337,8 +337,8 @@ private struct ReviewActivityCard: View {
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color.blue.opacity(day.count == 0 ? 0.18 : 0.55),
-                                                Color.blue.opacity(day.count == 0 ? 0.08 : 0.24)
+                                                AppColors.brandBlue.opacity(day.count == 0 ? 0.18 : 0.55),
+                                                AppColors.brandBlue.opacity(day.count == 0 ? 0.08 : 0.24)
                                             ],
                                             startPoint: .top,
                                             endPoint: .bottom
@@ -356,11 +356,11 @@ private struct ReviewActivityCard: View {
 
                         Text(dayLabel(for: day.date))
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.lightTextSecondary)
 
                         Text(day.count.formatted())
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.lightTextSecondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -369,7 +369,7 @@ private struct ReviewActivityCard: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 
@@ -391,23 +391,23 @@ private struct FolderBreakdownRow: View {
             HStack {
                 Text(item.name)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppColors.lightTextPrimary)
                     .lineLimit(1)
 
                 Spacer(minLength: 12)
 
                 Text(item.count.formatted())
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color(.systemBackground))
+                        .fill(AppColors.lightSurface)
 
                     Capsule()
-                        .fill(Color.blue.opacity(0.65))
+                        .fill(AppColors.brandBlue.opacity(0.65))
                         .frame(width: max(geometry.size.width * ratio, ratio == 0 ? 0 : 10))
                 }
             }
@@ -424,19 +424,19 @@ private struct NeedsAttentionRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(verse.reference)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppColors.lightTextPrimary)
 
                 Spacer(minLength: 12)
 
                 Text(lastReviewedText)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
 
             HStack(spacing: 8) {
                 Text(folderName)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
 
                 Text("•")
                     .font(.caption)
@@ -444,7 +444,7 @@ private struct NeedsAttentionRow: View {
 
                 Text("\(verse.reviewCount) \(verse.reviewCount == 1 ? "review" : "reviews")")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -472,12 +472,12 @@ private struct ProgressEmptyStateCard: View {
     var body: some View {
         Text(message)
             .font(.subheadline)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppColors.lightTextSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(AppColors.lightSurface)
             )
     }
 }

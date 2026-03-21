@@ -35,7 +35,7 @@ struct FirstLetterTypingReviewView: View {
 
                         Text(reconstructionState.currentPrompt)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.lightTextSecondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal)
@@ -51,8 +51,8 @@ struct FirstLetterTypingReviewView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color.blue)
-                        .foregroundStyle(.white)
+                        .background(AppColors.brandBlue)
+                        .foregroundStyle(AppColors.darkTextPrimary)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     } else {
                         inputCard
@@ -91,11 +91,11 @@ struct FirstLetterTypingReviewView: View {
                 .frame(height: 56)
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color(.systemBackground))
+                        .fill(AppColors.lightSurface)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(showIncorrectHint ? Color.red : Color(.separator), lineWidth: 1)
+                        .stroke(showIncorrectHint ? AppColors.gold : AppColors.lightDivider, lineWidth: 1)
                 )
                 .offset(x: showIncorrectHint ? shakeOffset : 0)
                 .onChange(of: stepInput) { _, newValue in
@@ -104,13 +104,13 @@ struct FirstLetterTypingReviewView: View {
 
             Text(showIncorrectHint ? "Try again" : "Enter one letter at a time to reveal the next word.")
                 .font(.subheadline)
-                .foregroundStyle(showIncorrectHint ? .red : .secondary)
+                .foregroundStyle(showIncorrectHint ? AppColors.gold : AppColors.lightTextSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
         .animation(.easeInOut(duration: 0.12), value: incorrectFlashToken)
     }

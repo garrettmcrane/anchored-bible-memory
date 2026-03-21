@@ -57,7 +57,7 @@ struct VerseDetailView: View {
                         signalCard(
                             title: "Correct Reviews",
                             value: "\(streakCount)",
-                            valueColor: .primary
+                            valueColor: AppColors.lightTextPrimary
                         )
                     }
                 }
@@ -90,7 +90,7 @@ struct VerseDetailView: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 22)
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(AppColors.lightSurface)
                     )
                 }
 
@@ -107,7 +107,7 @@ struct VerseDetailView: View {
         }
         .navigationTitle("Verse")
         .navigationBarTitleDisplayMode(.inline)
-        .background(Color(.systemBackground))
+        .background(AppColors.lightSurface)
         .onChange(of: verse) { _, newValue in
             currentVerse = newValue
         }
@@ -258,13 +258,13 @@ struct VerseDetailView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text("Folder")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
 
                 Spacer()
 
                 HStack(spacing: 8) {
                     Text(folderName)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(AppColors.lightTextPrimary)
                         .multilineTextAlignment(.trailing)
 
                     Image(systemName: "chevron.right")
@@ -284,7 +284,7 @@ struct VerseDetailView: View {
             Text(title)
                 .font(.caption)
                 .textCase(.uppercase)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Text(value)
                 .font(.subheadline)
@@ -295,14 +295,14 @@ struct VerseDetailView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 
     private func detailRow(title: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             Text(title)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Spacer()
 

@@ -36,7 +36,7 @@ struct ScriptureAddPreviewView: View {
             }
             .padding(20)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(AppColors.lightBackground)
         .navigationTitle("Preview")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) {
@@ -57,13 +57,13 @@ struct ScriptureAddPreviewView: View {
 
             Text("Single verses and ranges save as one unit. Separate references save separately.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.blue.opacity(0.1))
+                .fill(AppColors.brandBlue.opacity(0.1))
         )
     }
 
@@ -72,7 +72,7 @@ struct ScriptureAddPreviewView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Status")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
 
                 Picker("Status", selection: $masteryStatus) {
                     ForEach(VerseMasteryStatus.allCases) { status in
@@ -85,12 +85,12 @@ struct ScriptureAddPreviewView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Default Folder")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
 
                 folderMenu(
                     selection: selectedFolder,
                     title: selectedFolder,
-                    tint: .primary
+                    tint: AppColors.lightTextPrimary
                 ) { folder in
                     selectedFolder = folder
                 }
@@ -110,7 +110,7 @@ struct ScriptureAddPreviewView: View {
                             .frame(height: 44)
                             .background(
                                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color(.systemBackground))
+                                    .fill(AppColors.lightSurface)
                             )
 
                         Button("Save Folder") {
@@ -121,7 +121,7 @@ struct ScriptureAddPreviewView: View {
                         .frame(height: 42)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.blue.opacity(0.12))
+                                .fill(AppColors.brandBlue.opacity(0.12))
                         )
                         .disabled(normalizedCandidateFolderName == nil)
                     }
@@ -131,7 +131,7 @@ struct ScriptureAddPreviewView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 
@@ -141,14 +141,14 @@ struct ScriptureAddPreviewView: View {
         } label: {
             Text(isSaving ? "Saving..." : "Save Verses")
                 .fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColors.darkTextPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
                 .background(
                     Capsule()
-                        .fill(Color.blue)
+                        .fill(AppColors.brandBlue)
                 )
-                .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+                .shadow(color: AppColors.darkBackground.opacity(0.12), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(.plain)
         .disabled(isSaving)
@@ -163,7 +163,7 @@ struct ScriptureAddPreviewView: View {
 
                     Text(passage.text)
                         .font(.system(.body, design: .serif))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(AppColors.lightTextPrimary)
                 }
 
                 Spacer(minLength: 0)
@@ -172,7 +172,7 @@ struct ScriptureAddPreviewView: View {
             HStack {
                 Text("Folder")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
 
                 Spacer()
 
@@ -180,7 +180,7 @@ struct ScriptureAddPreviewView: View {
                 folderMenu(
                     selection: override ?? selectedFolder,
                     title: override ?? "Use Default",
-                    tint: override == nil ? .secondary : .primary,
+                    tint: override == nil ? AppColors.lightTextSecondary : AppColors.lightTextPrimary,
                     onSelect: { folder in
                     if folder == selectedFolder {
                         folderOverrides.removeValue(forKey: passage.id)
@@ -196,7 +196,7 @@ struct ScriptureAddPreviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppColors.lightSurface)
         )
     }
 
@@ -236,7 +236,7 @@ struct ScriptureAddPreviewView: View {
             .padding(.vertical, 9)
             .background(
                 Capsule(style: .continuous)
-                    .fill(Color(.systemBackground))
+                    .fill(AppColors.lightSurface)
             )
         }
         .buttonStyle(.plain)

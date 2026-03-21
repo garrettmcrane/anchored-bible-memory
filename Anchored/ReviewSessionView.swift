@@ -149,7 +149,7 @@ struct ReviewSessionView: View {
 
             Text("No verses to review.")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.lightTextSecondary)
 
             Spacer()
         }
@@ -195,7 +195,7 @@ struct ReviewSessionView: View {
             } else {
                 Text("Try to recite this verse before revealing it.")
                     .font(.headline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.lightTextSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
@@ -216,8 +216,8 @@ struct ReviewSessionView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color.blue)
-                        .foregroundStyle(.white)
+                        .background(AppColors.brandBlue)
+                        .foregroundStyle(AppColors.darkTextPrimary)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
                 .padding(.horizontal)
