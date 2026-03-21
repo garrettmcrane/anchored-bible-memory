@@ -3,6 +3,7 @@ import SwiftUI
 struct ReviewSessionView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let descriptor: ReviewSessionDescriptor
     let verses: [Verse]
     let onUpdate: (Verse) -> Void
 
@@ -12,6 +13,7 @@ struct ReviewSessionView: View {
     @State private var isSessionComplete = false
     @State private var endedEarly = false
     @State private var showingEndEarlyConfirmation = false
+    @State private var sessionStartDate = Date()
 
     private var currentVerse: Verse {
         verses[currentIndex]
@@ -19,90 +21,14 @@ struct ReviewSessionView: View {
 
     var body: some View {
         NavigationStack {
-            SwiftUI.Group {
-                if verses.isEmpty {
-                    VStack {
-                        Spacer()
-
-                        Text("No verses to review.")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-                    }
-                } else if isSessionComplete {
-                    ReviewSessionCompletionView(
-                        summary: summary,
-                        totalVerseCount: verses.count,
-                        endedEarly: endedEarly
-                    )
-                } else {
-                    VStack(spacing: 20) {
-                        ReviewSessionProgressHeader(
-                            currentIndex: currentIndex,
-                            totalCount: verses.count,
-                            reference: currentVerse.reference
-                        )
-
-                        VStack(spacing: 24) {
-                            if showingAnswer {
-                                Text(currentVerse.text)
-                                    .font(.title3)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-                            } else {
-                                Text("Try to recite this verse before revealing it.")
-                                    .font(.headline)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            if showingAnswer {
-                                ReviewResultButtons(
-                                    onMissed: { recordReview(result: .missed) },
-                                    onCorrect: { recordReview(result: .correct) }
-                                )
-                                .padding(.horizontal)
-                            } else {
-                                Button {
-                                    showingAnswer = true
-                                } label: {
-                                    Text("Reveal Verse")
-                                        .fontWeight(.semibold)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 56)
-                                        .background(Color.blue)
-                                        .foregroundStyle(.white)
-                                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.vertical, 16)
-                        .id(currentVerse.id)
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
-                    }
-                }
-            }
+            sessionContent
             .padding(.vertical, 32)
             .padding(.horizontal, 20)
-            .navigationTitle("Review Session")
+            .navigationTitle(descriptor.title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if !isSessionComplete {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("End Early") {
-                            showingEndEarlyConfirmation = true
-                        }
-                    }
-                }
-            }
+            .toolbar(content: toolbarContent)
             .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
-                Button("Complete Early") {
+                Button("End Review") {
                     endedEarly = true
                     isSessionComplete = true
                 }
@@ -124,16 +50,135 @@ struct ReviewSessionView: View {
         )
 
         onUpdate(updatedVerse)
-        summary.record(result)
+        summary.record(result, reference: currentVerse.reference)
         moveToNextVerseOrFinish()
     }
 
     private func moveToNextVerseOrFinish() {
         if currentIndex + 1 < verses.count {
-            currentIndex += 1
-            showingAnswer = false
+            withAnimation(.easeInOut(duration: 0.22)) {
+                currentIndex += 1
+                showingAnswer = false
+            }
         } else {
             isSessionComplete = true
+        }
+    }
+
+    private var sessionDuration: TimeInterval {
+        Date().timeIntervalSince(sessionStartDate)
+    }
+
+    private func resetSession() {
+        currentIndex = 0
+        showingAnswer = false
+        summary = ReviewSessionSummary()
+        endedEarly = false
+        isSessionComplete = false
+        sessionStartDate = Date()
+    }
+
+    @ViewBuilder
+    private var sessionContent: some View {
+        if verses.isEmpty {
+            emptyState
+        } else if isSessionComplete {
+            completionContent
+        } else {
+            reviewContent
+        }
+    }
+
+    private var emptyState: some View {
+        VStack {
+            Spacer()
+
+            Text("No verses to review.")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+    }
+
+    private var completionContent: some View {
+        let reviewAgainAction: (() -> Void)? = verses.isEmpty ? nil : { resetSession() }
+
+        return ReviewSessionCompletionView(
+            descriptor: descriptor,
+            summary: summary,
+            totalVerseCount: verses.count,
+            endedEarly: endedEarly,
+            duration: sessionDuration,
+            onReviewAgain: reviewAgainAction
+        )
+    }
+
+    private var reviewContent: some View {
+        VStack(spacing: 20) {
+            ReviewSessionProgressHeader(
+                descriptor: descriptor,
+                currentIndex: currentIndex,
+                totalCount: verses.count,
+                reference: currentVerse.reference
+            )
+
+            verseCard
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.vertical, 16)
+                .id(currentVerse.id)
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+    }
+
+    private var verseCard: some View {
+        VStack(spacing: 24) {
+            if showingAnswer {
+                Text(currentVerse.text)
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            } else {
+                Text("Try to recite this verse before revealing it.")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
+            Spacer(minLength: 0)
+
+            if showingAnswer {
+                ReviewResultButtons(
+                    onMissed: { recordReview(result: .missed) },
+                    onCorrect: { recordReview(result: .correct) }
+                )
+                .padding(.horizontal)
+            } else {
+                Button {
+                    showingAnswer = true
+                } label: {
+                    Text("Reveal Verse")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.blue)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private func toolbarContent() -> some ToolbarContent {
+        if !isSessionComplete {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("End") {
+                    showingEndEarlyConfirmation = true
+                }
+            }
         }
     }
 }
@@ -149,5 +194,9 @@ struct ReviewSessionView: View {
         text: "And we know that for those who love God all things work together for good..."
     )
 
-    return ReviewSessionView(verses: [verse1, verse2], onUpdate: { _ in })
+    return ReviewSessionView(
+        descriptor: ReviewSessionDescriptor(title: "Smart Review", method: .flashcard),
+        verses: [verse1, verse2],
+        onUpdate: { _ in }
+    )
 }

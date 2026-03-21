@@ -10,6 +10,12 @@ struct LibraryView: View {
         }
     }
 
+    private struct BatchReviewPresentation: Identifiable {
+        let id = UUID()
+        let descriptor: ReviewSessionDescriptor
+        let verses: [Verse]
+    }
+
     private struct LibrarySummaryMetric: View {
         let value: Int
         let title: String
@@ -68,8 +74,8 @@ struct LibraryView: View {
     @State private var selectedFilter: FilterType = .all
     @State private var selectedFolders: Set<String> = []
     @State private var sortMode: SortMode = .newest
-    @State private var selectedBatchReviewMethod: ReviewMethod? = nil
-    @State private var showingBatchReviewMethodPicker = false
+    @State private var reviewStartConfiguration: ReviewStartConfiguration?
+    @State private var activeBatchReview: BatchReviewPresentation?
     @State private var isSelectionMode = false
     @State private var selectedVerseIDs: Set<String> = []
     @State private var pendingBatchDeleteVerseIDs: Set<String> = []
@@ -310,18 +316,26 @@ struct LibraryView: View {
                 }
             }
         }
-        .sheet(item: $selectedBatchReviewMethod) { method in
-            switch method {
+        .sheet(item: $reviewStartConfiguration) { configuration in
+            ReviewStartSheet(configuration: configuration) { method in
+                activeBatchReview = BatchReviewPresentation(
+                    descriptor: ReviewSessionDescriptor(title: configuration.title, method: method),
+                    verses: configuration.verses
+                )
+            }
+        }
+        .sheet(item: $activeBatchReview) { presentation in
+            switch presentation.descriptor.method {
             case .flashcard:
-                ReviewSessionView(verses: reviewVerses) { _ in
+                ReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     reloadVerses()
                 }
             case .progressiveWordHiding:
-                ProgressiveWordHidingReviewSessionView(verses: reviewVerses) { _ in
+                ProgressiveWordHidingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     reloadVerses()
                 }
             case .firstLetterTyping:
-                FirstLetterTypingReviewSessionView(verses: reviewVerses) { _ in
+                FirstLetterTypingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     reloadVerses()
                 }
             }
@@ -331,17 +345,6 @@ struct LibraryView: View {
         }
         .onAppear {
             reloadVerses()
-        }
-        .confirmationDialog("Choose Review Style", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
-            ForEach(ReviewMethod.allCases) { method in
-                Button(method.title) {
-                    selectedBatchReviewMethod = method
-                }
-            }
-
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Choose how you want to review this session.")
         }
         .confirmationDialog(batchDeleteDialogTitle, isPresented: batchDeleteDialogPresented, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
@@ -697,7 +700,11 @@ struct LibraryView: View {
     @ViewBuilder
     private func floatingReviewButton() -> some View {
         Button {
-            showingBatchReviewMethodPicker = true
+            reviewStartConfiguration = ReviewStartConfiguration(
+                title: "Review Verses",
+                description: "Review the verses currently shown in your library.",
+                verses: reviewVerses
+            )
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "play.circle.fill")

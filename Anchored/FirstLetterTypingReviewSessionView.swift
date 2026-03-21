@@ -5,6 +5,7 @@ struct FirstLetterTypingReviewSessionView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isStepFieldFocused: Bool
 
+    let descriptor: ReviewSessionDescriptor
     let verses: [Verse]
     let onUpdate: (Verse) -> Void
 
@@ -19,12 +20,14 @@ struct FirstLetterTypingReviewSessionView: View {
     @State private var verseReports: [FirstLetterTypingVersePerformance] = []
     @State private var endedEarly = false
     @State private var showingEndEarlyConfirmation = false
+    @State private var sessionStartDate = Date()
 
     private var performance: FirstLetterTypingVersePerformance {
         reconstructionState.performance(for: currentVerse)
     }
 
-    init(verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
+    init(descriptor: ReviewSessionDescriptor, verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
+        self.descriptor = descriptor
         self.verses = verses
         self.onUpdate = onUpdate
         _reconstructionState = State(initialValue: FirstLetterTypingState(text: verses.first?.text ?? ""))
@@ -36,47 +39,12 @@ struct FirstLetterTypingReviewSessionView: View {
 
     var body: some View {
         NavigationStack {
-            SwiftUI.Group {
-                if verses.isEmpty {
-                    emptyState
-                } else if isSessionComplete {
-                    FirstLetterTypingSessionCompletionView(
-                        summary: summary,
-                        verseReports: verseReports,
-                        totalVerseCount: verses.count,
-                        endedEarly: endedEarly
-                    )
-                } else {
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            ReviewSessionProgressHeader(
-                                currentIndex: currentIndex,
-                                totalCount: verses.count,
-                                reference: currentVerse.reference
-                            )
-
-                            verseStep
-                                .id(currentVerse.id)
-                                .transition(.opacity.combined(with: .move(edge: .trailing)))
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 24)
-                    }
-                }
-            }
-            .navigationTitle("Review Session")
+            sessionContent
+            .navigationTitle(descriptor.title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if !isSessionComplete {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("End Early") {
-                            showingEndEarlyConfirmation = true
-                        }
-                    }
-                }
-            }
+            .toolbar(content: toolbarContent)
             .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
-                Button("Complete Early") {
+                Button("End Review") {
                     endedEarly = true
                     isSessionComplete = true
                 }
@@ -208,20 +176,22 @@ struct FirstLetterTypingReviewSessionView: View {
         )
 
         onUpdate(updatedVerse)
-        summary.record(performance.reviewResult)
+        summary.record(performance.reviewResult, reference: currentVerse.reference)
         moveToNextVerseOrFinish()
     }
 
     private func moveToNextVerseOrFinish() {
         if currentIndex + 1 < verses.count {
             let nextIndex = currentIndex + 1
-            currentIndex = nextIndex
-            reconstructionState = FirstLetterTypingState(text: verses[nextIndex].text)
-            stepInput = ""
-            showIncorrectHint = false
-            incorrectFlashToken = 0
-            showVerseErrorFlash = false
-            isStepFieldFocused = true
+            withAnimation(.easeInOut(duration: 0.22)) {
+                currentIndex = nextIndex
+                reconstructionState = FirstLetterTypingState(text: verses[nextIndex].text)
+                stepInput = ""
+                showIncorrectHint = false
+                incorrectFlashToken = 0
+                showVerseErrorFlash = false
+                isStepFieldFocused = true
+            }
         } else {
             isSessionComplete = true
         }
@@ -239,10 +209,85 @@ struct FirstLetterTypingReviewSessionView: View {
             showVerseErrorFlash = false
         }
     }
+
+    private var sessionDuration: TimeInterval {
+        Date().timeIntervalSince(sessionStartDate)
+    }
+
+    private func resetSession() {
+        currentIndex = 0
+        reconstructionState = FirstLetterTypingState(text: verses.first?.text ?? "")
+        stepInput = ""
+        showIncorrectHint = false
+        incorrectFlashToken = 0
+        showVerseErrorFlash = false
+        summary = ReviewSessionSummary()
+        isSessionComplete = false
+        verseReports = []
+        endedEarly = false
+        sessionStartDate = Date()
+        isStepFieldFocused = true
+    }
+
+    @ViewBuilder
+    private var sessionContent: some View {
+        if verses.isEmpty {
+            emptyState
+        } else if isSessionComplete {
+            completionContent
+        } else {
+            reviewContent
+        }
+    }
+
+    private var completionContent: some View {
+        let reviewAgainAction: (() -> Void)? = verses.isEmpty ? nil : { resetSession() }
+
+        return FirstLetterTypingSessionCompletionView(
+            descriptor: descriptor,
+            summary: summary,
+            verseReports: verseReports,
+            totalVerseCount: verses.count,
+            endedEarly: endedEarly,
+            duration: sessionDuration,
+            onReviewAgain: reviewAgainAction
+        )
+    }
+
+    private var reviewContent: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                ReviewSessionProgressHeader(
+                    descriptor: descriptor,
+                    currentIndex: currentIndex,
+                    totalCount: verses.count,
+                    reference: currentVerse.reference
+                )
+
+                verseStep
+                    .id(currentVerse.id)
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 24)
+        }
+    }
+
+    @ToolbarContentBuilder
+    private func toolbarContent() -> some ToolbarContent {
+        if !isSessionComplete {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("End") {
+                    showingEndEarlyConfirmation = true
+                }
+            }
+        }
+    }
 }
 
 #Preview {
     FirstLetterTypingReviewSessionView(
+        descriptor: ReviewSessionDescriptor(title: "Smart Review", method: .firstLetterTyping),
         verses: [
             Verse(reference: "Genesis 1:1", text: "In the beginning, God created the heavens and the earth."),
             Verse(reference: "Psalm 119:11", text: "I have stored up your word in my heart, that I might not sin against you.")

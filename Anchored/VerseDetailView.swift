@@ -7,7 +7,7 @@ struct VerseDetailView: View {
     let onVerseUpdated: (Verse) -> Void
 
     @State private var currentVerse: Verse
-    @State private var showingReviewMethodPicker = false
+    @State private var reviewStartConfiguration: ReviewStartConfiguration?
 
     init(
         verse: Verse,
@@ -56,7 +56,11 @@ struct VerseDetailView: View {
                 }
 
                 Button {
-                    showingReviewMethodPicker = true
+                    reviewStartConfiguration = ReviewStartConfiguration(
+                        title: "Review Verse",
+                        description: "Choose a review method for \(currentVerse.reference).",
+                        verses: [currentVerse]
+                    )
                 } label: {
                     Text("Start Review")
                         .frame(maxWidth: .infinity)
@@ -91,16 +95,10 @@ struct VerseDetailView: View {
         .onChange(of: verse) { _, newValue in
             currentVerse = newValue
         }
-        .confirmationDialog("Choose Review Style", isPresented: $showingReviewMethodPicker, titleVisibility: .visible) {
-            ForEach(ReviewMethod.allCases) { method in
-                Button(method.title) {
-                    onStartReview(currentVerse, method)
-                }
+        .sheet(item: $reviewStartConfiguration) { configuration in
+            ReviewStartSheet(configuration: configuration) { method in
+                onStartReview(currentVerse, method)
             }
-
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Select how you want to review \(currentVerse.reference).")
         }
     }
 

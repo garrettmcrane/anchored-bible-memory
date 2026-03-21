@@ -5,6 +5,12 @@ struct HomeView: View {
         case settings
     }
 
+    private struct BatchReviewPresentation: Identifiable {
+        let id = UUID()
+        let descriptor: ReviewSessionDescriptor
+        let verses: [Verse]
+    }
+
     private struct QuickAddFeedback: Identifiable, Equatable {
         let id = UUID()
         let message: String
@@ -13,9 +19,8 @@ struct HomeView: View {
     }
 
     @State private var verses: [Verse] = []
-    @State private var reviewQueue: [Verse] = []
-    @State private var selectedBatchReviewMethod: ReviewMethod? = nil
-    @State private var showingBatchReviewMethodPicker = false
+    @State private var reviewStartConfiguration: ReviewStartConfiguration?
+    @State private var activeBatchReview: BatchReviewPresentation?
     @State private var quickAddFeedback: QuickAddFeedback?
     @State private var feedbackDismissTask: Task<Void, Never>?
     @State private var verseOfTheDay = VerseOfTheDayContent(
@@ -87,32 +92,29 @@ struct HomeView: View {
                 }
             }
         }
-        .sheet(item: $selectedBatchReviewMethod, onDismiss: clearReviewSession) { method in
-            switch method {
+        .sheet(item: $reviewStartConfiguration) { configuration in
+            ReviewStartSheet(configuration: configuration) { method in
+                activeBatchReview = BatchReviewPresentation(
+                    descriptor: ReviewSessionDescriptor(title: configuration.title, method: method),
+                    verses: configuration.verses
+                )
+            }
+        }
+        .sheet(item: $activeBatchReview, onDismiss: clearReviewSession) { presentation in
+            switch presentation.descriptor.method {
             case .flashcard:
-                ReviewSessionView(verses: reviewQueue) { _ in
+                ReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     verses = VerseRepository.shared.loadVerses()
                 }
             case .progressiveWordHiding:
-                ProgressiveWordHidingReviewSessionView(verses: reviewQueue) { _ in
+                ProgressiveWordHidingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     verses = VerseRepository.shared.loadVerses()
                 }
             case .firstLetterTyping:
-                FirstLetterTypingReviewSessionView(verses: reviewQueue) { _ in
+                FirstLetterTypingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
                     verses = VerseRepository.shared.loadVerses()
                 }
             }
-        }
-        .confirmationDialog("Choose Review Style", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
-            ForEach(ReviewMethod.allCases) { method in
-                Button(method.title) {
-                    selectedBatchReviewMethod = method
-                }
-            }
-
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Choose how you want to review this session.")
         }
         .task {
             await loadInitialVersesIfNeeded()
@@ -280,13 +282,16 @@ struct HomeView: View {
             return
         }
 
-        reviewQueue = queue
-        showingBatchReviewMethodPicker = true
+        reviewStartConfiguration = ReviewStartConfiguration(
+            title: "Smart Review",
+            description: "Prioritizes weaker verses and learning passages first.",
+            verses: queue
+        )
     }
 
     private func clearReviewSession() {
-        selectedBatchReviewMethod = nil
-        reviewQueue = []
+        activeBatchReview = nil
+        reviewStartConfiguration = nil
         verses = VerseRepository.shared.loadVerses()
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct ProgressiveWordHidingReviewSessionView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let descriptor: ReviewSessionDescriptor
     let verses: [Verse]
     let onUpdate: (Verse) -> Void
 
@@ -12,8 +13,10 @@ struct ProgressiveWordHidingReviewSessionView: View {
     @State private var isSessionComplete = false
     @State private var endedEarly = false
     @State private var showingEndEarlyConfirmation = false
+    @State private var sessionStartDate = Date()
 
-    init(verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
+    init(descriptor: ReviewSessionDescriptor, verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
+        self.descriptor = descriptor
         self.verses = verses
         self.onUpdate = onUpdate
 
@@ -27,94 +30,14 @@ struct ProgressiveWordHidingReviewSessionView: View {
 
     var body: some View {
         NavigationStack {
-            SwiftUI.Group {
-                if verses.isEmpty {
-                    VStack {
-                        Spacer()
-
-                        Text("No verses to review.")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-                    }
-                } else if isSessionComplete {
-                    ReviewSessionCompletionView(
-                        summary: summary,
-                        totalVerseCount: verses.count,
-                        endedEarly: endedEarly
-                    )
-                } else {
-                    VStack(spacing: 20) {
-                        ReviewSessionProgressHeader(
-                            currentIndex: currentIndex,
-                            totalCount: verses.count,
-                            reference: currentVerse.reference
-                        )
-
-                        VStack(spacing: 20) {
-                            ScrollView {
-                                Text(hidingState.displayedText)
-                                    .font(.system(.title3, design: .serif))
-                                    .lineSpacing(10)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(24)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 24)
-                                            .fill(Color(.secondarySystemBackground))
-                                    )
-                            }
-
-                            HStack(spacing: 12) {
-                                Button {
-                                    hidingState.hideMoreWords()
-                                } label: {
-                                    Text("Hide More Words")
-                                        .fontWeight(.semibold)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 50)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(!hidingState.canHideMoreWords)
-
-                                Button {
-                                    hidingState.reset()
-                                } label: {
-                                    Text("Reset")
-                                        .fontWeight(.semibold)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 50)
-                                }
-                                .buttonStyle(.bordered)
-                                .disabled(!hidingState.hasHiddenWords)
-                            }
-
-                            ReviewResultButtons(
-                                onMissed: { recordReview(result: .missed) },
-                                onCorrect: { recordReview(result: .correct) }
-                            )
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .id(currentVerse.id)
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
-                    }
-                }
-            }
+            sessionContent
             .padding(.vertical, 32)
             .padding(.horizontal, 20)
-            .navigationTitle("Review Session")
+            .navigationTitle(descriptor.title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if !isSessionComplete {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("End Early") {
-                            showingEndEarlyConfirmation = true
-                        }
-                    }
-                }
-            }
+            .toolbar(content: toolbarContent)
             .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
-                Button("Complete Early") {
+                Button("End Review") {
                     endedEarly = true
                     isSessionComplete = true
                 }
@@ -136,17 +59,140 @@ struct ProgressiveWordHidingReviewSessionView: View {
         )
 
         onUpdate(updatedVerse)
-        summary.record(result)
+        summary.record(result, reference: currentVerse.reference)
         moveToNextVerseOrFinish()
     }
 
     private func moveToNextVerseOrFinish() {
         if currentIndex + 1 < verses.count {
             let nextIndex = currentIndex + 1
-            currentIndex = nextIndex
-            hidingState = ProgressiveWordHidingState(text: verses[nextIndex].text)
+            withAnimation(.easeInOut(duration: 0.22)) {
+                currentIndex = nextIndex
+                hidingState = ProgressiveWordHidingState(text: verses[nextIndex].text)
+            }
         } else {
             isSessionComplete = true
+        }
+    }
+
+    private var sessionDuration: TimeInterval {
+        Date().timeIntervalSince(sessionStartDate)
+    }
+
+    private func resetSession() {
+        currentIndex = 0
+        hidingState = ProgressiveWordHidingState(text: verses.first?.text ?? "")
+        summary = ReviewSessionSummary()
+        isSessionComplete = false
+        endedEarly = false
+        sessionStartDate = Date()
+    }
+
+    @ViewBuilder
+    private var sessionContent: some View {
+        if verses.isEmpty {
+            emptyState
+        } else if isSessionComplete {
+            completionContent
+        } else {
+            reviewContent
+        }
+    }
+
+    private var emptyState: some View {
+        VStack {
+            Spacer()
+
+            Text("No verses to review.")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+    }
+
+    private var completionContent: some View {
+        let reviewAgainAction: (() -> Void)? = verses.isEmpty ? nil : { resetSession() }
+
+        return ReviewSessionCompletionView(
+            descriptor: descriptor,
+            summary: summary,
+            totalVerseCount: verses.count,
+            endedEarly: endedEarly,
+            duration: sessionDuration,
+            onReviewAgain: reviewAgainAction
+        )
+    }
+
+    private var reviewContent: some View {
+        VStack(spacing: 20) {
+            ReviewSessionProgressHeader(
+                descriptor: descriptor,
+                currentIndex: currentIndex,
+                totalCount: verses.count,
+                reference: currentVerse.reference
+            )
+
+            verseCard
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .id(currentVerse.id)
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+    }
+
+    private var verseCard: some View {
+        VStack(spacing: 20) {
+            ScrollView {
+                Text(hidingState.displayedText)
+                    .font(.system(.title3, design: .serif))
+                    .lineSpacing(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    hidingState.hideMoreWords()
+                } label: {
+                    Text("Hide More Words")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!hidingState.canHideMoreWords)
+
+                Button {
+                    hidingState.reset()
+                } label: {
+                    Text("Reset")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!hidingState.hasHiddenWords)
+            }
+
+            ReviewResultButtons(
+                onMissed: { recordReview(result: .missed) },
+                onCorrect: { recordReview(result: .correct) }
+            )
+        }
+    }
+
+    @ToolbarContentBuilder
+    private func toolbarContent() -> some ToolbarContent {
+        if !isSessionComplete {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("End") {
+                    showingEndEarlyConfirmation = true
+                }
+            }
         }
     }
 }
@@ -162,5 +208,9 @@ struct ProgressiveWordHidingReviewSessionView: View {
         text: "And we know that for those who love God all things work together for good, for those who are called according to his purpose."
     )
 
-    return ProgressiveWordHidingReviewSessionView(verses: [verse1, verse2], onUpdate: { _ in })
+    return ProgressiveWordHidingReviewSessionView(
+        descriptor: ReviewSessionDescriptor(title: "Smart Review", method: .progressiveWordHiding),
+        verses: [verse1, verse2],
+        onUpdate: { _ in }
+    )
 }

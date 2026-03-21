@@ -325,42 +325,162 @@ struct FirstLetterTypingPerformanceCard: View {
     }
 }
 
+struct ReviewStartConfiguration: Identifiable {
+    let id = UUID()
+    let title: String
+    let description: String?
+    let verses: [Verse]
+}
+
+struct ReviewSessionDescriptor {
+    let title: String
+    let method: ReviewMethod
+}
+
+struct ReviewStartSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let configuration: ReviewStartConfiguration
+    let onStart: (ReviewMethod) -> Void
+
+    @State private var selectedMethod: ReviewMethod = .flashcard
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 24) {
+                sessionOverview
+
+                methodOptionsSection
+
+                Spacer(minLength: 0)
+
+                startButton
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+            .padding(.bottom, 20)
+            .navigationTitle("Review")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var sessionOverview: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(configuration.title)
+                .font(.title2.weight(.semibold))
+
+            Text("\(configuration.verses.count) verse\(configuration.verses.count == 1 ? "" : "s")")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            if let description = configuration.description {
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var methodOptionsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Review Method")
+                .font(.headline)
+
+            ForEach(ReviewMethod.allCases) { method in
+                methodOption(for: method)
+            }
+        }
+    }
+
+    private var startButton: some View {
+        Button("Start Review") {
+            onStart(selectedMethod)
+            dismiss()
+        }
+        .fontWeight(.semibold)
+        .frame(maxWidth: .infinity)
+        .frame(height: 56)
+        .background(Color.blue)
+        .foregroundStyle(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func methodOption(for method: ReviewMethod) -> some View {
+        let isSelected = selectedMethod == method
+        let backgroundColor = isSelected ? Color.blue.opacity(0.08) : Color(.secondarySystemBackground)
+        let strokeColor = isSelected ? Color.blue.opacity(0.22) : Color.primary.opacity(0.06)
+        let iconName = isSelected ? "checkmark.circle.fill" : "circle"
+        let iconColor = isSelected ? Color.blue : Color(uiColor: .tertiaryLabel)
+
+        return Button {
+            selectedMethod = method
+        } label: {
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(method.title)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Text(method.promptDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 12)
+
+                Image(systemName: iconName)
+                    .font(.title3)
+                    .foregroundStyle(iconColor)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(backgroundColor)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(strokeColor, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 struct FirstLetterTypingSessionCompletionView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let descriptor: ReviewSessionDescriptor
     let summary: ReviewSessionSummary
     let verseReports: [FirstLetterTypingVersePerformance]
     let totalVerseCount: Int
     let endedEarly: Bool
+    let duration: TimeInterval
+    let onReviewAgain: (() -> Void)?
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                VStack(spacing: 14) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 42, weight: .medium))
-                        .foregroundStyle(.green)
+                ReviewSessionSummaryHero(
+                    descriptor: descriptor,
+                    summary: summary,
+                    totalVerseCount: totalVerseCount,
+                    endedEarly: endedEarly,
+                    duration: duration
+                )
 
-                    Text("Session Completed")
-                        .font(.title2.weight(.semibold))
+                ReviewSessionMetricsSection(summary: summary, duration: duration)
 
-                    Text("You reviewed \(summary.reviewedCount) verse\(summary.reviewedCount == 1 ? "" : "s").")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
-                    if endedEarly {
-                        Text("Session ended early. \(summary.reviewedCount) of \(totalVerseCount) verses were completed.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-
-                HStack(spacing: 12) {
-                    completionMetric(title: "Correct", value: summary.correctCount, tint: .green)
-                    completionMetric(title: "Missed", value: summary.missedCount, tint: .red)
-                }
+                ReviewSessionNeedsWorkSection(references: summary.missedReferences)
 
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Verse Report")
@@ -392,37 +512,14 @@ struct FirstLetterTypingSessionCompletionView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button("Return") {
-                    dismiss()
-                }
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(Color.blue)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+                ReviewSessionActionBar(
+                    onDone: { dismiss() },
+                    onReviewAgain: onReviewAgain
+                )
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 32)
         }
-    }
-
-    private func completionMetric(title: String, value: Int, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text("\(value)")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(tint)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
     }
 }
 
@@ -430,8 +527,9 @@ struct ReviewSessionSummary {
     var reviewedCount = 0
     var correctCount = 0
     var missedCount = 0
+    var missedReferences: [String] = []
 
-    mutating func record(_ result: ReviewResult) {
+    mutating func record(_ result: ReviewResult, reference: String? = nil) {
         reviewedCount += 1
 
         switch result {
@@ -439,11 +537,15 @@ struct ReviewSessionSummary {
             correctCount += 1
         case .missed:
             missedCount += 1
+            if let reference {
+                missedReferences.append(reference)
+            }
         }
     }
 }
 
 struct ReviewSessionProgressHeader: View {
+    let descriptor: ReviewSessionDescriptor
     let currentIndex: Int
     let totalCount: Int
     let reference: String
@@ -457,25 +559,44 @@ struct ReviewSessionProgressHeader: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Text("Verse \(currentIndex + 1) of \(totalCount)")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(descriptor.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
 
-                Spacer()
+                    Text(descriptor.method.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                }
 
-                Text("\(Int(progressValue * 100))%")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 12)
+
+                Text("\(currentIndex + 1) of \(totalCount)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.blue.opacity(0.08))
+                    )
             }
 
             ProgressView(value: progressValue)
                 .tint(.blue)
 
-            Text(reference)
-                .font(.title2.weight(.semibold))
-                .multilineTextAlignment(.leading)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Current Passage")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                Text(reference)
+                    .font(.title2.weight(.semibold))
+                    .multilineTextAlignment(.leading)
+            }
         }
         .padding(20)
         .background(
@@ -517,63 +638,116 @@ struct ReviewResultButtons: View {
 struct ReviewSessionCompletionView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let descriptor: ReviewSessionDescriptor
     let summary: ReviewSessionSummary
     let totalVerseCount: Int
     let endedEarly: Bool
+    let duration: TimeInterval
+    let onReviewAgain: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 24) {
+                ReviewSessionSummaryHero(
+                    descriptor: descriptor,
+                    summary: summary,
+                    totalVerseCount: totalVerseCount,
+                    endedEarly: endedEarly,
+                    duration: duration
+                )
 
-            VStack(spacing: 14) {
-                Image(systemName: "checkmark.circle")
-                    .font(.system(size: 42, weight: .medium))
-                    .foregroundStyle(.green)
+                ReviewSessionMetricsSection(summary: summary, duration: duration)
 
-                Text("Session Completed")
-                    .font(.title2.weight(.semibold))
+                ReviewSessionNeedsWorkSection(references: summary.missedReferences)
 
-                Text("You reviewed \(summary.reviewedCount) verse\(summary.reviewedCount == 1 ? "" : "s").")
-                    .font(.body)
+                ReviewSessionActionBar(
+                    onDone: { dismiss() },
+                    onReviewAgain: onReviewAgain
+                )
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 32)
+        }
+    }
+}
+
+private struct ReviewSessionSummaryHero: View {
+    let descriptor: ReviewSessionDescriptor
+    let summary: ReviewSessionSummary
+    let totalVerseCount: Int
+    let endedEarly: Bool
+    let duration: TimeInterval
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: endedEarly ? "pause.circle" : "checkmark.circle")
+                .font(.system(size: 42, weight: .medium))
+                .foregroundStyle(endedEarly ? .orange : .green)
+
+            Text(endedEarly ? "Review ended early" : "Session completed")
+                .font(.title2.weight(.semibold))
+
+            Text(descriptor.title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            Text(endedEarly ? "\(summary.reviewedCount) of \(totalVerseCount) reviewed" : "\(summary.reviewedCount) verse\(summary.reviewedCount == 1 ? "" : "s") reviewed")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            if duration > 0 {
+                Text(formattedDuration(duration))
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
 
-                if endedEarly {
-                    Text("Session ended early. \(summary.reviewedCount) of \(totalVerseCount) verses were completed.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
+private struct ReviewSessionMetricsSection: View {
+    let summary: ReviewSessionSummary
+    let duration: TimeInterval
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                ReviewSessionMetricCard(title: "Reviewed", value: summary.reviewedCount.formatted(), tint: .primary)
+                ReviewSessionMetricCard(title: "Correct", value: summary.correctCount.formatted(), tint: .green)
             }
 
             HStack(spacing: 12) {
-                completionMetric(title: "Correct", value: summary.correctCount, tint: .green)
-                completionMetric(title: "Missed", value: summary.missedCount, tint: .red)
-            }
+                ReviewSessionMetricCard(title: "Missed", value: summary.missedCount.formatted(), tint: .red)
 
-            Spacer()
-
-            Button("Return") {
-                dismiss()
+                if duration > 0 {
+                    ReviewSessionMetricCard(title: "Time", value: conciseDuration(duration), tint: .blue)
+                } else {
+                    ReviewSessionMetricCard(title: "Method", value: "Scored", tint: .blue)
+                }
             }
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(Color.blue)
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 32)
     }
+}
 
-    private func completionMetric(title: String, value: Int, tint: Color) -> some View {
+private struct ReviewSessionMetricCard: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Text("\(value)")
+            Text(value)
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(tint)
         }
@@ -584,4 +758,100 @@ struct ReviewSessionCompletionView: View {
                 .fill(Color(.secondarySystemBackground))
         )
     }
+}
+
+private struct ReviewSessionNeedsWorkSection: View {
+    let references: [String]
+
+    var body: some View {
+        if !references.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Needs Work")
+                    .font(.headline)
+
+                ForEach(Array(references.enumerated()), id: \.offset) { entry in
+                    Text(entry.element)
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Color.red.opacity(0.08))
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private struct ReviewSessionActionBar: View {
+    let onDone: () -> Void
+    let onReviewAgain: (() -> Void)?
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Button("Done") {
+                onDone()
+            }
+            .fontWeight(.semibold)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(Color.blue)
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            if let onReviewAgain {
+                Button("Review Again") {
+                    onReviewAgain()
+                }
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(Color(.secondarySystemBackground))
+                .foregroundStyle(.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+        }
+    }
+}
+
+private func conciseDuration(_ duration: TimeInterval) -> String {
+    let components = durationComponents(duration)
+
+    if components.hour ?? 0 > 0 {
+        return "\(components.hour ?? 0)h \(components.minute ?? 0)m"
+    }
+
+    if components.minute ?? 0 > 0 {
+        return "\(components.minute ?? 0)m"
+    }
+
+    return "\(max(components.second ?? 0, 1))s"
+}
+
+private func formattedDuration(_ duration: TimeInterval) -> String {
+    let components = durationComponents(duration)
+    var parts: [String] = []
+
+    if let hour = components.hour, hour > 0 {
+        parts.append("\(hour) hr")
+    }
+
+    if let minute = components.minute, minute > 0 {
+        parts.append("\(minute) min")
+    }
+
+    if parts.isEmpty {
+        parts.append("\(max(components.second ?? 0, 1)) sec")
+    }
+
+    return parts.joined(separator: " ")
+}
+
+private func durationComponents(_ duration: TimeInterval) -> DateComponents {
+    let startDate = Date(timeIntervalSinceReferenceDate: 0)
+    let endDate = startDate.addingTimeInterval(duration)
+    return Calendar.current.dateComponents([.hour, .minute, .second], from: startDate, to: endDate)
 }
