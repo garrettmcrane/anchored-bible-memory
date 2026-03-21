@@ -3,6 +3,7 @@ import SwiftUI
 struct VerseDetailView: View {
     private static let uncategorizedFolderName = "Uncategorized"
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     let verse: Verse
     let onStartReview: (Verse, ReviewMethod) -> Void
@@ -30,31 +31,32 @@ struct VerseDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(currentVerse.reference)
-                        .font(.largeTitle.weight(.bold))
-                        .foregroundStyle(AppColors.scriptureAccent)
+                scriptureSection
+                    .padding(.top, 20)
 
-                    progressBar
-
-                    Text(currentVerse.text)
-                        .font(.system(.title3, design: .serif))
-                        .lineSpacing(8)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    reviewStartConfiguration = ReviewStartConfiguration(
+                        title: "Review Verse",
+                        description: "Choose a review method for \(currentVerse.reference).",
+                        verses: [currentVerse]
+                    )
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Start Review")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
                 }
-                .padding(22)
-                .background(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(AppColors.elevatedSurface)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(AppColors.divider, lineWidth: 1)
-                }
-                .padding(.top, 20)
+                .background(primaryCTAColor)
+                .foregroundStyle(primaryCTATextColor)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(color: isLightMode ? AppColors.structuralAccent.opacity(0.14) : .clear, radius: 12, y: 6)
 
                 VStack(alignment: .leading, spacing: 16) {
+                    sectionLabel("Status")
                     masteryPicker
 
                     HStack(spacing: 12) {
@@ -72,24 +74,8 @@ struct VerseDetailView: View {
                     }
                 }
 
-                Button {
-                    reviewStartConfiguration = ReviewStartConfiguration(
-                        title: "Review Verse",
-                        description: "Choose a review method for \(currentVerse.reference).",
-                        verses: [currentVerse]
-                    )
-                } label: {
-                    Text("Start Review")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(AppColors.primaryButton)
-
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Details")
-                        .font(.headline)
-                        .foregroundStyle(AppColors.textPrimary)
+                    sectionLabel("Details")
 
                     VStack(spacing: 0) {
                         folderRow
@@ -118,8 +104,10 @@ struct VerseDetailView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .tint(isLightMode ? AppColors.weakness : AppColors.warning)
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.bottom, 32)
         }
         .navigationTitle("Verse")
         .navigationBarTitleDisplayMode(.inline)
@@ -154,12 +142,39 @@ struct VerseDetailView: View {
     }
 
     private var masteryPicker: some View {
-        Picker("Status", selection: masteryStatusBinding) {
+        HStack(spacing: 10) {
             ForEach(VerseMasteryStatus.allCases) { status in
-                Text(status.rawValue).tag(status)
+                let isSelected = currentVerse.masteryStatus == status
+
+                Button {
+                    updateMasteryStatus(to: status)
+                } label: {
+                    Text(status.rawValue)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(isSelected ? selectionFillColor : controlSurfaceColor)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(isSelected ? selectionStrokeColor : AppColors.divider, lineWidth: 1)
+                        }
+                        .foregroundStyle(isSelected ? selectionTextColor : AppColors.textSecondary)
+                }
+                .buttonStyle(.plain)
             }
         }
-        .pickerStyle(.segmented)
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(controlTrayColor)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private var streakCount: Int {
@@ -256,17 +271,9 @@ struct VerseDetailView: View {
         CGFloat(strength)
     }
 
-    private var masteryStatusBinding: Binding<VerseMasteryStatus> {
-        Binding(
-            get: { currentVerse.masteryStatus },
-            set: { newValue in
-                updateMasteryStatus(to: newValue)
-            }
-        )
-    }
-
     private var detailDivider: some View {
         Divider()
+            .overlay(AppColors.divider)
     }
 
     private var folderRow: some View {
@@ -286,7 +293,7 @@ struct VerseDetailView: View {
 
                     Image(systemName: "chevron.right")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(AppColors.structuralAccent)
                 }
             }
             .font(.subheadline)
@@ -299,21 +306,27 @@ struct VerseDetailView: View {
     private func signalCard(title: String, value: String, valueColor: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption)
+                .font(.caption.weight(.semibold))
                 .textCase(.uppercase)
                 .foregroundStyle(AppColors.textSecondary)
+                .tracking(0.6)
 
             Text(value)
-                .font(.subheadline)
+                .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundStyle(valueColor)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 15)
         .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(AppColors.surface)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(controlSurfaceColor)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private func detailRow(title: String, value: String) -> some View {
@@ -328,6 +341,103 @@ struct VerseDetailView: View {
         }
         .font(.subheadline)
         .padding(.vertical, 12)
+    }
+
+    private var scriptureSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 8) {
+                sectionLabel("Scripture")
+
+                Text(currentVerse.reference)
+                    .font(.system(size: 31, weight: .bold, design: .serif))
+                    .foregroundStyle(referenceColor)
+            }
+
+            Text(currentVerse.text)
+                .font(.system(size: 19, weight: .regular, design: .serif))
+                .lineSpacing(6)
+                .foregroundStyle(AppColors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 10) {
+                progressBar
+
+                Text(progressSummary)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 24)
+        .background(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(scriptureSurfaceColor)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(scriptureBorderColor, lineWidth: 1)
+        }
+    }
+
+    private func sectionLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppColors.textSecondary)
+            .tracking(0.8)
+            .textCase(.uppercase)
+    }
+
+    private var isLightMode: Bool {
+        colorScheme == .light
+    }
+
+    private var scriptureSurfaceColor: Color {
+        isLightMode ? AppColors.surface : AppColors.elevatedSurface
+    }
+
+    private var scriptureBorderColor: Color {
+        isLightMode ? AppColors.divider.opacity(0.9) : AppColors.divider
+    }
+
+    private var controlSurfaceColor: Color {
+        isLightMode ? AppColors.surface : AppColors.elevatedSurface
+    }
+
+    private var controlTrayColor: Color {
+        isLightMode ? AppColors.secondarySurface : AppColors.surface
+    }
+
+    private var referenceColor: Color {
+        isLightMode ? AppColors.structuralAccent : AppColors.scriptureAccent
+    }
+
+    private var primaryCTAColor: Color {
+        isLightMode ? AppColors.structuralAccent : AppColors.primaryButton
+    }
+
+    private var primaryCTATextColor: Color {
+        isLightMode ? AppColors.surface : AppColors.primaryButtonText
+    }
+
+    private var selectionFillColor: Color {
+        isLightMode ? AppColors.structuralAccent.opacity(0.12) : AppColors.selectionFill
+    }
+
+    private var selectionStrokeColor: Color {
+        isLightMode ? AppColors.structuralAccent.opacity(0.35) : AppColors.structuralAccent.opacity(0.24)
+    }
+
+    private var selectionTextColor: Color {
+        isLightMode ? AppColors.structuralAccent : AppColors.textPrimary
+    }
+
+    private var progressSummary: String {
+        switch currentVerse.masteryStatus {
+        case .learning:
+            return "In active review"
+        case .memorized:
+            return "Marked memorized"
+        }
     }
 
     private func updateMasteryStatus(to status: VerseMasteryStatus) {
@@ -375,4 +485,5 @@ struct VerseDetailView: View {
             onStartReview: { _, _ in }
         )
     }
+    .preferredColorScheme(.light)
 }
