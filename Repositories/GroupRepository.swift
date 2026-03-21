@@ -40,7 +40,7 @@ struct GroupRepository {
 
     func assignedVerses(forGroupID groupID: String) -> [(assignment: Assignment, verse: Verse)] {
         let assignments = assignments(forGroupID: groupID)
-        let versesByID = Dictionary(uniqueKeysWithValues: VerseRepository.shared.loadVerses().map { ($0.id, $0) })
+        let versesByID = Dictionary(uniqueKeysWithValues: VerseRepository.shared.loadAllOwnedVerses().map { ($0.id, $0) })
 
         return assignments.compactMap { assignment in
             guard let verse = versesByID[assignment.verseID] else {
@@ -126,6 +126,33 @@ struct GroupRepository {
 
         for assignmentIndex in snapshot.assignments.indices where snapshot.assignments[assignmentIndex].groupID == id {
             snapshot.assignments[assignmentIndex].isArchived = true
+        }
+
+        GroupStore.save(
+            groups: snapshot.groups,
+            memberships: snapshot.memberships,
+            assignments: snapshot.assignments
+        )
+    }
+
+    func leaveGroup(groupID: String, userID: String = LocalSession.currentUserID) {
+        var snapshot = GroupStore.load()
+        let now = Date()
+
+        guard let membershipIndex = snapshot.memberships.firstIndex(where: {
+            $0.groupID == groupID && $0.userID == userID && $0.isActive
+        }) else {
+            return
+        }
+
+        guard snapshot.memberships[membershipIndex].role != .owner else {
+            return
+        }
+
+        snapshot.memberships[membershipIndex].isActive = false
+
+        if let groupIndex = snapshot.groups.firstIndex(where: { $0.id == groupID }) {
+            snapshot.groups[groupIndex].updatedAt = now
         }
 
         GroupStore.save(

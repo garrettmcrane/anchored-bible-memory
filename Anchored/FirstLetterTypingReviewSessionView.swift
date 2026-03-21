@@ -8,6 +8,7 @@ struct FirstLetterTypingReviewSessionView: View {
     let descriptor: ReviewSessionDescriptor
     let verses: [Verse]
     let onUpdate: (Verse) -> Void
+    let groupID: String?
 
     @State private var currentIndex = 0
     @State private var reconstructionState: FirstLetterTypingState
@@ -26,10 +27,16 @@ struct FirstLetterTypingReviewSessionView: View {
         reconstructionState.performance(for: currentVerse)
     }
 
-    init(descriptor: ReviewSessionDescriptor, verses: [Verse], onUpdate: @escaping (Verse) -> Void) {
+    init(
+        descriptor: ReviewSessionDescriptor,
+        verses: [Verse],
+        onUpdate: @escaping (Verse) -> Void,
+        groupID: String? = nil
+    ) {
         self.descriptor = descriptor
         self.verses = verses
         self.onUpdate = onUpdate
+        self.groupID = groupID
         _reconstructionState = State(initialValue: FirstLetterTypingState(text: verses.first?.text ?? ""))
     }
 
@@ -169,11 +176,23 @@ struct FirstLetterTypingReviewSessionView: View {
     private func recordReview() {
         verseReports.append(performance)
 
-        let updatedVerse = ReviewRepository.shared.recordReview(
-            for: currentVerse,
-            method: .firstLetterTyping,
-            result: performance.reviewResult
-        )
+        let updatedVerse: Verse
+
+        if let groupID {
+            ReviewRepository.shared.recordGroupReview(
+                for: currentVerse,
+                groupID: groupID,
+                method: .firstLetterTyping,
+                result: performance.reviewResult
+            )
+            updatedVerse = currentVerse
+        } else {
+            updatedVerse = ReviewRepository.shared.recordReview(
+                for: currentVerse,
+                method: .firstLetterTyping,
+                result: performance.reviewResult
+            )
+        }
 
         onUpdate(updatedVerse)
         summary.record(performance.reviewResult, reference: currentVerse.reference)

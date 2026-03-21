@@ -43,18 +43,18 @@ struct GroupsView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Build a shared memorization circle")
+                Text("Shared memorization starts here")
                     .font(.system(size: 30, weight: .bold))
 
-                Text("Create a local group to organize shared passages without mixing them into your personal library.")
+                Text("Create a group for the verses you want to memorize together. Group passages stay separate from your personal memorization library, so your own progress stays focused.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             VStack(alignment: .leading, spacing: 14) {
                 Label("Assign verses from your existing library", systemImage: "books.vertical.fill")
-                Label("Stay separate from your personal memorization system", systemImage: "square.stack.3d.down.right.fill")
-                Label("Start simple with local-only ownership", systemImage: "person.crop.circle.badge.checkmark")
+                Label("Add new verses without leaving the group", systemImage: "plus.circle.fill")
+                Label("Keep group passages separate from your personal memorization library", systemImage: "square.stack.3d.down.right.fill")
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.secondary)
@@ -94,7 +94,7 @@ struct GroupsView: View {
                     }
                 }
             } footer: {
-                Text("Groups are stored locally on this device in v1.")
+                Text("Groups and assignments stay on this device.")
             }
         }
         .listStyle(.insetGrouped)

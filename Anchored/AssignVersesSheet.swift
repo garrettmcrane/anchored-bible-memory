@@ -5,6 +5,7 @@ struct AssignVersesSheet: View {
 
     let availableVerses: [Verse]
     let onAssign: (Set<String>) -> Void
+    let onAddNewVerse: () -> Void
 
     @State private var selectedVerseIDs: Set<String> = []
 
@@ -17,9 +18,9 @@ struct AssignVersesSheet: View {
             VStack {
                 if availableVerses.isEmpty {
                     ContentUnavailableView(
-                        "No Personal Verses Left to Assign",
+                        "No Verses Ready to Assign",
                         systemImage: "books.vertical",
-                        description: Text("Add verses to your personal library first, or remove an existing assignment from this group.")
+                        description: Text("Add a new verse or choose from your personal memorization library once verses are available.")
                     )
                     .padding(.horizontal, 24)
                 } else {
@@ -38,7 +39,7 @@ struct AssignVersesSheet: View {
                                 .buttonStyle(.plain)
                             }
                         } footer: {
-                            Text("Assignments stay separate from your personal library.")
+                            Text("Assigned passages stay separate from your personal memorization library.")
                         }
                     }
                     .listStyle(.insetGrouped)
@@ -60,6 +61,13 @@ struct AssignVersesSheet: View {
                         dismiss()
                     }
                     .disabled(selectedVerseIDs.isEmpty)
+                }
+
+                ToolbarItem(placement: .bottomBar) {
+                    Button("Add New Verse") {
+                        dismiss()
+                        onAddNewVerse()
+                    }
                 }
             }
         }

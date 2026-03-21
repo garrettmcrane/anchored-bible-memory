@@ -11,21 +11,14 @@ struct ReviewRepository {
         durationSeconds: Int? = nil
     ) -> Verse {
         let reviewedAt = Date()
-
-        let record = ReviewRecord(
-            id: UUID().uuidString,
-            verseID: verse.id,
-            userID: LocalSession.currentUserID,
-            groupID: groupID,
+        appendReviewRecord(
+            for: verse,
             method: method,
             result: result,
+            groupID: groupID,
             reviewedAt: reviewedAt,
             durationSeconds: durationSeconds
         )
-
-        var records = ReviewRecordStore.load()
-        records.append(record)
-        ReviewRecordStore.save(records)
 
         var updatedVerse = verse
         updatedVerse.reviewCount += 1
@@ -46,5 +39,46 @@ struct ReviewRepository {
 
         VerseRepository.shared.updateVerse(updatedVerse)
         return updatedVerse
+    }
+
+    func recordGroupReview(
+        for verse: Verse,
+        groupID: String,
+        method: ReviewMethod,
+        result: ReviewResult,
+        durationSeconds: Int? = nil
+    ) {
+        appendReviewRecord(
+            for: verse,
+            method: method,
+            result: result,
+            groupID: groupID,
+            reviewedAt: Date(),
+            durationSeconds: durationSeconds
+        )
+    }
+
+    private func appendReviewRecord(
+        for verse: Verse,
+        method: ReviewMethod,
+        result: ReviewResult,
+        groupID: String?,
+        reviewedAt: Date,
+        durationSeconds: Int?
+    ) {
+        let record = ReviewRecord(
+            id: UUID().uuidString,
+            verseID: verse.id,
+            userID: LocalSession.currentUserID,
+            groupID: groupID,
+            method: method,
+            result: result,
+            reviewedAt: reviewedAt,
+            durationSeconds: durationSeconds
+        )
+
+        var records = ReviewRecordStore.load()
+        records.append(record)
+        ReviewRecordStore.save(records)
     }
 }

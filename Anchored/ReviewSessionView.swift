@@ -6,6 +6,7 @@ struct ReviewSessionView: View {
     let descriptor: ReviewSessionDescriptor
     let verses: [Verse]
     let onUpdate: (Verse) -> Void
+    let groupID: String?
 
     @State private var currentIndex = 0
     @State private var showingAnswer = false
@@ -14,6 +15,18 @@ struct ReviewSessionView: View {
     @State private var endedEarly = false
     @State private var showingEndEarlyConfirmation = false
     @State private var sessionStartDate = Date()
+
+    init(
+        descriptor: ReviewSessionDescriptor,
+        verses: [Verse],
+        onUpdate: @escaping (Verse) -> Void,
+        groupID: String? = nil
+    ) {
+        self.descriptor = descriptor
+        self.verses = verses
+        self.onUpdate = onUpdate
+        self.groupID = groupID
+    }
 
     private var currentVerse: Verse {
         verses[currentIndex]
@@ -43,11 +56,23 @@ struct ReviewSessionView: View {
     }
 
     private func recordReview(result: ReviewResult) {
-        let updatedVerse = ReviewRepository.shared.recordReview(
-            for: currentVerse,
-            method: .flashcard,
-            result: result
-        )
+        let updatedVerse: Verse
+
+        if let groupID {
+            ReviewRepository.shared.recordGroupReview(
+                for: currentVerse,
+                groupID: groupID,
+                method: .flashcard,
+                result: result
+            )
+            updatedVerse = currentVerse
+        } else {
+            updatedVerse = ReviewRepository.shared.recordReview(
+                for: currentVerse,
+                method: .flashcard,
+                result: result
+            )
+        }
 
         onUpdate(updatedVerse)
         summary.record(result, reference: currentVerse.reference)

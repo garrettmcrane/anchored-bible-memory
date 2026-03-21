@@ -4,6 +4,14 @@ struct VerseRepository {
     static let shared = VerseRepository()
 
     nonisolated func loadVerses() -> [Verse] {
+        VerseQueries.newestFirst(
+            VerseQueries.excludingSoftDeleted(
+                loadAllOwnedVerses().filter { $0.sourceType == .personal }
+            )
+        )
+    }
+
+    nonisolated func loadAllOwnedVerses() -> [Verse] {
         let allVerses = VerseStore.load()
         let currentUserVerses = allVerses.filter { $0.ownerUserID == LocalSession.currentUserID }
         return VerseQueries.newestFirst(VerseQueries.excludingSoftDeleted(currentUserVerses))

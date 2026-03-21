@@ -16,7 +16,7 @@ struct CreateGroupSheet: View {
         NavigationStack {
             Form {
                 Section("Group Name") {
-                    TextField("Scripture Circle", text: $groupName)
+                    TextField("Sunday Memory Group", text: $groupName)
                         .textInputAutocapitalization(.words)
                         .focused($isNameFieldFocused)
                 }

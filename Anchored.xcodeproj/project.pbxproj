@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		5F31BD9B2F6F22650081496F /* GroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F31BD962F6F22650081496F /* GroupStore.swift */; };
+		5F31BDA02F6F28E90081496F /* GroupProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F31BD9F2F6F28E90081496F /* GroupProgress.swift */; };
+		5F31BDA22F6F28E90081496F /* GroupProgressRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F31BDA12F6F28E90081496F /* GroupProgressRepository.swift */; };
 		5F7EEAB52F6CB89A00B56661 /* Verse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAAF2F6CB89A00B56661 /* Verse.swift */; };
 		5F7EEAB62F6CB89A00B56661 /* VerseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAB02F6CB89A00B56661 /* VerseStore.swift */; };
 		5F7EEAE32F6CFECA00B56661 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAE22F6CFECA00B56661 /* Enums.swift */; };
@@ -28,6 +30,8 @@
 /* Begin PBXFileReference section */
 		5F00DD262F6BB7DE00157BED /* Anchored.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Anchored.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F31BD962F6F22650081496F /* GroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupStore.swift; sourceTree = "<group>"; };
+		5F31BD9F2F6F28E90081496F /* GroupProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupProgress.swift; sourceTree = "<group>"; };
+		5F31BDA12F6F28E90081496F /* GroupProgressRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupProgressRepository.swift; sourceTree = "<group>"; };
 		5F7EEAAF2F6CB89A00B56661 /* Verse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Verse.swift; sourceTree = "<group>"; };
 		5F7EEAB02F6CB89A00B56661 /* VerseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseStore.swift; sourceTree = "<group>"; };
 		5F7EEAE22F6CFECA00B56661 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
@@ -96,6 +100,7 @@
 				5F7EEAEC2F6CFECB00B56661 /* Assignment.swift */,
 				5F7EEAEE2F6CFECB00B56661 /* UserSettings.swift */,
 				5F7EEAF02F6CFECB00B56661 /* VerseQueries.swift */,
+				5F31BD9F2F6F28E90081496F /* GroupProgress.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -106,6 +111,7 @@
 				5F7EEAF52F6CFECC00B56661 /* VerseRepository.swift */,
 				5F7EEAF62F6CFECC00B56661 /* ReviewRepository.swift */,
 				5F7EEAF72F6CFECC00B56661 /* GroupRepository.swift */,
+				5F31BDA12F6F28E90081496F /* GroupProgressRepository.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -216,7 +222,9 @@
 				5F7EEAE32F6CFECA00B56661 /* Enums.swift in Sources */,
 				5F7EEAEB2F6CFECB00B56661 /* ReviewRecord.swift in Sources */,
 				5F7EEAFF2F6CFF6900B56661 /* GroupRepository.swift in Sources */,
+				5F31BDA22F6F28E90081496F /* GroupProgressRepository.swift in Sources */,
 				5F31BD9B2F6F22650081496F /* GroupStore.swift in Sources */,
+				5F31BDA02F6F28E90081496F /* GroupProgress.swift in Sources */,
 				5F7EEAF92F6CFF1F00B56661 /* LocalSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
