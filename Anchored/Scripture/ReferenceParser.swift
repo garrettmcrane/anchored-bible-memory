@@ -20,6 +20,12 @@ struct ReferenceImportParseResult {
     let duplicateReferenceCount: Int
 }
 
+struct ReferenceIntakeParseResult {
+    let references: [ScriptureReference]
+    let unresolvedEntries: [String]
+    let duplicateReferenceCount: Int
+}
+
 enum ReferenceParser {
     nonisolated static func parse(_ input: String) throws -> [ScriptureReference] {
         let components = input
@@ -81,6 +87,52 @@ enum ReferenceParser {
         return ReferenceImportParseResult(
             references: references,
             unresolvedEntries: unresolvedEntries,
+            duplicateReferenceCount: duplicateReferenceCount
+        )
+    }
+
+    nonisolated static func parseAddIntake(_ input: String) throws -> ReferenceIntakeParseResult {
+        let normalizedInput = input.replacingOccurrences(of: "\r\n", with: "\n")
+        guard !normalizeWhitespace(normalizedInput).isEmpty else {
+            throw ReferenceParserError.emptyInput
+        }
+
+        let segmentSeparators = CharacterSet(charactersIn: ",;\n")
+        let rawSegments = normalizedInput
+            .components(separatedBy: segmentSeparators)
+            .map(normalizeWhitespace)
+            .filter { !$0.isEmpty }
+
+        var references: [ScriptureReference] = []
+        var unresolvedEntries: [String] = []
+        var seenReferenceKeys: Set<String> = []
+        var duplicateReferenceCount = 0
+
+        for segment in rawSegments {
+            if let directReference = tryParseSingle(segment) {
+                let referenceKey = canonicalReferenceKey(directReference.normalizedReference)
+                if seenReferenceKeys.insert(referenceKey).inserted {
+                    references.append(directReference)
+                } else {
+                    duplicateReferenceCount += 1
+                }
+                continue
+            }
+
+            let extractionResult = extractReferences(from: segment, seenReferenceKeys: &seenReferenceKeys)
+            references.append(contentsOf: extractionResult.references)
+            duplicateReferenceCount += extractionResult.duplicateReferenceCount
+
+            if extractionResult.references.isEmpty, likelyReferenceAttempt(segment) {
+                unresolvedEntries.append(segment)
+            } else {
+                unresolvedEntries.append(contentsOf: extractionResult.unresolvedEntries)
+            }
+        }
+
+        return ReferenceIntakeParseResult(
+            references: references,
+            unresolvedEntries: deduplicatedEntries(unresolvedEntries),
             duplicateReferenceCount: duplicateReferenceCount
         )
     }
@@ -170,6 +222,10 @@ enum ReferenceParser {
         )
     }
 
+    nonisolated private static func tryParseSingle(_ input: String) -> ScriptureReference? {
+        try? parseSingle(input)
+    }
+
     nonisolated private static func matchBook(in input: String) -> (BibleBook, String)? {
         let normalizedInput = BibleBookCatalog.normalize(input)
 
@@ -203,6 +259,47 @@ enum ReferenceParser {
                 .replacingOccurrences(of: "\\s*:\\s*", with: ":", options: .regularExpression)
                 .replacingOccurrences(of: "\\s*-\\s*", with: "-", options: .regularExpression)
         )
+    }
+
+    nonisolated private static func extractReferences(
+        from input: String,
+        seenReferenceKeys: inout Set<String>
+    ) -> (references: [ScriptureReference], unresolvedEntries: [String], duplicateReferenceCount: Int) {
+        let matches = importReferenceRegularExpression.matches(
+            in: input,
+            range: NSRange(input.startIndex..., in: input)
+        )
+
+        var references: [ScriptureReference] = []
+        var consumedRanges: [Range<String.Index>] = []
+        var duplicateReferenceCount = 0
+
+        for match in matches {
+            guard let range = Range(match.range, in: input) else {
+                continue
+            }
+
+            let candidate = normalizedImportCandidate(String(input[range]))
+            guard let reference = tryParseSingle(candidate) else {
+                continue
+            }
+
+            let referenceKey = canonicalReferenceKey(reference.normalizedReference)
+            if seenReferenceKeys.insert(referenceKey).inserted {
+                references.append(reference)
+            } else {
+                duplicateReferenceCount += 1
+            }
+
+            consumedRanges.append(range)
+        }
+
+        let unresolvedEntries = unresolvedReferenceAttempts(
+            in: input,
+            consumedRanges: consumedRanges
+        )
+
+        return (references, unresolvedEntries, duplicateReferenceCount)
     }
 
     nonisolated private static func unresolvedImportEntries(
@@ -252,6 +349,42 @@ enum ReferenceParser {
         }
 
         return entries
+    }
+
+    nonisolated private static func unresolvedReferenceAttempts(
+        in input: String,
+        consumedRanges: [Range<String.Index>]
+    ) -> [String] {
+        cleanedUnresolvedChunks(
+            from: unresolvedImportEntries(in: input, consumedRanges: consumedRanges)
+                .filter(likelyReferenceAttempt)
+                .joined(separator: "\n")
+        )
+    }
+
+    nonisolated private static func likelyReferenceAttempt(_ value: String) -> Bool {
+        let normalizedValue = normalizeWhitespace(value)
+        guard !normalizedValue.isEmpty else {
+            return false
+        }
+
+        let containsDigit = normalizedValue.rangeOfCharacter(from: .decimalDigits) != nil
+        let containsLetter = normalizedValue.rangeOfCharacter(from: .letters) != nil
+        return containsDigit && containsLetter
+    }
+
+    nonisolated private static func deduplicatedEntries(_ entries: [String]) -> [String] {
+        var seen: Set<String> = []
+        var deduplicated: [String] = []
+
+        for entry in entries {
+            let normalizedEntry = canonicalReferenceKey(entry)
+            if seen.insert(normalizedEntry).inserted {
+                deduplicated.append(entry)
+            }
+        }
+
+        return deduplicated
     }
 
     nonisolated private static func canonicalReferenceKey(_ value: String) -> String {

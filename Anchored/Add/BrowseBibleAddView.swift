@@ -40,7 +40,7 @@ struct BrowseBibleAddView: View {
             .padding(20)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Browse Bible")
+        .navigationTitle("Search Bible")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $previewContext) { context in
             ScriptureAddPreviewView(

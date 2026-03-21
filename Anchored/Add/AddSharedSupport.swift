@@ -10,14 +10,35 @@ struct ScriptureSaveOptions {
     var masteryStatus: VerseMasteryStatus = .learning
 }
 
+struct ScriptureAddSaveItem: Identifiable, Hashable {
+    let reference: String
+    let text: String
+    let passages: [ScripturePassage]
+
+    var id: String {
+        ScriptureAddPipeline.normalizedReferenceKey(reference)
+    }
+}
+
 enum ScriptureAddPipeline {
     static func makeVerse(from passage: ScripturePassage, options: ScriptureSaveOptions) -> Verse {
+        makeVerse(
+            from: ScriptureAddSaveItem(
+                reference: passage.normalizedReference,
+                text: passage.text,
+                passages: [passage]
+            ),
+            options: options
+        )
+    }
+
+    static func makeVerse(from saveItem: ScriptureAddSaveItem, options: ScriptureSaveOptions) -> Verse {
         let normalizedFolder = normalizedFolderName(options.folderName)
         let finalFolder = normalizedFolder.isEmpty ? "Uncategorized" : normalizedFolder
 
         return Verse(
-            reference: passage.normalizedReference,
-            text: passage.text,
+            reference: saveItem.reference,
+            text: saveItem.text,
             folderName: finalFolder,
             isMastered: options.masteryStatus == .memorized
         )
@@ -65,6 +86,24 @@ enum ScriptureAddPipeline {
             .filter { !$0.isEmpty }
             .joined(separator: " ")
             .lowercased()
+    }
+
+    static func makeSaveItems(from passages: [ScripturePassage]) -> [ScriptureAddSaveItem] {
+        passages.map { passage in
+            ScriptureAddSaveItem(
+                reference: passage.normalizedReference,
+                text: passage.text,
+                passages: [passage]
+            )
+        }
+    }
+
+    static func existingReferenceKeys() -> Set<String> {
+        Set(
+            VerseRepository.shared.loadVerses().map { verse in
+                normalizedReferenceKey(verse.reference)
+            }
+        )
     }
 }
 

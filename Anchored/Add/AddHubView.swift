@@ -35,8 +35,8 @@ struct AddHubView: View {
                             )
                         } label: {
                             AddHubOptionCard(
-                                title: "Type Verses",
-                                subtitle: "Enter one or more references, load the verses, and review them before saving.",
+                                title: "Paste / Type",
+                                subtitle: "Paste references or messy notes, resolve them against the offline KJV, and save what you want.",
                                 systemImage: "doc.text",
                                 tint: Color(red: 0.16, green: 0.41, blue: 0.78)
                             )
@@ -50,43 +50,21 @@ struct AddHubView: View {
                             )
                         } label: {
                             AddHubOptionCard(
-                                title: "Browse Bible",
-                                subtitle: "Move book by book through the bundled KJV and save a verse or range.",
-                                systemImage: "books.vertical",
+                                title: "Search Bible",
+                                subtitle: "Move through the bundled KJV by book and chapter, then preview a verse or range.",
+                                systemImage: "magnifyingglass",
                                 tint: Color(red: 0.11, green: 0.52, blue: 0.45)
                             )
                         }
                         .buttonStyle(.plain)
 
-                        NavigationLink {
-                            ImportReferencesView(
-                                onComplete: onComplete
-                            )
-                        } label: {
-                            AddHubOptionCard(
-                                title: "Import",
-                                subtitle: "Paste a list of references, review what resolves, and import the valid passages in one pass.",
-                                systemImage: "square.and.arrow.down",
-                                tint: Color(red: 0.74, green: 0.44, blue: 0.12)
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        NavigationLink {
-                            PlaceholderAddMethodView(
-                                title: "Collections",
-                                message: "Collections are coming soon. You’ll be able to add curated sets of verses from here."
-                            )
-                        } label: {
-                            AddHubOptionCard(
-                                title: "Collections",
-                                subtitle: "Browse curated verse sets here when collections become available.",
-                                systemImage: "square.stack.3d.up",
-                                tint: Color(red: 0.48, green: 0.33, blue: 0.67),
-                                isPlaceholder: true
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        AddHubOptionCard(
+                            title: "Import",
+                            subtitle: "Bulk import is planned next. For now, use Paste / Type to bring in references from copied notes.",
+                            systemImage: "square.and.arrow.down",
+                            tint: Color(red: 0.74, green: 0.44, blue: 0.12),
+                            isPlaceholder: true
+                        )
                     }
                 }
                 .padding(20)
@@ -111,7 +89,7 @@ struct AddHubView: View {
             Text("Build your Scripture library")
                 .font(.system(size: 30, weight: .bold))
 
-            Text("Choose how you want to add verses. Type references, browse the Bible, or paste a list to import many passages at once.")
+            Text("Choose how you want to add verses. Paste references, search the bundled Bible, or come back soon for bulk import.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -160,7 +138,7 @@ private struct AddHubOptionCard: View {
                         .foregroundStyle(.primary)
 
                     if isPlaceholder {
-                        Text("Later")
+                        Text("Coming Later")
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -177,36 +155,17 @@ private struct AddHubOptionCard: View {
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tertiary)
+            if !isPlaceholder {
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
-    }
-}
-
-private struct PlaceholderAddMethodView: View {
-    let title: String
-    let message: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(title)
-                .font(.system(size: 30, weight: .bold))
-
-            Text(message)
-                .font(.body)
-                .foregroundStyle(.secondary)
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(24)
-        .background(Color(.systemGroupedBackground))
-        .navigationBarTitleDisplayMode(.inline)
+        .opacity(isPlaceholder ? 0.72 : 1)
     }
 }
