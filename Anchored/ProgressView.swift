@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ProgressTabView: View {
-    @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
-    @State private var reviewRecords: [ReviewRecord] = ReviewRecordStore.load()
+    @State private var verses: [Verse] = []
+    @State private var reviewRecords: [ReviewRecord] = []
 
     private let calendar = Calendar.current
 
@@ -106,8 +106,8 @@ struct ProgressTabView: View {
             }
             .navigationBarHidden(true)
         }
-        .onAppear {
-            reloadData()
+        .task {
+            await loadInitialDataIfNeeded()
         }
     }
 
@@ -248,6 +248,18 @@ struct ProgressTabView: View {
     private func reloadData() {
         verses = VerseRepository.shared.loadVerses()
         reviewRecords = ReviewRecordStore.load()
+    }
+
+    @MainActor
+    private func loadInitialDataIfNeeded() async {
+        guard verses.isEmpty, reviewRecords.isEmpty else {
+            return
+        }
+
+        async let loadedVerses = VerseRepository.shared.loadVersesAsync()
+        async let loadedReviewRecords = ReviewRecordStore.loadAsync()
+        verses = await loadedVerses
+        reviewRecords = await loadedReviewRecords
     }
 
     private func normalizedFolderName(_ folderName: String) -> String {

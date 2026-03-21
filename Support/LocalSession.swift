@@ -1,5 +1,5 @@
 import Foundation
 
 enum LocalSession {
-    static let currentUserID = "local-user"
+    nonisolated static let currentUserID = "local-user"
 }

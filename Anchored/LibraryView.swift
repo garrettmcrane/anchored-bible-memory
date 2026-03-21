@@ -35,7 +35,7 @@ struct LibraryView: View {
     @State private var selectedBatchReviewMethod: ReviewMethod? = nil
     @State private var showingBatchReviewMethodPicker = false
     @State private var scrollOffset: CGFloat = 0
-    @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
+    @State private var verses: [Verse] = []
 
     private let floatingButtonHeight: CGFloat = 50
     private let floatingButtonVerticalInset: CGFloat = 8
@@ -151,11 +151,6 @@ struct LibraryView: View {
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
 
-                        controlsSection(spacing: currentControlsSpacing)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-
                         Section {
                             verseSectionHeader
                                 .listRowInsets(EdgeInsets())
@@ -176,7 +171,12 @@ struct LibraryView: View {
                                     )
                                 }
                             }
+                        } header: {
+                            controlsSection(spacing: currentControlsSpacing)
+                                .padding(.top, 2)
+                                .padding(.bottom, 2)
                         }
+                        .textCase(nil)
                         .listSectionSeparator(.hidden)
                     }
                     .listStyle(.plain)
@@ -265,8 +265,8 @@ struct LibraryView: View {
                 }
             }
         }
-        .onAppear {
-            reloadVerses()
+        .task {
+            await loadInitialVersesIfNeeded()
         }
         .confirmationDialog("Choose Review Style", isPresented: $showingBatchReviewMethodPicker, titleVisibility: .visible) {
             ForEach(ReviewMethod.allCases) { method in
@@ -419,8 +419,6 @@ struct LibraryView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
-        .padding(.top, 2)
-        .padding(.bottom, 2)
     }
 
     private var verseSectionHeader: some View {
@@ -480,6 +478,15 @@ struct LibraryView: View {
         .buttonStyle(.plain)
         .containerShape(rowShape)
         .clipShape(rowShape)
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button {
+                toggleMasteryStatus(for: verse)
+            } label: {
+                Image(systemName: toggleActionSystemImage(for: verse))
+            }
+            .accessibilityLabel(toggleActionTitle(for: verse))
+            .tint(toggleActionTint(for: verse))
+        }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 deleteVerse(verse)
@@ -549,6 +556,15 @@ struct LibraryView: View {
 
     }
 
+    @MainActor
+    private func loadInitialVersesIfNeeded() async {
+        guard verses.isEmpty else {
+            return
+        }
+
+        verses = await VerseRepository.shared.loadVersesAsync()
+    }
+
     private func normalizedFolderName(_ folderName: String) -> String {
         let trimmedFolderName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -612,6 +628,39 @@ struct LibraryView: View {
 
         VerseRepository.shared.softDeleteVerse(id: verse.id)
         reloadVerses()
+    }
+
+    private func toggleMasteryStatus(for verse: Verse) {
+        let targetStatus: VerseMasteryStatus = verse.masteryStatus == .learning ? .memorized : .learning
+
+        guard let updatedVerse = VerseRepository.shared.updateMasteryStatus(forVerseID: verse.id, to: targetStatus) else {
+            return
+        }
+
+        if detailVerse?.id == updatedVerse.id {
+            detailVerse = updatedVerse
+        }
+
+        if let selectedVerseReview, selectedVerseReview.verse.id == updatedVerse.id {
+            self.selectedVerseReview = SingleVerseReviewPresentation(
+                verse: updatedVerse,
+                method: selectedVerseReview.method
+            )
+        }
+
+        reloadVerses()
+    }
+
+    private func toggleActionTitle(for verse: Verse) -> String {
+        verse.masteryStatus == .learning ? "Memorized" : "Learning"
+    }
+
+    private func toggleActionSystemImage(for verse: Verse) -> String {
+        verse.masteryStatus == .learning ? "checkmark.circle" : "arrow.uturn.backward.circle"
+    }
+
+    private func toggleActionTint(for verse: Verse) -> Color {
+        verse.masteryStatus == .learning ? .green : .blue
     }
 }
 

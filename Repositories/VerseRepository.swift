@@ -3,10 +3,16 @@ import Foundation
 struct VerseRepository {
     static let shared = VerseRepository()
 
-    func loadVerses() -> [Verse] {
+    nonisolated func loadVerses() -> [Verse] {
         let allVerses = VerseStore.load()
         let currentUserVerses = allVerses.filter { $0.ownerUserID == LocalSession.currentUserID }
         return VerseQueries.newestFirst(VerseQueries.excludingSoftDeleted(currentUserVerses))
+    }
+
+    nonisolated func loadVersesAsync() async -> [Verse] {
+        await Task.detached(priority: .userInitiated) {
+            loadVerses()
+        }.value
     }
 
     func addVerse(_ verse: Verse) {
@@ -33,6 +39,28 @@ struct VerseRepository {
 
         allVerses[index] = updatedVerse
         VerseStore.save(allVerses)
+    }
+
+    func updateMasteryStatus(forVerseID id: String, to status: VerseMasteryStatus) -> Verse? {
+        var allVerses = VerseStore.load()
+
+        guard let index = allVerses.firstIndex(where: { $0.id == id }) else {
+            return nil
+        }
+
+        guard allVerses[index].masteryStatus != status else {
+            return allVerses[index]
+        }
+
+        allVerses[index].masteryStatus = status
+        allVerses[index].updatedAt = Date()
+
+        if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
+            allVerses[index].syncStatus = .pendingUpload
+        }
+
+        VerseStore.save(allVerses)
+        return allVerses[index]
     }
 
     func softDeleteVerse(id: String) {

@@ -308,9 +308,12 @@ struct VerseDetailView: View {
             return
         }
 
-        currentVerse.masteryStatus = status
-        VerseRepository.shared.updateVerse(currentVerse)
-        onVerseUpdated(currentVerse)
+        guard let updatedVerse = VerseRepository.shared.updateMasteryStatus(forVerseID: currentVerse.id, to: status) else {
+            return
+        }
+
+        currentVerse = updatedVerse
+        onVerseUpdated(updatedVerse)
     }
 }
 

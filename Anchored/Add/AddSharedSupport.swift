@@ -110,3 +110,26 @@ struct AddFlowMessageCard: View {
             )
     }
 }
+
+struct FeedbackToast: View {
+    let message: String
+    let systemImage: String
+    var tint: Color = .green
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .foregroundStyle(tint)
+            Text(message)
+                .font(.subheadline.weight(.semibold))
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+        )
+    }
+}

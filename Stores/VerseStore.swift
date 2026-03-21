@@ -1,18 +1,30 @@
 import Foundation
 
 enum VerseStore {
-    private static let fileName = "verses.json"
+    nonisolated private static let fileName = "verses.json"
+    nonisolated private static let cacheLock = NSLock()
+    nonisolated(unsafe) private static var cachedVerses: [Verse]?
 
-    static func load() -> [Verse] {
+    nonisolated static func load() -> [Verse] {
+        cacheLock.lock()
+        if let cachedVerses {
+            cacheLock.unlock()
+            return cachedVerses
+        }
+        cacheLock.unlock()
+
         do {
             let url = try fileURL()
 
             guard FileManager.default.fileExists(atPath: url.path) else {
+                updateCache(with: [])
                 return []
             }
 
-            let data = try Data(contentsOf: url)
-            return try decoder.decode([Verse].self, from: data)
+            let data = try Data(contentsOf: url, options: .mappedIfSafe)
+            let verses = try decoder.decode([Verse].self, from: data)
+            updateCache(with: verses)
+            return verses
         } catch {
             assertionFailure("Failed to load verses: \(error)")
             return []
@@ -25,12 +37,19 @@ enum VerseStore {
             try ensureDirectoryExists(for: url)
             let data = try encoder.encode(verses)
             try data.write(to: url, options: .atomic)
+            updateCache(with: verses)
         } catch {
             assertionFailure("Failed to save verses: \(error)")
         }
     }
 
-    private static func fileURL() throws -> URL {
+    nonisolated private static func updateCache(with verses: [Verse]) {
+        cacheLock.lock()
+        cachedVerses = verses
+        cacheLock.unlock()
+    }
+
+    nonisolated private static func fileURL() throws -> URL {
         let baseDirectory = try FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
@@ -50,7 +69,7 @@ enum VerseStore {
         )
     }
 
-    private static let decoder = JSONDecoder()
+    nonisolated private static let decoder = JSONDecoder()
 
     private static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()

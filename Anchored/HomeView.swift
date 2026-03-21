@@ -1,32 +1,27 @@
 import SwiftUI
 
 struct HomeView: View {
-    private struct VerseOfTheDay {
-        let reference: String
-        let text: String
+    private struct QuickAddFeedback: Identifiable, Equatable {
+        let id = UUID()
+        let message: String
+        let systemImage: String
+        let tint: Color
     }
 
-    @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
+    @State private var verses: [Verse] = []
     @State private var reviewQueue: [Verse] = []
     @State private var selectedBatchReviewMethod: ReviewMethod? = nil
     @State private var showingBatchReviewMethodPicker = false
+    @State private var quickAddFeedback: QuickAddFeedback?
+    @State private var feedbackDismissTask: Task<Void, Never>?
+    @State private var verseOfTheDay = VerseOfTheDayContent(
+        reference: VerseOfTheDayService.fallbackReference,
+        text: "Loading today's verse..."
+    )
+    @State private var verseOfTheDayDayKey = ""
+    @Environment(\.scenePhase) private var scenePhase
 
     private let reviewQueueBuilder = ReviewQueueBuilder()
-
-    private let placeholderVerses = [
-        VerseOfTheDay(
-            reference: "Psalm 119:11",
-            text: "I have stored up your word in my heart, that I might not sin against you."
-        ),
-        VerseOfTheDay(
-            reference: "Joshua 1:9",
-            text: "Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go."
-        ),
-        VerseOfTheDay(
-            reference: "Romans 12:2",
-            text: "Be transformed by the renewal of your mind, that by testing you may discern what is the will of God."
-        )
-    ]
 
     private var greetingText: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -41,15 +36,10 @@ struct HomeView: View {
         }
     }
 
-    private var verseOfTheDay: VerseOfTheDay {
-        if !verses.isEmpty {
-            let index = Calendar.current.ordinality(of: .day, in: .year, for: Date()).map { ($0 - 1) % verses.count } ?? 0
-            let verse = verses[index]
-            return VerseOfTheDay(reference: verse.reference, text: verse.text)
+    private var verseOfTheDayIsInLibrary: Bool {
+        verses.contains { verse in
+            verseMatchesVerseOfTheDay(verse)
         }
-
-        let index = Calendar.current.ordinality(of: .day, in: .year, for: Date()).map { ($0 - 1) % placeholderVerses.count } ?? 0
-        return placeholderVerses[index]
     }
 
     private var learningVerses: [Verse] {
@@ -114,9 +104,32 @@ struct HomeView: View {
         } message: {
             Text("Choose how you want to review this session.")
         }
-        .onAppear {
-            reloadVerses()
+        .task {
+            await loadInitialVersesIfNeeded()
+            await refreshVerseOfTheDayIfNeeded(force: true)
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                return
+            }
+
+            Task {
+                await refreshVerseOfTheDayIfNeeded()
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let quickAddFeedback {
+                FeedbackToast(
+                    message: quickAddFeedback.message,
+                    systemImage: quickAddFeedback.systemImage,
+                    tint: quickAddFeedback.tint
+                )
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: quickAddFeedback)
     }
 
     private var header: some View {
@@ -145,9 +158,33 @@ struct HomeView: View {
 
     private var verseCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Verse of the Day")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 12) {
+                Text("Verse of the Day")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Button {
+                    quickAddVerseOfTheDay()
+                } label: {
+                    Image(systemName: verseOfTheDayIsInLibrary ? "checkmark" : "plus")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.96))
+                        .frame(width: 28, height: 28)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(verseOfTheDayIsInLibrary ? 0.22 : 0.16))
+                        )
+                        .overlay {
+                            Circle()
+                                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .disabled(verseOfTheDayIsInLibrary)
+                .accessibilityLabel(verseOfTheDayIsInLibrary ? "Already in Library" : "Add Verse of the Day")
+            }
 
             Text(verseOfTheDay.reference)
                 .font(.title3.weight(.semibold))
@@ -213,6 +250,15 @@ struct HomeView: View {
         verses = VerseRepository.shared.loadVerses()
     }
 
+    @MainActor
+    private func loadInitialVersesIfNeeded() async {
+        guard verses.isEmpty else {
+            return
+        }
+
+        verses = await VerseRepository.shared.loadVersesAsync()
+    }
+
     private var smartReviewQueue: [Verse] {
         reviewQueueBuilder.buildQueue(from: verses)
     }
@@ -232,6 +278,85 @@ struct HomeView: View {
         selectedBatchReviewMethod = nil
         reviewQueue = []
         verses = VerseRepository.shared.loadVerses()
+    }
+
+    @MainActor
+    private func refreshVerseOfTheDayIfNeeded(force: Bool = false) async {
+        let currentDayKey = VerseOfTheDayService.dayKey()
+        guard force || currentDayKey != verseOfTheDayDayKey else {
+            return
+        }
+
+        let resolvedVerse = await VerseOfTheDayService.resolveDailyVerse()
+        verseOfTheDay = resolvedVerse
+        verseOfTheDayDayKey = currentDayKey
+    }
+
+    private func quickAddVerseOfTheDay() {
+        guard !verseOfTheDayIsInLibrary else {
+            return
+        }
+
+        let passage = ScripturePassage(
+            normalizedReference: verseOfTheDay.reference,
+            translation: .kjv,
+            text: verseOfTheDay.text,
+            segments: [
+                ScripturePassageSegment(reference: verseOfTheDay.reference, text: verseOfTheDay.text)
+            ]
+        )
+        let verse = ScriptureAddPipeline.makeVerse(from: passage, options: ScriptureSaveOptions())
+        VerseRepository.shared.addVerse(verse)
+        reloadVerses()
+
+        let feedback: QuickAddFeedback
+        if verseOfTheDayIsInLibrary {
+            feedback = QuickAddFeedback(
+                message: "Added to Library",
+                systemImage: "checkmark.circle.fill",
+                tint: .green
+            )
+        } else {
+            feedback = QuickAddFeedback(
+                message: "Unable to add verse",
+                systemImage: "exclamationmark.circle.fill",
+                tint: .orange
+            )
+        }
+
+        showQuickAddFeedback(feedback)
+    }
+
+    private func showQuickAddFeedback(_ feedback: QuickAddFeedback) {
+        feedbackDismissTask?.cancel()
+        quickAddFeedback = feedback
+
+        feedbackDismissTask = Task {
+            try? await Task.sleep(for: .seconds(1.4))
+            guard !Task.isCancelled else {
+                return
+            }
+
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    quickAddFeedback = nil
+                }
+            }
+        }
+    }
+
+    private func verseMatchesVerseOfTheDay(_ verse: Verse) -> Bool {
+        normalizedMatchText(verse.reference) == normalizedMatchText(verseOfTheDay.reference)
+            && normalizedMatchText(verse.text) == normalizedMatchText(verseOfTheDay.text)
+    }
+
+    private func normalizedMatchText(_ text: String) -> String {
+        text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .lowercased()
     }
 }
 

@@ -11,34 +11,35 @@ struct RootTabView: View {
 
     @State private var selectedTab: Tab = .home
     @State private var addFocusTrigger = 0
+    @State private var loadedTabs: Set<Tab> = [.home]
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
+            tabContent(for: .home)
                 .tag(Tab.home)
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
 
-            LibraryView()
+            tabContent(for: .library)
                 .tag(Tab.library)
                 .tabItem {
                     Label("Library", systemImage: "books.vertical.fill")
                 }
 
-            AddTabView(focusTrigger: addFocusTrigger)
+            tabContent(for: .add)
                 .tag(Tab.add)
                 .tabItem {
                     Label("Add", systemImage: "plus.circle.fill")
                 }
 
-            GroupsView()
+            tabContent(for: .groups)
                 .tag(Tab.groups)
                 .tabItem {
                     Label("Groups", systemImage: "person.3.fill")
                 }
 
-            ProgressTabView()
+            tabContent(for: .progress)
                 .tag(Tab.progress)
                 .tabItem {
                     Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
@@ -50,9 +51,41 @@ struct RootTabView: View {
             }
         }
         .onChange(of: selectedTab) { _, newValue in
+            loadedTabs.insert(newValue)
             if newValue == .add {
                 addFocusTrigger += 1
             }
+        }
+    }
+
+    @ViewBuilder
+    private func tabContent(for tab: Tab) -> some View {
+        LazyTabContainer(isLoaded: loadedTabs.contains(tab)) {
+            switch tab {
+            case .home:
+                HomeView()
+            case .library:
+                LibraryView()
+            case .add:
+                AddTabView(focusTrigger: addFocusTrigger)
+            case .groups:
+                GroupsView()
+            case .progress:
+                ProgressTabView()
+            }
+        }
+    }
+}
+
+private struct LazyTabContainer<Content: View>: View {
+    let isLoaded: Bool
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if isLoaded {
+            content()
+        } else {
+            Color.clear
         }
     }
 }

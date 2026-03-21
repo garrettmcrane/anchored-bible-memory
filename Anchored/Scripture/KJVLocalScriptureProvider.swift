@@ -224,7 +224,12 @@ final class KJVLocalScriptureProvider: ScriptureProvider {
     }
 
     private static func databaseURL(bundle: Bundle = .main) -> URL? {
+        if bundle == .main, let cachedDatabaseURL {
+            return cachedDatabaseURL
+        }
+
         if let directMatch = bundle.url(forResource: "KJV", withExtension: "sqlite") {
+            cacheDatabaseURLIfNeeded(directMatch, bundle: bundle)
             return directMatch
         }
 
@@ -232,6 +237,7 @@ final class KJVLocalScriptureProvider: ScriptureProvider {
             .urls(forResourcesWithExtension: "sqlite", subdirectory: nil)?
             .first(where: { $0.lastPathComponent == "KJV.sqlite" })
         {
+            cacheDatabaseURLIfNeeded(flatMatch, bundle: bundle)
             return flatMatch
         }
 
@@ -239,8 +245,21 @@ final class KJVLocalScriptureProvider: ScriptureProvider {
             return nil
         }
 
-        return FileManager.default.enumerator(at: resourceURL, includingPropertiesForKeys: nil)?
+        let resolvedURL = FileManager.default.enumerator(at: resourceURL, includingPropertiesForKeys: nil)?
             .compactMap { $0 as? URL }
             .first(where: { $0.lastPathComponent == "KJV.sqlite" })
+
+        cacheDatabaseURLIfNeeded(resolvedURL, bundle: bundle)
+        return resolvedURL
     }
+
+    private static func cacheDatabaseURLIfNeeded(_ url: URL?, bundle: Bundle) {
+        guard bundle == .main else {
+            return
+        }
+
+        cachedDatabaseURL = url
+    }
+
+    private static var cachedDatabaseURL: URL?
 }

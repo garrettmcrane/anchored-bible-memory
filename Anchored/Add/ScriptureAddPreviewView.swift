@@ -49,7 +49,7 @@ struct ScriptureAddPreviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) {
             if let successMessage {
-                SuccessToast(message: successMessage)
+                FeedbackToast(message: successMessage, systemImage: "checkmark.circle.fill")
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -300,26 +300,5 @@ struct ScriptureAddPreviewView: View {
                 }
             }
         }
-    }
-}
-
-private struct SuccessToast: View {
-    let message: String
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-            Text(message)
-                .font(.subheadline.weight(.semibold))
-        }
-        .foregroundStyle(.primary)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            Capsule(style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-                .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
-        )
     }
 }
