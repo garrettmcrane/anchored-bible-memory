@@ -36,9 +36,6 @@ struct LibraryView: View {
     @State private var showingBatchReviewMethodPicker = false
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = VerseRepository.shared.loadVerses()
-#if DEBUG
-    private let debugRecencySimulator = DebugVerseRecencySimulator()
-#endif
 
     private let floatingButtonHeight: CGFloat = 50
     private let floatingButtonVerticalInset: CGFloat = 8
@@ -403,7 +400,9 @@ struct LibraryView: View {
                 .accessibilityLabel("Folders")
 
 #if DEBUG
-                debugRecencyButton
+                DebugRecencyControls {
+                    reloadVerses()
+                }
 #endif
             }
 
@@ -538,30 +537,6 @@ struct LibraryView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, floatingButtonVerticalInset)
     }
-
-#if DEBUG
-    private var debugRecencyButton: some View {
-        Menu {
-            ForEach(DebugVerseRecencySimulator.Preset.allCases) { preset in
-                Button(preset.title) {
-                    debugRecencySimulator.apply(preset)
-                    reloadVerses()
-                }
-            }
-        } label: {
-            Image(systemName: "ladybug")
-                .font(.title3)
-                .foregroundStyle(.orange)
-                .frame(width: 38, height: 38)
-                .background(
-                    Circle()
-                        .fill(Color(.systemBackground))
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Debug recency simulator")
-    }
-#endif
 
     private func reloadVerses() {
         verses = VerseRepository.shared.loadVerses()
