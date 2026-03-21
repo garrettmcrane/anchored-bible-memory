@@ -347,7 +347,9 @@ struct ReviewStartSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 12) {
+                topBar
+
                 sessionOverview
 
                 methodOptionsSection
@@ -356,44 +358,62 @@ struct ReviewStartSheet: View {
 
                 startButton
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 24)
-            .padding(.bottom, 20)
-            .navigationTitle("Review")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
-            }
+            .padding(.horizontal, 18)
+            .padding(.top, 12)
+            .padding(.bottom, 14)
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
 
+    private var topBar: some View {
+        HStack(alignment: .top) {
+            Spacer(minLength: 0)
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(Color(.tertiarySystemBackground))
+                    )
+                    .overlay {
+                        Circle()
+                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close")
+        }
+        .padding(.trailing, 4)
+    }
+
     private var sessionOverview: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(configuration.title)
                 .font(.title2.weight(.semibold))
-
-            Text("\(configuration.verses.count) verse\(configuration.verses.count == 1 ? "" : "s")")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
 
             if let description = configuration.description {
                 Text(description)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
             }
+
+            Text("\(configuration.verses.count) verse\(configuration.verses.count == 1 ? "" : "s")")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
         }
     }
 
     private var methodOptionsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 7) {
             Text("Review Method")
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
 
             ForEach(ReviewMethod.allCases) { method in
                 methodOption(for: method)
@@ -408,7 +428,7 @@ struct ReviewStartSheet: View {
         }
         .fontWeight(.semibold)
         .frame(maxWidth: .infinity)
-        .frame(height: 56)
+        .frame(height: 52)
         .background(Color.blue)
         .foregroundStyle(.white)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -420,40 +440,68 @@ struct ReviewStartSheet: View {
         let strokeColor = isSelected ? Color.blue.opacity(0.22) : Color.primary.opacity(0.06)
         let iconName = isSelected ? "checkmark.circle.fill" : "circle"
         let iconColor = isSelected ? Color.blue : Color(uiColor: .tertiaryLabel)
+        let description = condensedPromptDescription(for: method)
 
         return Button {
             selectedMethod = method
         } label: {
-            HStack(alignment: .center, spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(method.title)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
 
-                    Text(method.promptDescription)
+                    Text(description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)
+                        .lineLimit(1)
                 }
 
-                Spacer(minLength: 12)
+                Spacer(minLength: 8)
 
                 Image(systemName: iconName)
-                    .font(.title3)
+                    .font(.system(size: 19, weight: .semibold))
                     .foregroundStyle(iconColor)
             }
-            .padding(16)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(backgroundColor)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(strokeColor, lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
     }
+
+    private func condensedPromptDescription(for method: ReviewMethod) -> String {
+        switch method {
+        case .flashcard:
+            return "Recite first, then reveal and score."
+        case .progressiveWordHiding:
+            return "Hide more words as you recite."
+        case .firstLetterTyping:
+            return "Type with first-letter prompts."
+        }
+    }
+}
+
+#Preview("Review Start Sheet") {
+    ReviewStartSheet(
+        configuration: ReviewStartConfiguration(
+            title: "Smart Review",
+            description: "Prioritizes weaker verses and learning passages first.",
+            verses: [
+                Verse(reference: "John 3:16", text: "For God so loved the world..."),
+                Verse(reference: "Romans 8:28", text: "And we know that for those who love God...")
+            ]
+        ),
+        onStart: { _ in }
+    )
 }
 
 struct FirstLetterTypingSessionCompletionView: View {
