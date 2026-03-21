@@ -2,21 +2,28 @@ import SwiftUI
 
 struct VerseDetailView: View {
     private static let uncategorizedFolderName = "Uncategorized"
+    @Environment(\.dismiss) private var dismiss
+
     let verse: Verse
     let onStartReview: (Verse, ReviewMethod) -> Void
     let onVerseUpdated: (Verse) -> Void
+    let onVerseDeleted: (Verse) -> Void
 
     @State private var currentVerse: Verse
     @State private var reviewStartConfiguration: ReviewStartConfiguration?
+    @State private var isShowingMoveSheet = false
+    @State private var isShowingDeleteConfirmation = false
 
     init(
         verse: Verse,
         onStartReview: @escaping (Verse, ReviewMethod) -> Void,
-        onVerseUpdated: @escaping (Verse) -> Void = { _ in }
+        onVerseUpdated: @escaping (Verse) -> Void = { _ in },
+        onVerseDeleted: @escaping (Verse) -> Void = { _ in }
     ) {
         self.verse = verse
         self.onStartReview = onStartReview
         self.onVerseUpdated = onVerseUpdated
+        self.onVerseDeleted = onVerseDeleted
         _currentVerse = State(initialValue: verse)
     }
 
@@ -73,7 +80,7 @@ struct VerseDetailView: View {
                         .font(.headline)
 
                     VStack(spacing: 0) {
-                        detailRow(title: "Folder", value: folderName)
+                        folderRow
                         detailDivider
                         detailRow(title: "Added", value: addedDateText)
                         detailDivider
@@ -86,6 +93,15 @@ struct VerseDetailView: View {
                             .fill(Color(.secondarySystemBackground))
                     )
                 }
+
+                Button(role: .destructive) {
+                    isShowingDeleteConfirmation = true
+                } label: {
+                    Text("Delete Verse")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
             }
             .padding()
         }
@@ -99,6 +115,24 @@ struct VerseDetailView: View {
             ReviewStartSheet(configuration: configuration) { method in
                 onStartReview(currentVerse, method)
             }
+        }
+        .sheet(isPresented: $isShowingMoveSheet) {
+            FolderDestinationSheet(
+                title: "Move to Folder",
+                currentFolderName: currentVerse.folderName,
+                additionalFolders: []
+            ) { folderName in
+                moveVerse(to: folderName)
+            }
+        }
+        .confirmationDialog("Delete Verse?", isPresented: $isShowingDeleteConfirmation, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                deleteVerse()
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone.")
         }
     }
 
@@ -218,6 +252,33 @@ struct VerseDetailView: View {
         Divider()
     }
 
+    private var folderRow: some View {
+        Button {
+            isShowingMoveSheet = true
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text("Folder")
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    Text(folderName)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.trailing)
+
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .font(.subheadline)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func signalCard(title: String, value: String, valueColor: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
@@ -263,6 +324,22 @@ struct VerseDetailView: View {
 
         currentVerse = updatedVerse
         onVerseUpdated(updatedVerse)
+    }
+
+    private func moveVerse(to folderName: String) {
+        guard let updatedVerse = VerseRepository.shared.moveVerse(id: currentVerse.id, toFolder: folderName) else {
+            return
+        }
+
+        currentVerse = updatedVerse
+        onVerseUpdated(updatedVerse)
+    }
+
+    private func deleteVerse() {
+        VerseRepository.shared.softDeleteVerse(id: currentVerse.id)
+        let deletedVerse = currentVerse
+        dismiss()
+        onVerseDeleted(deletedVerse)
     }
 }
 

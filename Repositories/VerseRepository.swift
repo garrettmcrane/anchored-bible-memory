@@ -102,6 +102,40 @@ struct VerseRepository {
         return updatedVerses
     }
 
+    func moveVerse(id: String, toFolder folderName: String) -> Verse? {
+        moveVerses(ids: [id], toFolder: folderName).first
+    }
+
+    func moveVerses(ids: Set<String>, toFolder folderName: String) -> [Verse] {
+        guard !ids.isEmpty else {
+            return []
+        }
+
+        var allVerses = VerseStore.load()
+        let normalizedFolderName = normalizedFolderName(folderName)
+        let now = Date()
+        var updatedVerses: [Verse] = []
+
+        for index in allVerses.indices where ids.contains(allVerses[index].id) {
+            guard allVerses[index].folderName != normalizedFolderName else {
+                updatedVerses.append(allVerses[index])
+                continue
+            }
+
+            allVerses[index].folderName = normalizedFolderName
+            allVerses[index].updatedAt = now
+
+            if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
+                allVerses[index].syncStatus = .pendingUpload
+            }
+
+            updatedVerses.append(allVerses[index])
+        }
+
+        VerseStore.save(allVerses)
+        return updatedVerses
+    }
+
     func softDeleteVerse(id: String) {
         var allVerses = VerseStore.load()
 
@@ -142,5 +176,10 @@ struct VerseRepository {
 
     func memorizedVerses() -> [Verse] {
         VerseQueries.newestFirst(VerseQueries.memorizedVerses(loadVerses()))
+    }
+
+    private func normalizedFolderName(_ folderName: String) -> String {
+        let normalizedFolderName = ScriptureAddPipeline.normalizedFolderName(folderName)
+        return normalizedFolderName.isEmpty ? "Uncategorized" : normalizedFolderName
     }
 }

@@ -16,6 +16,11 @@ struct LibraryView: View {
         let verses: [Verse]
     }
 
+    private struct MoveVersePresentation: Identifiable {
+        let id = UUID()
+        let verse: Verse
+    }
+
     private struct LibrarySummaryMetric: View {
         let value: Int
         let title: String
@@ -71,9 +76,12 @@ struct LibraryView: View {
     @State private var showingFolderFilterSheet = false
     @State private var detailVerse: Verse? = nil
     @State private var selectedVerseReview: SingleVerseReviewPresentation? = nil
+    @State private var pendingMoveVerse: MoveVersePresentation? = nil
     @State private var selectedFilter: FilterType = .all
     @State private var selectedFolders: Set<String> = []
     @State private var sortMode: SortMode = .newest
+    @State private var searchText = ""
+    @State private var isShowingSearchField = false
     @State private var reviewStartConfiguration: ReviewStartConfiguration?
     @State private var activeBatchReview: BatchReviewPresentation?
     @State private var isSelectionMode = false
@@ -81,6 +89,7 @@ struct LibraryView: View {
     @State private var pendingBatchDeleteVerseIDs: Set<String> = []
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = []
+    @FocusState private var isSearchFieldFocused: Bool
 
     private let floatingButtonHeight: CGFloat = 50
     private let floatingButtonVerticalInset: CGFloat = 8
@@ -117,10 +126,18 @@ struct LibraryView: View {
         }
     }
 
+    private var searchFilteredVerses: [Verse] {
+        guard hasActiveSearch else {
+            return folderFilteredVerses
+        }
+
+        return folderFilteredVerses.filter(matchesSearch)
+    }
+
     private var filteredVerses: [Verse] {
         switch sortMode {
         case .newest:
-            return folderFilteredVerses.sorted { lhs, rhs in
+            return searchFilteredVerses.sorted { lhs, rhs in
                 if lhs.createdAt != rhs.createdAt {
                     return lhs.createdAt > rhs.createdAt
                 }
@@ -128,9 +145,9 @@ struct LibraryView: View {
                 return lhs.reference.localizedCaseInsensitiveCompare(rhs.reference) == .orderedAscending
             }
         case .review:
-            return folderFilteredVerses.sorted(by: reviewSort)
+            return searchFilteredVerses.sorted(by: reviewSort)
         case .aToZ:
-            return folderFilteredVerses.sorted { lhs, rhs in
+            return searchFilteredVerses.sorted { lhs, rhs in
                 let comparison = lhs.reference.localizedCaseInsensitiveCompare(rhs.reference)
 
                 if comparison == .orderedSame {
@@ -176,6 +193,10 @@ struct LibraryView: View {
 
     private var hasNonDefaultSortMode: Bool {
         sortMode != .newest
+    }
+
+    private var hasActiveSearch: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var selectedVisibleCount: Int {
@@ -277,6 +298,12 @@ struct LibraryView: View {
                             onVerseUpdated: { updatedVerse in
                                 detailVerse = updatedVerse
                                 reloadVerses()
+                            },
+                            onVerseDeleted: { deletedVerse in
+                                if detailVerse?.id == deletedVerse.id {
+                                    detailVerse = nil
+                                }
+                                reloadVerses()
                             }
                         )
                     }
@@ -298,6 +325,15 @@ struct LibraryView: View {
                 initialSelection: selectedFolders
             ) { selection in
                 selectedFolders = selection
+            }
+        }
+        .sheet(item: $pendingMoveVerse) { presentation in
+            FolderDestinationSheet(
+                title: "Move to Folder",
+                currentFolderName: presentation.verse.folderName,
+                additionalFolders: []
+            ) { folderName in
+                moveVerse(id: presentation.verse.id, toFolder: folderName)
             }
         }
         .sheet(item: $selectedVerseReview) { presentation in
@@ -423,14 +459,7 @@ struct LibraryView: View {
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
-                .background(
-                    Circle()
-                        .fill(Color(.secondarySystemBackground))
-                )
-                .overlay {
-                    Circle()
-                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
-                }
+                .glassEffect(.regular.interactive(), in: .circle)
                 .accessibilityLabel("Add verse")
             }
 
@@ -480,6 +509,11 @@ struct LibraryView: View {
             VStack(alignment: .leading, spacing: 0) {
                 utilityRail
 
+                if isShowingSearchField || hasActiveSearch {
+                    librarySearchField
+                        .padding(.top, 10)
+                }
+
                 if hasActiveFolderFilter {
                     Text("Folders: \(folderSelectionSummary)")
                         .font(.system(size: 12, weight: .medium))
@@ -508,7 +542,7 @@ struct LibraryView: View {
 
             Spacer(minLength: 0)
 
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 Menu {
                     Picker("Sort", selection: $sortMode) {
                         ForEach(SortMode.allCases, id: \.self) { mode in
@@ -546,7 +580,65 @@ struct LibraryView: View {
                     in: .circle
                 )
                 .accessibilityLabel("Folders")
+
+                Button {
+                    isShowingSearchField = true
+                    isSearchFieldFocused = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(uiColor: .label))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel("Search library")
             }
+        }
+    }
+
+    private var librarySearchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+
+            TextField("Search reference or text", text: $searchText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .focused($isSearchFieldFocused)
+
+            if hasActiveSearch {
+                Button {
+                    searchText = ""
+                    isSearchFieldFocused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            } else {
+                Button("Cancel") {
+                    isShowingSearchField = false
+                    isSearchFieldFocused = false
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 14, weight: .semibold))
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 48)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        }
+        .onAppear {
+            isSearchFieldFocused = true
         }
     }
 
@@ -565,14 +657,14 @@ struct LibraryView: View {
 
     private var emptyVersesState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "book.closed")
+            Image(systemName: hasActiveSearch ? "magnifyingglass" : "book.closed")
                 .font(.system(size: 34))
                 .foregroundStyle(.secondary)
 
-            Text("No verses here yet")
+            Text(hasActiveSearch ? "No matches found" : "No verses here yet")
                 .font(.headline)
 
-            Text("Add a verse to start memorizing Scripture.")
+            Text(emptyStateMessage)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -618,6 +710,12 @@ struct LibraryView: View {
             .buttonStyle(.plain)
             .contextMenu {
                 Button {
+                    pendingMoveVerse = MoveVersePresentation(verse: verse)
+                } label: {
+                    Label("Move to Folder", systemImage: "folder")
+                }
+
+                Button {
                     toggleMasteryStatus(for: verse)
                 } label: {
                     Label(toggleActionMenuTitle(for: verse), systemImage: toggleActionSystemImage(for: verse))
@@ -638,7 +736,14 @@ struct LibraryView: View {
                 .accessibilityLabel(toggleActionTitle(for: verse))
                 .tint(toggleActionTint(for: verse))
             }
-            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button {
+                    pendingMoveVerse = MoveVersePresentation(verse: verse)
+                } label: {
+                    Image(systemName: "folder")
+                }
+                .tint(.indigo)
+
                 Button(role: .destructive) {
                     deleteVerse(verse)
                 } label: {
@@ -819,26 +924,63 @@ struct LibraryView: View {
     }
 
     private func normalizedFolderName(_ folderName: String) -> String {
-        let trimmedFolderName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedFolderName = ScriptureAddPipeline.normalizedFolderName(folderName)
 
-        let collapsedWhitespaceFolderName = trimmedFolderName
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-
-        guard !collapsedWhitespaceFolderName.isEmpty else {
+        guard !normalizedFolderName.isEmpty else {
             return Self.uncategorizedFolderName
         }
 
-        return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
+        return normalizedFolderName
     }
 
     private func reviewSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
         VerseStrengthService.reviewPriority(lhs, rhs)
     }
 
+    private var emptyStateMessage: String {
+        if hasActiveSearch {
+            return "Try a reference or words from the verse text."
+        }
+
+        return "Add a verse to start memorizing Scripture."
+    }
+
+    private func matchesSearch(_ verse: Verse) -> Bool {
+        let normalizedSearchText = normalizedSearchContent(searchText)
+        guard !normalizedSearchText.isEmpty else {
+            return true
+        }
+
+        let reference = normalizedSearchContent(verse.reference)
+        if reference.contains(normalizedSearchText) {
+            return true
+        }
+
+        let searchableText = normalizedSearchContent("\(verse.reference) \(verse.text)")
+        let searchTokens = normalizedSearchText.split(separator: " ").map(String.init)
+
+        return searchTokens.allSatisfy { searchableText.contains($0) }
+    }
+
+    private func normalizedSearchContent(_ value: String) -> String {
+        value
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
     private func deleteVerse(_ verse: Verse) {
         deleteVerses(ids: Set([verse.id]))
+    }
+
+    private func moveVerse(id: String, toFolder folderName: String) {
+        guard let updatedVerse = VerseRepository.shared.moveVerse(id: id, toFolder: folderName) else {
+            return
+        }
+
+        applyUpdatedVerses([updatedVerse])
+        reloadVerses()
     }
 
     private func toggleMasteryStatus(for verse: Verse) {
