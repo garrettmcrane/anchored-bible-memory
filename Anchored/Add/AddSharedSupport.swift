@@ -114,7 +114,7 @@ struct TranslationPickerSection: View {
         HStack {
             Text("Translation")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Spacer()
 
@@ -140,16 +140,16 @@ struct TranslationPickerSection: View {
                         .font(.subheadline.weight(.semibold))
                     Text(selection.subtitle)
                         .font(.caption)
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(AppColors.lightSurface)
+                        .fill(AppColors.surface)
                 )
             }
             .buttonStyle(.plain)
@@ -159,7 +159,7 @@ struct TranslationPickerSection: View {
 
 struct AddFlowMessageCard: View {
     let message: String
-    var tint: Color = AppColors.lightTextSecondary
+    var tint: Color = AppColors.textSecondary
 
     var body: some View {
         Text(message)
@@ -177,7 +177,7 @@ struct AddFlowMessageCard: View {
 struct FeedbackToast: View {
     let message: String
     let systemImage: String
-    var tint: Color = .green
+    var tint: Color = AppColors.structuralAccent
 
     var body: some View {
         HStack(spacing: 10) {
@@ -186,13 +186,13 @@ struct FeedbackToast: View {
             Text(message)
                 .font(.subheadline.weight(.semibold))
         }
-        .foregroundStyle(AppColors.lightTextPrimary)
+        .foregroundStyle(AppColors.textPrimary)
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(
             Capsule(style: .continuous)
-                .fill(AppColors.lightSurface)
-                .shadow(color: AppColors.darkBackground.opacity(0.08), radius: 10, y: 3)
+                .fill(AppColors.elevatedSurface)
+                .shadow(color: AppColors.shadow, radius: 10, y: 3)
         )
     }
 }

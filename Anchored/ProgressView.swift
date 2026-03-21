@@ -84,7 +84,7 @@ struct ProgressTabView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.darkBackground
+                AppColors.background
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
@@ -115,11 +115,11 @@ struct ProgressTabView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Progress")
                 .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
 
             Text("A simple view of your memorization activity")
                 .font(.subheadline)
-                .foregroundStyle(AppColors.darkTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 
@@ -204,43 +204,44 @@ struct ProgressTabView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Insight")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.darkTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Text(text)
                 .font(.body.weight(.medium))
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(
-                    LinearGradient(
-                        colors: [
-                            AppColors.gold.opacity(0.10),
-                            Color.teal.opacity(0.08)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    AppColors.secondarySurface
                 )
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(AppColors.darkSurface)
+            .fill(AppColors.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(AppColors.divider, lineWidth: 1)
+            )
     }
 
     private func sectionHeader(title: String, subtitle: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
 
             if let subtitle {
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
         }
     }
@@ -290,11 +291,11 @@ private struct ProgressMetricCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.subheadline)
-                .foregroundStyle(AppColors.darkTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Text(value.formatted())
                 .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -302,7 +303,7 @@ private struct ProgressMetricCard: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.darkSurface)
+                .fill(AppColors.surface)
         )
     }
 }
@@ -319,11 +320,11 @@ private struct ReviewActivityCard: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(days.reduce(0) { $0 + $1.count }.formatted())
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
 
                 Text("reviews this week")
                     .font(.subheadline)
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             HStack(alignment: .bottom, spacing: 10) {
@@ -356,11 +357,11 @@ private struct ReviewActivityCard: View {
 
                         Text(dayLabel(for: day.date))
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(AppColors.darkTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
 
                         Text(day.count.formatted())
                             .font(.caption2)
-                            .foregroundStyle(AppColors.darkTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -369,7 +370,7 @@ private struct ReviewActivityCard: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.darkSurface)
+                .fill(AppColors.surface)
         )
     }
 
@@ -391,20 +392,20 @@ private struct FolderBreakdownRow: View {
             HStack {
                 Text(item.name)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(1)
 
                 Spacer(minLength: 12)
 
                 Text(item.count.formatted())
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(AppColors.darkSurface)
+                        .fill(AppColors.surface)
 
                     Capsule()
                         .fill(AppColors.gold.opacity(0.65))
@@ -424,27 +425,27 @@ private struct NeedsAttentionRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(verse.reference)
                     .font(.headline)
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
 
                 Spacer(minLength: 12)
 
                 Text(lastReviewedText)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             HStack(spacing: 8) {
                 Text(folderName)
                     .font(.caption)
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
 
                 Text("•")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(AppColors.textSecondary)
 
                 Text("\(verse.reviewCount) \(verse.reviewCount == 1 ? "review" : "reviews")")
                     .font(.caption)
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -472,12 +473,12 @@ private struct ProgressEmptyStateCard: View {
     var body: some View {
         Text(message)
             .font(.subheadline)
-            .foregroundStyle(AppColors.darkTextSecondary)
+            .foregroundStyle(AppColors.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AppColors.darkSurface)
+                    .fill(AppColors.surface)
             )
     }
 }

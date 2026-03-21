@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct RootTabView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     private enum Tab: Hashable {
         case home
         case library
@@ -45,10 +47,10 @@ struct RootTabView: View {
                     Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
                 }
         }
-        .tint(AppColors.gold)
-        .toolbarBackground(AppColors.darkSurface, for: .tabBar)
+        .tint(AppColors.structuralAccent)
+        .toolbarBackground(AppColors.tabBarBackground, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
-        .toolbarColorScheme(.dark, for: .tabBar)
+        .toolbarColorScheme(colorScheme, for: .tabBar)
         .onAppear {
             if selectedTab == .add {
                 addFocusTrigger += 1

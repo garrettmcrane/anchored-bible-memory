@@ -71,11 +71,11 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
     var tintColor: Color {
         switch resultTier {
         case .perfect:
-            return .green
+            return AppColors.success
         case .imperfect:
-            return Color(red: 0.78, green: 0.58, blue: 0.10)
+            return AppColors.warning
         case .missed:
-            return AppColors.gold
+            return AppColors.weakness
         }
     }
 
@@ -226,7 +226,7 @@ struct FirstLetterTypingVerseCard: View {
 
                 Text(state.progressText)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             FirstLetterTypingFlowingText(state: state)
@@ -235,7 +235,7 @@ struct FirstLetterTypingVerseCard: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(isErrorFlashing ? AppColors.gold.opacity(0.10) : AppColors.lightSurface)
+                .fill(isErrorFlashing ? AppColors.gold.opacity(0.10) : AppColors.surface)
         )
         .animation(.easeInOut(duration: 0.18), value: isErrorFlashing)
     }
@@ -258,7 +258,7 @@ struct FirstLetterTypingFlowingText: View {
 
     private var visibleText: some View {
         composedText(showAllWords: false)
-            .foregroundStyle(AppColors.lightTextPrimary)
+            .foregroundStyle(AppColors.textPrimary)
     }
 
     private var skeletonText: some View {
@@ -310,11 +310,11 @@ struct FirstLetterTypingPerformanceCard: View {
 
             Text(performance.summaryText)
                 .font(.subheadline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Text("\(performance.correctReveals) correct reveals, \(performance.incorrectAttempts) misses")
                 .font(.caption)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -375,7 +375,7 @@ struct ReviewStartSheet: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(AppColors.lightTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .frame(width: 32, height: 32)
                     .background(
                         Circle()
@@ -383,7 +383,7 @@ struct ReviewStartSheet: View {
                     )
                     .overlay {
                         Circle()
-                            .stroke(AppColors.lightTextPrimary.opacity(0.08), lineWidth: 1)
+                            .stroke(AppColors.textPrimary.opacity(0.08), lineWidth: 1)
                     }
             }
             .buttonStyle(.plain)
@@ -400,13 +400,13 @@ struct ReviewStartSheet: View {
             if let description = configuration.description {
                 Text(description)
                     .font(.subheadline)
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
                     .lineLimit(2)
             }
 
             Text("\(configuration.verses.count) verse\(configuration.verses.count == 1 ? "" : "s")")
                 .font(.caption.weight(.medium))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 
@@ -429,17 +429,17 @@ struct ReviewStartSheet: View {
         .fontWeight(.semibold)
         .frame(maxWidth: .infinity)
         .frame(height: 52)
-        .background(AppColors.brandBlue)
-        .foregroundStyle(AppColors.darkTextPrimary)
+        .background(AppColors.primaryButton)
+        .foregroundStyle(AppColors.primaryButtonText)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func methodOption(for method: ReviewMethod) -> some View {
         let isSelected = selectedMethod == method
-        let backgroundColor = isSelected ? AppColors.brandBlue.opacity(0.08) : AppColors.lightSurface
-        let strokeColor = isSelected ? AppColors.brandBlue.opacity(0.22) : AppColors.lightTextPrimary.opacity(0.06)
+        let backgroundColor = isSelected ? AppColors.selectionFill : AppColors.surface
+        let strokeColor = isSelected ? AppColors.structuralAccent.opacity(0.28) : AppColors.textPrimary.opacity(0.06)
         let iconName = isSelected ? "checkmark.circle.fill" : "circle"
-        let iconColor = isSelected ? AppColors.brandBlue : AppColors.lightTextSecondary
+        let iconColor = isSelected ? AppColors.structuralAccent : AppColors.textSecondary
         let description = condensedPromptDescription(for: method)
 
         return Button {
@@ -449,11 +449,11 @@ struct ReviewStartSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(method.title)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(AppColors.lightTextPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
 
                     Text(description)
                         .font(.caption)
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(1)
                 }
@@ -544,7 +544,7 @@ struct FirstLetterTypingSessionCompletionView: View {
 
                                 Text(report.qualityLabel)
                                     .font(.caption)
-                                    .foregroundStyle(AppColors.lightTextSecondary)
+                                    .foregroundStyle(AppColors.textSecondary)
                             }
 
                             Spacer()
@@ -614,34 +614,34 @@ struct ReviewSessionProgressHeader: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(descriptor.title)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                         .textCase(.uppercase)
 
                     Text(descriptor.method.title)
                         .font(.headline)
-                        .foregroundStyle(AppColors.lightTextPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                 }
 
                 Spacer(minLength: 12)
 
                 Text("\(currentIndex + 1) of \(totalCount)")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColors.lightTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(AppColors.brandBlue.opacity(0.08))
+                            .fill(AppColors.selectionFill)
                     )
             }
 
             ProgressView(value: progressValue)
-                .tint(AppColors.brandBlue)
+                .tint(AppColors.structuralAccent)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Current Passage")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
 
                 Text(reference)
                     .font(.title2.weight(.semibold))
@@ -651,7 +651,7 @@ struct ReviewSessionProgressHeader: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 }
@@ -667,8 +667,8 @@ struct ReviewResultButtons: View {
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(AppColors.gold.opacity(0.15))
-                    .foregroundStyle(AppColors.gold)
+                    .background(AppColors.secondaryButton)
+                    .foregroundStyle(AppColors.secondaryButtonText)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
             }
 
@@ -677,8 +677,8 @@ struct ReviewResultButtons: View {
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(AppColors.gold.opacity(0.15))
-                    .foregroundStyle(.green)
+                    .background(AppColors.primaryButton)
+                    .foregroundStyle(AppColors.primaryButtonText)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
             }
         }
@@ -732,29 +732,29 @@ private struct ReviewSessionSummaryHero: View {
         VStack(spacing: 14) {
             Image(systemName: endedEarly ? "pause.circle" : "checkmark.circle")
                 .font(.system(size: 42, weight: .medium))
-                .foregroundStyle(endedEarly ? .orange : .green)
+                .foregroundStyle(endedEarly ? AppColors.warning : AppColors.success)
 
             Text(endedEarly ? "Review ended early" : "Session completed")
                 .font(.title2.weight(.semibold))
 
             Text(descriptor.title)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Text(endedEarly ? "\(summary.reviewedCount) of \(totalVerseCount) reviewed" : "\(summary.reviewedCount) verse\(summary.reviewedCount == 1 ? "" : "s") reviewed")
                 .font(.body)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
 
             if duration > 0 {
                 Text(formattedDuration(duration))
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(AppColors.lightSurface)
+                            .fill(AppColors.surface)
                     )
             }
         }
@@ -769,17 +769,17 @@ private struct ReviewSessionMetricsSection: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                ReviewSessionMetricCard(title: "Reviewed", value: summary.reviewedCount.formatted(), tint: AppColors.lightTextPrimary)
-                ReviewSessionMetricCard(title: "Correct", value: summary.correctCount.formatted(), tint: AppColors.gold)
+                ReviewSessionMetricCard(title: "Reviewed", value: summary.reviewedCount.formatted(), tint: AppColors.textPrimary)
+                ReviewSessionMetricCard(title: "Correct", value: summary.correctCount.formatted(), tint: AppColors.success)
             }
 
             HStack(spacing: 12) {
-                ReviewSessionMetricCard(title: "Missed", value: summary.missedCount.formatted(), tint: AppColors.gold)
+                ReviewSessionMetricCard(title: "Missed", value: summary.missedCount.formatted(), tint: AppColors.weakness)
 
                 if duration > 0 {
-                    ReviewSessionMetricCard(title: "Time", value: conciseDuration(duration), tint: AppColors.brandBlue)
+                    ReviewSessionMetricCard(title: "Time", value: conciseDuration(duration), tint: AppColors.structuralAccent)
                 } else {
-                    ReviewSessionMetricCard(title: "Method", value: "Scored", tint: AppColors.brandBlue)
+                    ReviewSessionMetricCard(title: "Method", value: "Scored", tint: AppColors.structuralAccent)
                 }
             }
         }
@@ -795,7 +795,7 @@ private struct ReviewSessionMetricCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Text(value)
                 .font(.title2.weight(.semibold))
@@ -805,7 +805,7 @@ private struct ReviewSessionMetricCard: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 }
@@ -827,7 +827,7 @@ private struct ReviewSessionNeedsWorkSection: View {
                         .padding(.vertical, 14)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(AppColors.gold.opacity(0.08))
+                                .fill(AppColors.selectionFill)
                         )
                 }
             }
@@ -848,8 +848,8 @@ private struct ReviewSessionActionBar: View {
             .fontWeight(.semibold)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(AppColors.brandBlue)
-            .foregroundStyle(AppColors.darkTextPrimary)
+            .background(AppColors.primaryButton)
+            .foregroundStyle(AppColors.primaryButtonText)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             if let onReviewAgain {
@@ -859,8 +859,8 @@ private struct ReviewSessionActionBar: View {
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(AppColors.lightSurface)
-                .foregroundStyle(AppColors.lightTextPrimary)
+                .background(AppColors.secondaryButton)
+                .foregroundStyle(AppColors.secondaryButtonText)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
         }

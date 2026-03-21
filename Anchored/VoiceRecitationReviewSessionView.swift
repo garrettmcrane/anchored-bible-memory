@@ -87,7 +87,7 @@ struct VoiceRecitationReviewSessionView: View {
 
             Text("No verses to review.")
                 .font(.headline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Spacer()
         }
@@ -180,7 +180,7 @@ struct VoiceRecitationReviewSessionView: View {
             if let message = transcriber.stateMessage {
                 Text(message)
                     .font(.subheadline)
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             transcriptText
@@ -213,7 +213,7 @@ struct VoiceRecitationReviewSessionView: View {
 
             Text("Microphone and speech recognition access are both required.")
                 .font(.subheadline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             HStack(spacing: 12) {
                 Button("Try Again") {
@@ -252,7 +252,7 @@ struct VoiceRecitationReviewSessionView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
                 .textCase(.uppercase)
 
             Text(content.characters.isEmpty ? AttributedString(" ") : content)
@@ -306,7 +306,7 @@ struct VoiceRecitationReviewSessionView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(AppColors.gold)
-            .foregroundStyle(AppColors.darkTextPrimary)
+            .foregroundStyle(AppColors.textPrimary)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             Button("Incorrect") {
@@ -316,7 +316,7 @@ struct VoiceRecitationReviewSessionView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(AppColors.gold)
-            .foregroundStyle(AppColors.darkTextPrimary)
+            .foregroundStyle(AppColors.textPrimary)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             Button("Retry Verse") {
@@ -358,13 +358,13 @@ struct VoiceRecitationReviewSessionView: View {
         case .recording:
             return AppColors.gold
         default:
-            return AppColors.brandBlue
+            return AppColors.structuralAccent
         }
     }
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(AppColors.lightSurface)
+            .fill(AppColors.surface)
     }
 
     private func recordReview(result: ReviewResult) {

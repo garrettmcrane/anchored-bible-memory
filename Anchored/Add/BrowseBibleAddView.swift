@@ -39,7 +39,7 @@ struct BrowseBibleAddView: View {
             }
             .padding(20)
         }
-        .background(AppColors.lightBackground)
+        .background(AppColors.background)
         .navigationTitle("Search Bible")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $previewContext) { context in
@@ -110,7 +110,7 @@ struct BrowseBibleAddView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Selection")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
 
                     Picker("Mode", selection: $selectionMode) {
                         ForEach(SelectionMode.allCases) { mode in
@@ -165,7 +165,7 @@ struct BrowseBibleAddView: View {
                     if let selectionSummary {
                         Text(selectionSummary)
                             .font(.footnote)
-                            .foregroundStyle(AppColors.lightTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
                     }
 
                     Button(previewButtonTitle) {
@@ -181,7 +181,7 @@ struct BrowseBibleAddView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 
@@ -248,7 +248,7 @@ struct BrowseBibleAddView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Menu {
                 menuContent()
@@ -256,7 +256,7 @@ struct BrowseBibleAddView: View {
                 HStack(spacing: 10) {
                     Text(value)
                         .font(.body.weight(.medium))
-                        .foregroundStyle(isEnabled ? AppColors.lightTextPrimary : AppColors.lightTextSecondary)
+                        .foregroundStyle(isEnabled ? AppColors.textPrimary : AppColors.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.9)
 
@@ -264,13 +264,13 @@ struct BrowseBibleAddView: View {
 
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
                 .padding(.horizontal, 14)
                 .frame(height: 50)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(AppColors.lightSurface)
+                        .fill(AppColors.surface)
                 )
             }
             .buttonStyle(.plain)

@@ -41,12 +41,18 @@ struct ReviewSessionView: View {
         switch descriptor.method {
         case .flashcard:
             NavigationStack {
-                sessionContent
-                .padding(.vertical, 32)
-                .padding(.horizontal, 20)
+                ZStack {
+                    AppColors.background
+                        .ignoresSafeArea()
+
+                    sessionContent
+                        .padding(.vertical, 32)
+                        .padding(.horizontal, 20)
+                }
                 .navigationTitle(descriptor.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar(content: toolbarContent)
+                .tint(AppColors.structuralAccent)
                 .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
                     Button("End Review") {
                         endedEarly = true
@@ -149,7 +155,7 @@ struct ReviewSessionView: View {
 
             Text("No verses to review.")
                 .font(.headline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Spacer()
         }
@@ -195,7 +201,7 @@ struct ReviewSessionView: View {
             } else {
                 Text("Try to recite this verse before revealing it.")
                     .font(.headline)
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
@@ -216,8 +222,8 @@ struct ReviewSessionView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(AppColors.brandBlue)
-                        .foregroundStyle(AppColors.darkTextPrimary)
+                        .background(AppColors.primaryButton)
+                        .foregroundStyle(AppColors.primaryButtonText)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
                 .padding(.horizontal)

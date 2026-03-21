@@ -70,7 +70,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.darkBackground
+                AppColors.background
                     .ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 20) {
@@ -153,7 +153,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(greetingText)
                     .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
             }
 
             Spacer()
@@ -161,15 +161,15 @@ struct HomeView: View {
             NavigationLink(value: Destination.settings) {
                 Image(systemName: "person.crop.circle")
                     .font(.system(size: 28))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .frame(width: 44, height: 44)
                     .background(
                         Circle()
-                            .fill(AppColors.darkSurface)
+                            .fill(AppColors.elevatedSurface)
                     )
                     .overlay {
                         Circle()
-                            .stroke(AppColors.darkDivider, lineWidth: 1)
+                            .stroke(AppColors.divider, lineWidth: 1)
                     }
             }
             .buttonStyle(.plain)
@@ -181,7 +181,7 @@ struct HomeView: View {
             HStack(alignment: .top, spacing: 12) {
                 Text("Verse of the Day")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
 
                 Spacer(minLength: 0)
 
@@ -190,15 +190,15 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: verseOfTheDayIsInLibrary ? "checkmark" : "plus")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(AppColors.darkTextPrimary.opacity(0.96))
+                        .foregroundStyle(AppColors.textPrimary.opacity(0.96))
                         .frame(width: 28, height: 28)
                         .background(
                             Circle()
-                                .fill(AppColors.darkTextPrimary.opacity(verseOfTheDayIsInLibrary ? 0.22 : 0.16))
+                                .fill(AppColors.textPrimary.opacity(verseOfTheDayIsInLibrary ? 0.22 : 0.16))
                         )
                         .overlay {
                             Circle()
-                                .stroke(AppColors.darkTextPrimary.opacity(0.14), lineWidth: 1)
+                                .stroke(AppColors.textPrimary.opacity(0.14), lineWidth: 1)
                         }
                 }
                 .buttonStyle(.plain)
@@ -208,23 +208,23 @@ struct HomeView: View {
 
             Text(verseOfTheDay.reference)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(AppColors.gold)
+                .foregroundStyle(AppColors.scriptureAccent)
 
             Text(verseOfTheDay.text)
                 .font(.system(.body, design: .serif))
                 .lineSpacing(5)
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
         }
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(AppColors.darkSurface)
+                .fill(AppColors.elevatedSurface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.darkDivider, lineWidth: 1)
+                .stroke(AppColors.divider, lineWidth: 1)
         }
-        .foregroundStyle(AppColors.darkTextPrimary)
+        .foregroundStyle(AppColors.textPrimary)
     }
 
     private var summarySection: some View {
@@ -237,11 +237,11 @@ struct HomeView: View {
         .padding(.vertical, 16)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.darkSurface)
+                .fill(AppColors.surface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.darkDivider, lineWidth: 1)
+                .stroke(AppColors.divider, lineWidth: 1)
         )
     }
 
@@ -259,8 +259,8 @@ struct HomeView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
-        .tint(AppColors.gold)
-        .foregroundStyle(AppColors.darkBackground)
+        .tint(AppColors.primaryButton)
+        .foregroundStyle(AppColors.primaryButtonText)
         .disabled(smartReviewQueue.isEmpty)
     }
 
@@ -335,13 +335,13 @@ struct HomeView: View {
             feedback = QuickAddFeedback(
                 message: "Added to Library",
                 systemImage: "checkmark.circle.fill",
-                tint: AppColors.gold
+                tint: AppColors.scriptureAccent
             )
         } else {
             feedback = QuickAddFeedback(
                 message: "Unable to add verse",
                 systemImage: "exclamationmark.circle.fill",
-                tint: AppColors.darkTextSecondary
+                tint: AppColors.textSecondary
             )
         }
 
@@ -389,13 +389,13 @@ private struct HomeMetricColumn: View {
         VStack(spacing: 6) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(AppColors.darkTextSecondary.opacity(0.8))
+                .foregroundStyle(AppColors.textSecondary.opacity(0.8))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
 
             Text("\(value)")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
         }
         .frame(maxWidth: .infinity)
     }

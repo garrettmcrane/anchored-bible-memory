@@ -11,7 +11,7 @@ struct ReviewView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.darkBackground
+                AppColors.background
                     .ignoresSafeArea()
 
                 VStack(spacing: 24) {
@@ -21,18 +21,18 @@ struct ReviewView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(AppColors.gold)
+                        .foregroundStyle(AppColors.scriptureAccent)
 
                     if showingAnswer {
                         Text(verse.text)
                             .font(.title3)
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(AppColors.darkTextPrimary)
+                            .foregroundStyle(AppColors.textPrimary)
                             .padding(.horizontal)
                     } else {
                         Text("Try to recite this verse before revealing it.")
                             .font(.headline)
-                            .foregroundStyle(AppColors.darkTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -48,8 +48,8 @@ struct ReviewView: View {
                                     .fontWeight(.semibold)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(AppColors.darkSurface)
-                                    .foregroundStyle(AppColors.darkTextPrimary)
+                                    .background(AppColors.secondaryButton)
+                                    .foregroundStyle(AppColors.secondaryButtonText)
                                     .clipShape(RoundedRectangle(cornerRadius: 18))
                             }
 
@@ -60,8 +60,8 @@ struct ReviewView: View {
                                     .fontWeight(.semibold)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
-                                    .background(AppColors.gold)
-                                    .foregroundStyle(AppColors.darkBackground)
+                                    .background(AppColors.primaryButton)
+                                    .foregroundStyle(AppColors.primaryButtonText)
                                     .clipShape(RoundedRectangle(cornerRadius: 18))
                             }
                         }
@@ -74,8 +74,8 @@ struct ReviewView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 56)
-                                .background(AppColors.gold)
-                                .foregroundStyle(AppColors.darkBackground)
+                                .background(AppColors.primaryButton)
+                                .foregroundStyle(AppColors.primaryButtonText)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
                         .padding(.horizontal)
@@ -85,7 +85,7 @@ struct ReviewView: View {
             }
             .navigationTitle("Review")
             .navigationBarTitleDisplayMode(.inline)
-            .tint(AppColors.gold)
+            .tint(AppColors.structuralAccent)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {

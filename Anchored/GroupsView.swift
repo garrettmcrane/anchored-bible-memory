@@ -7,7 +7,7 @@ struct GroupsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.darkBackground
+                AppColors.background
                     .ignoresSafeArea()
 
                 if groups.isEmpty {
@@ -18,7 +18,7 @@ struct GroupsView: View {
             }
             .navigationTitle("Groups")
             .navigationBarTitleDisplayMode(.large)
-            .tint(AppColors.gold)
+            .tint(AppColors.structuralAccent)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -49,7 +49,7 @@ struct GroupsView: View {
 
                 Text("Create a group for the verses you want to memorize together. Group passages stay separate from your personal memorization library, so your own progress stays focused.")
                     .font(.subheadline)
-                    .foregroundStyle(AppColors.darkTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             VStack(alignment: .leading, spacing: 14) {
@@ -58,23 +58,24 @@ struct GroupsView: View {
                 Label("Keep group passages separate from your personal memorization library", systemImage: "square.stack.3d.down.right.fill")
             }
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(AppColors.darkTextSecondary)
+            .foregroundStyle(AppColors.textSecondary)
 
             Button("Create Group") {
                 isShowingCreateGroupSheet = true
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .tint(AppColors.primaryButton)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(AppColors.darkSurface)
+                .fill(AppColors.surface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.darkDivider, lineWidth: 1)
+                .stroke(AppColors.divider, lineWidth: 1)
         }
         .padding(20)
     }
@@ -100,6 +101,7 @@ struct GroupsView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
+        .listRowBackground(AppColors.surface)
     }
 
     private func groupRow(_ group: Group) -> some View {
@@ -115,7 +117,7 @@ struct GroupsView: View {
                 Label("\(assignmentCount) passage\(assignmentCount == 1 ? "" : "s")", systemImage: "text.book.closed.fill")
             }
             .font(.caption.weight(.medium))
-            .foregroundStyle(AppColors.darkTextSecondary)
+            .foregroundStyle(AppColors.textSecondary)
         }
         .padding(.vertical, 4)
     }

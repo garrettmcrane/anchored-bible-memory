@@ -74,13 +74,13 @@ struct FolderDestinationSheet: View {
         } label: {
             HStack(spacing: 12) {
                 Text(title)
-                    .foregroundStyle(AppColors.lightTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
 
                 Spacer()
 
                 if title == normalizedCurrentFolderName {
                     Image(systemName: "checkmark")
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
             }
             .contentShape(Rectangle())

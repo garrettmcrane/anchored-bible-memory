@@ -95,7 +95,7 @@ struct GroupDetailView: View {
                         Label(memberCountText, systemImage: "person.2.fill")
                     }
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
                 }
                 .padding(.vertical, 8)
             }
@@ -131,7 +131,7 @@ struct GroupDetailView: View {
 
                         Text("Assign verses from your personal memorization library or add brand new verses for this group.")
                             .font(.subheadline)
-                            .foregroundStyle(AppColors.lightTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
 
                         Button("Assign Passage") {
                             isShowingAssignSheet = true
@@ -150,12 +150,12 @@ struct GroupDetailView: View {
                                 if let lastReviewedAt = passage.progress.lastReviewedAt {
                                     Text(lastReviewedAt.formatted(.relative(presentation: .named)))
                                         .font(.caption)
-                                        .foregroundStyle(AppColors.lightTextSecondary)
+                                        .foregroundStyle(AppColors.textSecondary)
                                 }
 
                                 Text("Assigned \(passage.assignment.assignedAt.formatted(.relative(presentation: .named)))")
                                     .font(.caption)
-                                    .foregroundStyle(AppColors.lightTextSecondary)
+                                    .foregroundStyle(AppColors.textSecondary)
 
                                 Spacer()
 
@@ -356,7 +356,7 @@ struct GroupDetailView: View {
         HStack(spacing: 12) {
             Image(systemName: membership.role == .owner ? "person.crop.circle.badge.checkmark" : "person.crop.circle")
                 .font(.title3)
-                .foregroundStyle(membership.role == .owner ? AppColors.gold : AppColors.lightTextSecondary)
+                .foregroundStyle(membership.role == .owner ? AppColors.gold : AppColors.textSecondary)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(memberDisplayName(for: membership))
@@ -364,7 +364,7 @@ struct GroupDetailView: View {
 
                 Text(memberSubtitle(for: membership))
                     .font(.caption)
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             Spacer()
@@ -372,7 +372,7 @@ struct GroupDetailView: View {
             if membership.role == .owner {
                 Text("Owner")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
         }
         .padding(.vertical, 2)
@@ -477,7 +477,7 @@ struct GroupDetailView: View {
 
             Text(title)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -495,11 +495,11 @@ struct GroupDetailView: View {
     private func progressTint(for status: GroupVerseProgressStatus) -> Color {
         switch status {
         case .notStarted:
-            return AppColors.lightTextSecondary
+            return AppColors.textSecondary
         case .inProgress:
-            return Color(red: 0.72, green: 0.56, blue: 0.18)
+            return AppColors.warning
         case .mastered:
-            return Color(red: 0.24, green: 0.55, blue: 0.41)
+            return AppColors.success
         }
     }
 }

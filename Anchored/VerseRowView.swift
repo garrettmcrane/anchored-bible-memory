@@ -17,13 +17,13 @@ struct VerseRowView: View {
     private var progressTint: Color {
         switch VerseStrengthService.band(for: strength) {
         case .strong:
-            return Color(red: 0.34, green: 0.69, blue: 0.48)
+            return AppColors.success
         case .steady:
-            return Color(red: 0.56, green: 0.78, blue: 0.40)
+            return AppColors.success
         case .warning:
-            return Color(red: 0.85, green: 0.72, blue: 0.31)
+            return AppColors.warning
         case .weak:
-            return Color(red: 0.78, green: 0.39, blue: 0.37)
+            return AppColors.weakness
         }
     }
 
@@ -41,14 +41,14 @@ struct VerseRowView: View {
 
                     Text(verse.text)
                         .font(.subheadline)
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
 
                     HStack(spacing: 8) {
                         Text(folderName)
                             .font(.caption2)
-                            .foregroundStyle(AppColors.lightTextSecondary.opacity(0.75))
+                            .foregroundStyle(AppColors.textSecondary.opacity(0.75))
                             .lineLimit(1)
 
                         ProgressView(value: strength)
@@ -57,7 +57,7 @@ struct VerseRowView: View {
 
                         Text(verse.masteryStatus.rawValue)
                             .font(.caption2)
-                            .foregroundStyle(AppColors.lightTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
                             .lineLimit(1)
                     }
                 }
@@ -66,7 +66,7 @@ struct VerseRowView: View {
 
                 if showsChevron {
                     Image(systemName: "chevron.right")
-                        .foregroundColor(AppColors.lightTextSecondary)
+                        .foregroundColor(AppColors.textSecondary)
                         .font(.system(size: 12, weight: .semibold))
                         .padding(.top, 2)
                 }
@@ -79,7 +79,7 @@ struct VerseRowView: View {
         ZStack {
             Circle()
                 .strokeBorder(
-                    isSelected ? AppColors.gold.opacity(0.16) : AppColors.lightTextSecondary.opacity(0.3),
+                    isSelected ? AppColors.gold.opacity(0.16) : AppColors.textSecondary.opacity(0.3),
                     lineWidth: 1.5
                 )
                 .background(
@@ -90,7 +90,7 @@ struct VerseRowView: View {
             if isSelected {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
             }
         }
         .frame(width: 26, height: 26)

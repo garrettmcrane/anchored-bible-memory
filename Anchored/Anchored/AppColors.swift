@@ -46,6 +46,42 @@ struct AppColors {
     static let darkDivider = Dark.divider
 
     static let gold = Brand.gold
+
+    static let background = dynamic(light: Light.background, dark: Dark.background)
+    static let surface = dynamic(light: Light.surface, dark: Dark.surface)
+    static let elevatedSurface = dynamic(light: Color(hex: "#FCFCFB"), dark: Dark.elevated)
+    static let secondarySurface = dynamic(light: Color(hex: "#EFEDE8"), dark: Dark.elevated)
+    static let textPrimary = dynamic(light: Light.textPrimary, dark: Dark.textPrimary)
+    static let textSecondary = dynamic(light: Light.textSecondary, dark: Dark.textSecondary)
+    static let divider = dynamic(light: Light.divider, dark: Dark.divider)
+    static let structuralAccent = dynamic(light: Light.primary, dark: Brand.gold)
+    static let scriptureAccent = dynamic(light: Brand.gold, dark: Brand.gold)
+    static let subtleAccent = dynamic(light: Brand.gold.opacity(0.16), dark: Brand.gold.opacity(0.12))
+    static let primaryButton = dynamic(light: Light.primary, dark: Brand.gold)
+    static let primaryButtonText = dynamic(light: Dark.textPrimary, dark: Dark.background)
+    static let secondaryButton = dynamic(light: Light.surface, dark: Dark.surface)
+    static let secondaryButtonText = dynamic(light: Light.textPrimary, dark: Dark.textPrimary)
+    static let tabBarBackground = dynamic(light: Color(hex: "#FBFBF9"), dark: Dark.surface)
+    static let selectionFill = dynamic(light: Brand.gold.opacity(0.18), dark: Brand.gold.opacity(0.20))
+    static let fieldBackground = dynamic(light: Light.surface, dark: Dark.elevated)
+    static let progressTrack = dynamic(light: Color(hex: "#E9E5DD"), dark: Color(hex: "#46505C"))
+    static let success = dynamic(light: Color(hex: "#466C57"), dark: Color(hex: "#7FA287"))
+    static let warning = dynamic(light: Color(hex: "#9C7840"), dark: Color(hex: "#D0AF72"))
+    static let weakness = dynamic(light: Color(hex: "#A45F5B"), dark: Color(hex: "#C78882"))
+    static let shadow = dynamic(light: Color(hex: "#000000").opacity(0.08), dark: Color(hex: "#000000").opacity(0.24))
+
+    private static func dynamic(light: Color, dark: Color) -> Color {
+        Color(
+            uiColor: UIColor { traits in
+                switch traits.userInterfaceStyle {
+                case .dark:
+                    return UIColor(dark)
+                default:
+                    return UIColor(light)
+                }
+            }
+        )
+    }
 }
 
 extension Color {

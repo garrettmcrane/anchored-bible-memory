@@ -26,16 +26,21 @@ struct FirstLetterTypingReviewView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
+            ZStack {
+                AppColors.background
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 20) {
                     VStack(spacing: 10) {
                         Text(verse.reference)
                             .font(.title2.weight(.semibold))
                             .multilineTextAlignment(.center)
+                            .foregroundStyle(AppColors.scriptureAccent)
 
                         Text(reconstructionState.currentPrompt)
                             .font(.subheadline)
-                            .foregroundStyle(AppColors.lightTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal)
@@ -51,8 +56,8 @@ struct FirstLetterTypingReviewView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(AppColors.brandBlue)
-                        .foregroundStyle(AppColors.darkTextPrimary)
+                        .background(AppColors.primaryButton)
+                        .foregroundStyle(AppColors.primaryButtonText)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     } else {
                         inputCard
@@ -61,8 +66,10 @@ struct FirstLetterTypingReviewView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 24)
             }
+            }
             .navigationTitle("Review")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(AppColors.structuralAccent)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
@@ -91,11 +98,11 @@ struct FirstLetterTypingReviewView: View {
                 .frame(height: 56)
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(AppColors.lightSurface)
+                        .fill(AppColors.surface)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(showIncorrectHint ? AppColors.gold : AppColors.lightDivider, lineWidth: 1)
+                        .stroke(showIncorrectHint ? AppColors.gold : AppColors.divider, lineWidth: 1)
                 )
                 .offset(x: showIncorrectHint ? shakeOffset : 0)
                 .onChange(of: stepInput) { _, newValue in
@@ -104,13 +111,13 @@ struct FirstLetterTypingReviewView: View {
 
             Text(showIncorrectHint ? "Try again" : "Enter one letter at a time to reveal the next word.")
                 .font(.subheadline)
-                .foregroundStyle(showIncorrectHint ? AppColors.gold : AppColors.lightTextSecondary)
+                .foregroundStyle(showIncorrectHint ? AppColors.gold : AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
         .animation(.easeInOut(duration: 0.12), value: incorrectFlashToken)
     }

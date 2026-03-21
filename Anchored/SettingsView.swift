@@ -16,14 +16,14 @@ struct SettingsView: View {
                 HStack(spacing: 14) {
                     Image(systemName: "person.crop.circle.fill")
                         .font(.system(size: 34))
-                        .foregroundStyle(AppColors.brandBlue)
+                        .foregroundStyle(AppColors.structuralAccent)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Local profile")
                             .font(.headline)
                         Text("Account features coming later")
                             .font(.subheadline)
-                            .foregroundStyle(AppColors.lightTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
                     }
                 }
                 .padding(.vertical, 4)
@@ -34,13 +34,13 @@ struct SettingsView: View {
             Section {
                 LabeledContent("Translation") {
                     Text(settingsController.settings.selectedTranslation.title)
-                        .foregroundStyle(AppColors.lightTextPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                 }
 
                 if !BibleTranslation.esv.isAvailable {
                     LabeledContent("ESV") {
                         Text("Coming later")
-                            .foregroundStyle(AppColors.lightTextSecondary)
+                            .foregroundStyle(AppColors.textSecondary)
                     }
                 }
             } header: {
@@ -64,7 +64,7 @@ struct SettingsView: View {
             Section {
                 LabeledContent("Reminders") {
                     Text("Coming later")
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
             } header: {
                 Text("Reminders")
@@ -77,14 +77,17 @@ struct SettingsView: View {
 
                 LabeledContent("Version") {
                     Text(appVersionText)
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
             } header: {
                 Text("About")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(AppColors.background)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .tint(AppColors.structuralAccent)
     }
 
     private var appVersionText: String {

@@ -30,13 +30,13 @@ struct LibraryView: View {
             VStack(spacing: 4) {
                 Text(value.formatted())
                     .font(.system(size: 27, weight: .bold, design: .rounded))
-                    .foregroundStyle(isSelected ? AppColors.darkTextPrimary : AppColors.darkTextSecondary)
+                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(isSelected ? AppColors.darkTextPrimary : AppColors.darkTextSecondary)
+                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
                     .textCase(.uppercase)
                     .tracking(0.4)
                     .lineLimit(1)
@@ -52,7 +52,7 @@ struct LibraryView: View {
     private struct SummaryDivider: View {
         var body: some View {
             Rectangle()
-                .fill(AppColors.darkDivider)
+                .fill(AppColors.divider)
                 .frame(width: 1, height: 32)
         }
     }
@@ -231,7 +231,7 @@ struct LibraryView: View {
 
             NavigationStack {
                 ZStack(alignment: .top) {
-                    AppColors.darkBackground
+                    AppColors.background
                         .ignoresSafeArea()
 
                     List {
@@ -273,7 +273,7 @@ struct LibraryView: View {
                     .contentMargins(.bottom, bottomOverlayClearance, for: .scrollContent)
                     .environment(\.defaultMinListRowHeight, 1)
                     .overlay(alignment: .top) {
-                        AppColors.darkBackground
+                        AppColors.background
                             .frame(height: safeTop)
                             .ignoresSafeArea(edges: .top)
                             .allowsHitTesting(false)
@@ -467,7 +467,7 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(AppColors.darkTextPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -486,11 +486,11 @@ struct LibraryView: View {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AppColors.darkSurface)
+                    .fill(AppColors.surface)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(AppColors.darkDivider, lineWidth: 1)
+                    .stroke(AppColors.divider, lineWidth: 1)
             }
         }
         .padding(.horizontal, 0)
@@ -504,7 +504,7 @@ struct LibraryView: View {
             HStack(spacing: 12) {
                 Text("\(selectedVisibleCount) Selected")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
 
                 Spacer(minLength: 12)
 
@@ -529,7 +529,7 @@ struct LibraryView: View {
                 if hasActiveFolderFilter {
                     Text("Folders: \(folderSelectionSummary)")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AppColors.darkTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                         .padding(.top, 8)
                         .padding(.horizontal, 2)
                 }
@@ -544,7 +544,7 @@ struct LibraryView: View {
             } label: {
                 Text("Select")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .padding(.horizontal, 14)
                     .frame(height: 44)
             }
@@ -564,7 +564,7 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(hasNonDefaultSortMode ? AppColors.gold : AppColors.darkTextPrimary)
+                        .foregroundStyle(hasNonDefaultSortMode ? AppColors.gold : AppColors.textPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -581,7 +581,7 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: hasActiveFolderFilter ? "folder.fill" : "folder")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(hasActiveFolderFilter ? AppColors.gold : AppColors.darkTextPrimary)
+                        .foregroundStyle(hasActiveFolderFilter ? AppColors.gold : AppColors.textPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -599,7 +599,7 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(AppColors.darkTextPrimary)
+                        .foregroundColor(AppColors.textPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -612,7 +612,7 @@ struct LibraryView: View {
     private var librarySearchField: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppColors.darkTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             TextField("Search reference or text", text: $searchText)
                 .textInputAutocapitalization(.never)
@@ -626,7 +626,7 @@ struct LibraryView: View {
                     isSearchFieldFocused = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AppColors.darkTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear search")
@@ -643,11 +643,11 @@ struct LibraryView: View {
         .frame(height: 48)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.darkSurface)
+                .fill(AppColors.surface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(AppColors.darkDivider, lineWidth: 1)
+                .stroke(AppColors.divider, lineWidth: 1)
         }
         .onAppear {
             isSearchFieldFocused = true
@@ -671,21 +671,21 @@ struct LibraryView: View {
         VStack(spacing: 12) {
             Image(systemName: hasActiveSearch ? "magnifyingglass" : "book.closed")
                 .font(.system(size: 34))
-                .foregroundStyle(AppColors.darkTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Text(hasActiveSearch ? "No matches found" : "No verses here yet")
                 .font(.headline)
 
             Text(emptyStateMessage)
                 .font(.subheadline)
-                .foregroundStyle(AppColors.darkTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.darkSurface)
+                .fill(AppColors.surface)
         )
         .padding(.horizontal, 0)
         .padding(.top, 4)
@@ -791,14 +791,14 @@ struct LibraryView: View {
 
     private var utilityControlBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(AppColors.darkSurface)
+            .fill(AppColors.surface)
     }
 
     private func rowBackground(for index: Int, totalCount: Int) -> some View {
         let radii = rowCornerRadii(for: index, totalCount: totalCount)
 
         return UnevenRoundedRectangle(cornerRadii: radii, style: .continuous)
-            .fill(AppColors.darkSurface)
+            .fill(AppColors.surface)
     }
 
     private func rowCornerRadii(for index: Int, totalCount: Int) -> RectangleCornerRadii {
@@ -828,14 +828,14 @@ struct LibraryView: View {
                 Text("Review Verses")
                     .fontWeight(.semibold)
             }
-            .foregroundStyle(AppColors.darkTextPrimary)
+            .foregroundStyle(AppColors.textPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(
                 Capsule()
                     .fill(AppColors.gold)
             )
-            .shadow(color: AppColors.darkBackground.opacity(0.12), radius: 12, x: 0, y: 6)
+            .shadow(color: AppColors.background.opacity(0.12), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
@@ -879,9 +879,9 @@ struct LibraryView: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.darkDivider, lineWidth: 1)
+                .stroke(AppColors.divider, lineWidth: 1)
         }
-        .shadow(color: AppColors.darkBackground.opacity(0.08), radius: 18, x: 0, y: 8)
+        .shadow(color: AppColors.background.opacity(0.08), radius: 18, x: 0, y: 8)
         .padding(.horizontal, 20)
         .padding(.bottom, 8)
     }
@@ -903,12 +903,12 @@ struct LibraryView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(isEnabled ? tint : AppColors.darkTextSecondary)
+            .foregroundStyle(isEnabled ? tint : AppColors.textSecondary)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isEnabled ? tint.opacity(0.12) : AppColors.darkSurface.opacity(0.85))
+                    .fill(isEnabled ? tint.opacity(0.12) : AppColors.surface.opacity(0.85))
             )
         }
         .buttonStyle(.plain)
@@ -1161,10 +1161,10 @@ private struct FolderFilterSheet: View {
         HStack(spacing: 12) {
             Image(systemName: isSelected ? "checkmark.square.fill" : "square")
                 .font(.title3)
-                .foregroundStyle(isSelected ? AppColors.gold : AppColors.darkTextSecondary)
+                .foregroundStyle(isSelected ? AppColors.gold : AppColors.textSecondary)
 
             Text(title)
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
 
             Spacer()
         }

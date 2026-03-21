@@ -24,7 +24,7 @@ struct CreateGroupSheet: View {
                 Section {
                     Text("You’ll be added as the owner and first member.")
                         .font(.footnote)
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
             }
             .navigationTitle("Create Group")

@@ -32,15 +32,25 @@ struct VerseDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(currentVerse.reference)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                        .font(.largeTitle.weight(.bold))
+                        .foregroundStyle(AppColors.scriptureAccent)
 
                     progressBar
 
                     Text(currentVerse.text)
                         .font(.system(.title3, design: .serif))
                         .lineSpacing(8)
+                        .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(22)
+                .background(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .fill(AppColors.elevatedSurface)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(AppColors.divider, lineWidth: 1)
                 }
                 .padding(.top, 20)
 
@@ -57,7 +67,7 @@ struct VerseDetailView: View {
                         signalCard(
                             title: "Correct Reviews",
                             value: "\(streakCount)",
-                            valueColor: AppColors.lightTextPrimary
+                            valueColor: AppColors.textPrimary
                         )
                     }
                 }
@@ -74,10 +84,12 @@ struct VerseDetailView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .tint(AppColors.primaryButton)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Details")
                         .font(.headline)
+                        .foregroundStyle(AppColors.textPrimary)
 
                     VStack(spacing: 0) {
                         folderRow
@@ -90,8 +102,12 @@ struct VerseDetailView: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 22)
-                            .fill(AppColors.lightSurface)
+                            .fill(AppColors.surface)
                     )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 22)
+                            .stroke(AppColors.divider, lineWidth: 1)
+                    }
                 }
 
                 Button(role: .destructive) {
@@ -107,7 +123,8 @@ struct VerseDetailView: View {
         }
         .navigationTitle("Verse")
         .navigationBarTitleDisplayMode(.inline)
-        .background(AppColors.lightSurface)
+        .background(AppColors.background)
+        .tint(AppColors.structuralAccent)
         .onChange(of: verse) { _, newValue in
             currentVerse = newValue
         }
@@ -194,13 +211,13 @@ struct VerseDetailView: View {
     private var lastReviewedColor: Color {
         switch VerseStrengthService.band(for: strength) {
         case .strong:
-            return Color(red: 0.24, green: 0.55, blue: 0.41)
+            return AppColors.success
         case .steady:
-            return Color(red: 0.56, green: 0.78, blue: 0.40)
+            return AppColors.success
         case .warning:
-            return Color(red: 0.72, green: 0.56, blue: 0.18)
+            return AppColors.warning
         case .weak:
-            return Color(red: 0.68, green: 0.36, blue: 0.34)
+            return AppColors.weakness
         }
     }
 
@@ -212,7 +229,7 @@ struct VerseDetailView: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color(.tertiarySystemFill))
+                    .fill(AppColors.progressTrack)
 
                 Capsule()
                     .fill(progressTint)
@@ -225,13 +242,13 @@ struct VerseDetailView: View {
     private var progressTint: Color {
         switch VerseStrengthService.band(for: strength) {
         case .strong:
-            return Color(red: 0.24, green: 0.55, blue: 0.41)
+            return AppColors.success
         case .steady:
-            return Color(red: 0.56, green: 0.78, blue: 0.40)
+            return AppColors.success
         case .warning:
-            return Color(red: 0.72, green: 0.56, blue: 0.18)
+            return AppColors.warning
         case .weak:
-            return Color(red: 0.68, green: 0.36, blue: 0.34)
+            return AppColors.weakness
         }
     }
 
@@ -258,18 +275,18 @@ struct VerseDetailView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text("Folder")
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
 
                 Spacer()
 
                 HStack(spacing: 8) {
                     Text(folderName)
-                        .foregroundStyle(AppColors.lightTextPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                         .multilineTextAlignment(.trailing)
 
                     Image(systemName: "chevron.right")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
             }
             .font(.subheadline)
@@ -284,7 +301,7 @@ struct VerseDetailView: View {
             Text(title)
                 .font(.caption)
                 .textCase(.uppercase)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Text(value)
                 .font(.subheadline)
@@ -295,14 +312,14 @@ struct VerseDetailView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 
     private func detailRow(title: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             Text(title)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Spacer()
 

@@ -38,7 +38,7 @@ struct AddHubView: View {
                                 title: "Paste / Type",
                                 subtitle: "Paste references or messy notes, resolve them against the offline KJV, and save what you want.",
                                 systemImage: "doc.text",
-                                tint: Color(red: 0.16, green: 0.41, blue: 0.78)
+                                tint: AppColors.structuralAccent
                             )
                         }
                         .buttonStyle(.plain)
@@ -53,7 +53,7 @@ struct AddHubView: View {
                                 title: "Search Bible",
                                 subtitle: "Move through the bundled KJV by book and chapter, then preview a verse or range.",
                                 systemImage: "magnifyingglass",
-                                tint: Color(red: 0.11, green: 0.52, blue: 0.45)
+                                tint: AppColors.scriptureAccent
                             )
                         }
                         .buttonStyle(.plain)
@@ -62,16 +62,17 @@ struct AddHubView: View {
                             title: "Import",
                             subtitle: "Bulk import is planned next. For now, use Paste / Type to bring in references from copied notes.",
                             systemImage: "square.and.arrow.down",
-                            tint: Color(red: 0.74, green: 0.44, blue: 0.12),
+                            tint: AppColors.textSecondary,
                             isPlaceholder: true
                         )
                     }
                 }
                 .padding(20)
             }
-            .background(AppColors.lightBackground)
+            .background(AppColors.background)
             .navigationTitle("Add")
             .navigationBarTitleDisplayMode(.large)
+            .tint(AppColors.structuralAccent)
             .toolbar {
                 if showsCancelButton {
                     ToolbarItem(placement: .topBarLeading) {
@@ -88,27 +89,29 @@ struct AddHubView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Build your Scripture library")
                 .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(AppColors.textPrimary)
 
             Text("Choose how you want to add verses. Paste references, search the bundled Bible, or come back soon for bulk import.")
                 .font(.subheadline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.08, green: 0.18, blue: 0.33),
-                            Color(red: 0.21, green: 0.38, blue: 0.56)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(AppColors.elevatedSurface)
         )
-        .foregroundStyle(AppColors.darkTextPrimary)
+        .overlay(alignment: .topLeading) {
+            Capsule(style: .continuous)
+                .fill(AppColors.structuralAccent)
+                .frame(width: 64, height: 6)
+                .padding(.top, 16)
+                .padding(.leading, 18)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 }
 
@@ -135,21 +138,21 @@ private struct AddHubOptionCard: View {
                 HStack(spacing: 8) {
                     Text(title)
                         .font(.headline)
-                        .foregroundStyle(AppColors.lightTextPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
 
                     if isPlaceholder {
-                        Text("Coming Later")
+                        Text("Soon")
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Capsule().fill(tint.opacity(0.14)))
+                            .background(Capsule().fill(AppColors.secondarySurface))
                             .foregroundStyle(tint)
                     }
                 }
 
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.leading)
             }
 
@@ -158,14 +161,18 @@ private struct AddHubOptionCard: View {
             if !isPlaceholder {
                 Image(systemName: "chevron.right")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
-        .opacity(isPlaceholder ? 0.72 : 1)
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
+        .opacity(isPlaceholder ? 0.84 : 1)
     }
 }

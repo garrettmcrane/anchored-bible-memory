@@ -40,7 +40,7 @@ struct AddVerseView: View {
                 if let message {
                     AddFlowMessageCard(
                         message: message,
-                        tint: message.contains("ready") ? .green : .orange
+                        tint: message.contains("ready") ? AppColors.success : AppColors.warning
                     )
                 }
 
@@ -48,7 +48,7 @@ struct AddVerseView: View {
             }
             .padding(20)
         }
-        .background(AppColors.lightBackground)
+        .background(AppColors.background)
         .navigationTitle("Paste / Type")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $reviewContext) { context in
@@ -75,7 +75,7 @@ struct AddVerseView: View {
 
             Text("Paste references or notes with references. Anchored will resolve what it can in the next step.")
                 .font(.subheadline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             TranslationPickerSection(selection: $translation)
         }
@@ -83,7 +83,7 @@ struct AddVerseView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AppColors.brandBlue.opacity(0.08))
+                .fill(AppColors.structuralAccent.opacity(0.08))
         )
     }
 
@@ -91,11 +91,11 @@ struct AddVerseView: View {
         VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AppColors.lightSurface)
+                    .fill(AppColors.surface)
                     .overlay {
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
                             .stroke(
-                                isReferenceEditorFocused ? AppColors.brandBlue.opacity(0.28) : AppColors.darkBackground.opacity(0.05),
+                                isReferenceEditorFocused ? AppColors.structuralAccent.opacity(0.28) : AppColors.background.opacity(0.05),
                                 lineWidth: 1
                             )
                     }
@@ -115,7 +115,7 @@ struct AddVerseView: View {
                     Memory list: John 3:16, Romans 12:2, Jude 24-25
                     """)
                         .font(.body)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(AppColors.textSecondary)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 20)
                         .allowsHitTesting(false)
@@ -273,7 +273,7 @@ private struct AddVerseReviewView: View {
             .padding(.top, 20)
             .padding(.bottom, 110)
         }
-        .background(AppColors.lightBackground)
+        .background(AppColors.background)
         .navigationTitle("Review & Save")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
@@ -307,11 +307,11 @@ private struct AddVerseReviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Review")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.darkTextPrimary.opacity(0.78))
+                .foregroundStyle(AppColors.textPrimary.opacity(0.78))
 
             Text(summaryTitle)
                 .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
 
             if !duplicateItems.isEmpty || !context.unresolvedEntries.isEmpty {
                 HStack(spacing: 10) {
@@ -328,41 +328,31 @@ private struct AddVerseReviewView: View {
             if context.duplicateReferenceCount > 0 {
                 Text("\(context.duplicateReferenceCount) repeated reference\(context.duplicateReferenceCount == 1 ? "" : "s") in your pasted input \(context.duplicateReferenceCount == 1 ? "was" : "were") merged automatically.")
                     .font(.footnote.weight(.medium))
-                    .foregroundStyle(AppColors.darkTextPrimary.opacity(0.84))
+                    .foregroundStyle(AppColors.textPrimary.opacity(0.84))
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.05, green: 0.16, blue: 0.33),
-                            Color(red: 0.12, green: 0.38, blue: 0.72),
-                            Color(red: 0.31, green: 0.65, blue: 0.89)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(.white.opacity(0.05))
-                )
+                .fill(AppColors.elevatedSurface)
         )
-        .shadow(color: AppColors.brandBlue.opacity(0.18), radius: 18, y: 10)
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
+        .shadow(color: AppColors.shadow, radius: 18, y: 10)
     }
 
     private func summaryBadge(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppColors.darkTextPrimary.opacity(0.74))
+                .foregroundStyle(AppColors.textPrimary.opacity(0.74))
 
             Text(value)
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -376,14 +366,14 @@ private struct AddVerseReviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Folder")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             folderMenu
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 
@@ -413,12 +403,12 @@ private struct AddVerseReviewView: View {
                     .font(.caption.weight(.semibold))
             }
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(AppColors.lightTextPrimary)
+            .foregroundStyle(AppColors.textPrimary)
             .padding(.horizontal, 14)
             .frame(height: 48)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(AppColors.lightSurface)
+                    .fill(AppColors.surface)
             )
         }
         .buttonStyle(.plain)
@@ -439,7 +429,7 @@ private struct AddVerseReviewView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 
@@ -455,7 +445,7 @@ private struct AddVerseReviewView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Capsule().fill(AppColors.gold.opacity(0.14)))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppColors.warning)
                 }
 
                 Spacer(minLength: 0)
@@ -463,13 +453,13 @@ private struct AddVerseReviewView: View {
 
             Text(item.text)
                 .font(.system(.body, design: .serif))
-                .foregroundStyle(AppColors.lightTextPrimary)
+                .foregroundStyle(AppColors.textPrimary)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 
@@ -480,7 +470,7 @@ private struct AddVerseReviewView: View {
 
             Text("These reference attempts could not be parsed or resolved and will not be saved.")
                 .font(.subheadline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             ForEach(context.unresolvedEntries, id: \.self) { entry in
                 Text(entry)
@@ -496,7 +486,7 @@ private struct AddVerseReviewView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
     }
 
@@ -509,12 +499,12 @@ private struct AddVerseReviewView: View {
             } label: {
                 Text(isSaving ? "Saving..." : saveButtonTitle)
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(AppColors.darkTextPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
                     .background(
                         Capsule()
-                            .fill(readyItems.isEmpty ? AppColors.lightTextSecondary : AppColors.brandBlue)
+                            .fill(readyItems.isEmpty ? AppColors.textSecondary : AppColors.structuralAccent)
                     )
             }
             .buttonStyle(.plain)

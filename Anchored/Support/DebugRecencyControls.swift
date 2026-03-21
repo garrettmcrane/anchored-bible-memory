@@ -16,7 +16,7 @@ struct DebugRecencyControls: View {
         } label: {
             Image(systemName: "ladybug")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.orange)
+                .foregroundStyle(AppColors.warning)
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)

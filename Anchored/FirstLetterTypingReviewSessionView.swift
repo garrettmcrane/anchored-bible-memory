@@ -46,10 +46,16 @@ struct FirstLetterTypingReviewSessionView: View {
 
     var body: some View {
         NavigationStack {
-            sessionContent
+            ZStack {
+                AppColors.background
+                    .ignoresSafeArea()
+
+                sessionContent
+            }
             .navigationTitle(descriptor.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: toolbarContent)
+            .tint(AppColors.structuralAccent)
             .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
                 Button("End Review") {
                     endedEarly = true
@@ -70,7 +76,7 @@ struct FirstLetterTypingReviewSessionView: View {
             VStack(spacing: 10) {
                 Text(reconstructionState.currentPrompt)
                     .font(.subheadline)
-                    .foregroundStyle(AppColors.lightTextSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
@@ -86,8 +92,8 @@ struct FirstLetterTypingReviewSessionView: View {
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(AppColors.brandBlue)
-                .foregroundStyle(AppColors.darkTextPrimary)
+                .background(AppColors.primaryButton)
+                .foregroundStyle(AppColors.primaryButtonText)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
             } else {
                 inputCard
@@ -113,11 +119,11 @@ struct FirstLetterTypingReviewSessionView: View {
                 .frame(height: 56)
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(AppColors.lightSurface)
+                        .fill(AppColors.surface)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(showIncorrectHint ? AppColors.gold : AppColors.lightDivider, lineWidth: 1)
+                        .stroke(showIncorrectHint ? AppColors.gold : AppColors.divider, lineWidth: 1)
                 )
                 .offset(x: showIncorrectHint ? shakeOffset : 0)
                 .onChange(of: stepInput) { _, newValue in
@@ -126,13 +132,13 @@ struct FirstLetterTypingReviewSessionView: View {
 
             Text(showIncorrectHint ? "Try again" : "Enter one letter at a time to reveal the next word.")
                 .font(.subheadline)
-                .foregroundStyle(showIncorrectHint ? AppColors.gold : AppColors.lightTextSecondary)
+                .foregroundStyle(showIncorrectHint ? AppColors.gold : AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.lightSurface)
+                .fill(AppColors.surface)
         )
         .animation(.easeInOut(duration: 0.12), value: incorrectFlashToken)
     }
@@ -143,7 +149,7 @@ struct FirstLetterTypingReviewSessionView: View {
 
             Text("No verses to review.")
                 .font(.headline)
-                .foregroundStyle(AppColors.lightTextSecondary)
+                .foregroundStyle(AppColors.textSecondary)
 
             Spacer()
         }

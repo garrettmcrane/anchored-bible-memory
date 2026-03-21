@@ -25,7 +25,7 @@ struct ProgressiveWordHidingReviewView: View {
 
                     Text("Hide more words as you recite, then score your recall.")
                         .font(.subheadline)
-                        .foregroundStyle(AppColors.lightTextSecondary)
+                        .foregroundStyle(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal)
@@ -38,7 +38,7 @@ struct ProgressiveWordHidingReviewView: View {
                         .padding(24)
                         .background(
                             RoundedRectangle(cornerRadius: 24)
-                                .fill(AppColors.lightSurface)
+                                .fill(AppColors.surface)
                         )
                 }
                 .padding(.horizontal)
@@ -89,7 +89,7 @@ struct ProgressiveWordHidingReviewView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
                             .background(AppColors.gold.opacity(0.15))
-                            .foregroundStyle(.green)
+                            .foregroundStyle(AppColors.success)
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
                 }
