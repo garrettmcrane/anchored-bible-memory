@@ -1,5 +1,9 @@
 import Foundation
 
+extension Notification.Name {
+    static let versesDidChange = Notification.Name("VerseStore.versesDidChange")
+}
+
 enum VerseStore {
     nonisolated private static let fileName = "verses.json"
     nonisolated private static let cacheLock = NSLock()
@@ -38,6 +42,7 @@ enum VerseStore {
             let data = try encoder.encode(verses)
             try data.write(to: url, options: .atomic)
             updateCache(with: verses)
+            NotificationCenter.default.post(name: .versesDidChange, object: nil)
         } catch {
             assertionFailure("Failed to save verses: \(error)")
         }

@@ -138,9 +138,11 @@ struct TranslationPickerSection: View {
                 HStack(spacing: 8) {
                     Text(selection.title)
                         .font(.subheadline.weight(.semibold))
-                    Text(selection.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                    if !selection.subtitle.isEmpty {
+                        Text(selection.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppColors.textSecondary)

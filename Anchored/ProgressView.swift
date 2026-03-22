@@ -10,10 +10,9 @@ struct ProgressTabView: View {
 
     private let calendar = Calendar.current
 
-    private var firstName: String {
+    private var displayName: String {
         let trimmedName = LocalSession.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let components = trimmedName.split(separator: " ")
-        return components.first.map(String.init) ?? "Friend"
+        return trimmedName.isEmpty ? "Friend" : trimmedName
     }
 
     private var memorizedCount: Int {
@@ -144,6 +143,9 @@ struct ProgressTabView: View {
         .sheet(isPresented: $isShowingNotifications) {
             NotificationsPlaceholderView()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .versesDidChange)) { _ in
+            reloadData()
+        }
         .sheet(isPresented: $isShowingAddFlow) {
             AddHubView(showsCancelButton: true, focusTrigger: addFocusTrigger) { newVerse in
                 VerseRepository.shared.addVerse(newVerse)
@@ -178,7 +180,7 @@ struct ProgressTabView: View {
     private var profileHeroSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Good to see you, \(firstName)")
+                Text(displayName)
                     .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
 

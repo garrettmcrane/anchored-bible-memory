@@ -1,6 +1,34 @@
 import SwiftUI
 
 struct VerseDetailView: View {
+    fileprivate struct VerseEditDraft: Equatable {
+        var reference: String
+        var text: String
+
+        init(reference: String, text: String) {
+            self.reference = reference
+            self.text = text
+        }
+
+        var normalizedReference: String {
+            reference
+                .components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+        }
+
+        var normalizedText: String {
+            text
+                .components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+        }
+
+        var isValid: Bool {
+            !normalizedReference.isEmpty && !normalizedText.isEmpty
+        }
+    }
+
     private static let uncategorizedFolderName = "Uncategorized"
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -14,6 +42,8 @@ struct VerseDetailView: View {
     @State private var reviewStartConfiguration: ReviewStartConfiguration?
     @State private var isShowingMoveSheet = false
     @State private var isShowingDeleteConfirmation = false
+    @State private var isShowingEditSheet = false
+    @State private var editDraft: VerseEditDraft
 
     init(
         verse: Verse,
@@ -26,6 +56,7 @@ struct VerseDetailView: View {
         self.onVerseUpdated = onVerseUpdated
         self.onVerseDeleted = onVerseDeleted
         _currentVerse = State(initialValue: verse)
+        _editDraft = State(initialValue: VerseEditDraft(reference: verse.reference, text: verse.text))
     }
 
     var body: some View {
@@ -116,11 +147,27 @@ struct VerseDetailView: View {
         .tint(AppColors.structuralAccent)
         .onChange(of: verse) { _, newValue in
             currentVerse = newValue
+            editDraft = VerseEditDraft(reference: newValue.reference, text: newValue.text)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") {
+                    editDraft = VerseEditDraft(reference: currentVerse.reference, text: currentVerse.text)
+                    isShowingEditSheet = true
+                }
+                .fontWeight(.semibold)
+            }
         }
         .sheet(item: $reviewStartConfiguration) { configuration in
             ReviewStartSheet(configuration: configuration) { method in
                 onStartReview(currentVerse, method)
             }
+        }
+        .sheet(isPresented: $isShowingEditSheet) {
+            VerseEditSheet(
+                draft: $editDraft,
+                onSave: saveEditedVerse
+            )
         }
         .sheet(isPresented: $isShowingMoveSheet) {
             FolderDestinationSheet(
@@ -435,6 +482,75 @@ struct VerseDetailView: View {
         let deletedVerse = currentVerse
         dismiss()
         onVerseDeleted(deletedVerse)
+    }
+
+    private func saveEditedVerse() {
+        guard let updatedVerse = VerseRepository.shared.updateVerseContent(
+            forVerseID: currentVerse.id,
+            reference: editDraft.normalizedReference,
+            text: editDraft.normalizedText
+        ) else {
+            return
+        }
+
+        currentVerse = updatedVerse
+        editDraft = VerseEditDraft(reference: updatedVerse.reference, text: updatedVerse.text)
+        isShowingEditSheet = false
+        onVerseUpdated(updatedVerse)
+    }
+}
+
+private struct VerseEditSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var draft: VerseDetailView.VerseEditDraft
+    let onSave: () -> Void
+
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case reference
+        case text
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Reference") {
+                    TextField("John 3:16", text: $draft.reference, axis: .vertical)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                        .focused($focusedField, equals: .reference)
+                }
+
+                Section("Verse Text") {
+                    TextField("Enter verse text", text: $draft.text, axis: .vertical)
+                        .lineLimit(6...12)
+                        .textInputAutocapitalization(.sentences)
+                        .focused($focusedField, equals: .text)
+                }
+            }
+            .navigationTitle("Edit Verse")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(!draft.isValid)
+                }
+            }
+            .onAppear {
+                focusedField = .reference
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 

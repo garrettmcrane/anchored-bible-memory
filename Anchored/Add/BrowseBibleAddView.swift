@@ -83,15 +83,19 @@ struct BrowseBibleAddView: View {
     }
 
     private var headerCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Browse the bundled KJV")
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Add verses by browsing Scripture")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(AppColors.textPrimary)
 
-            Text("Choose a book, chapter, and verse range, then preview the passage before saving it into your library.")
+            Text("Choose a Bible book, then select a chapter and verse. You can add a single verse or switch to a verse range when you want to save a longer passage.")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Text("Pick book, chapter, verse, then preview before saving.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppColors.structuralAccent)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)

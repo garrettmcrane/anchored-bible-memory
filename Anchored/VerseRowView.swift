@@ -33,7 +33,7 @@ struct VerseRowView: View {
         HStack(alignment: .top, spacing: 14) {
             if let selectionState {
                 selectionIndicator(isSelected: selectionState.isSelected)
-                    .padding(.top, 12)
+                    .padding(.top, 10)
             }
 
             RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -41,29 +41,36 @@ struct VerseRowView: View {
                 .frame(width: 3)
                 .padding(.vertical, 4)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text(verse.reference)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(verse.reference)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(AppColors.textPrimary)
 
-                Text(verse.text)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                        if !resolvedMetadataItems.isEmpty {
+                            metadataRow
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                if !resolvedMetadataItems.isEmpty {
-                    metadataRow
+                    if showsChevron {
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(AppColors.textSecondary)
+                            .font(.system(size: 12, weight: .semibold))
+                            .padding(.top, 4)
+                    }
+                }
+
+                HStack {
+                    Spacer(minLength: 0)
+
+                    Text(lastReviewedText)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppColors.textSecondary.opacity(0.82))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(AppColors.textSecondary)
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.top, 4)
-            }
         }
         .padding(.vertical, 4)
     }
@@ -119,6 +126,29 @@ struct VerseRowView: View {
         }
 
         return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
+    }
+
+    private var lastReviewedText: String {
+        guard let lastReviewedAt = verse.lastReviewedAt else {
+            return "Not reviewed yet"
+        }
+
+        let calendar = Calendar.current
+        let daysAgo = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: lastReviewedAt),
+            to: calendar.startOfDay(for: Date())
+        ).day ?? 0
+
+        if daysAgo <= 0 {
+            return "Last reviewed today"
+        }
+
+        if daysAgo == 1 {
+            return "Last reviewed 1 day ago"
+        }
+
+        return "Last reviewed \(daysAgo) days ago"
     }
 }
 

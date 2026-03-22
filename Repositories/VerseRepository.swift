@@ -81,6 +81,42 @@ struct VerseRepository {
         return allVerses[index]
     }
 
+    func updateVerseContent(forVerseID id: String, reference: String, text: String) -> Verse? {
+        var allVerses = VerseStore.load()
+
+        guard let index = allVerses.firstIndex(where: { $0.id == id }) else {
+            return nil
+        }
+
+        let normalizedReference = reference
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let normalizedText = text
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        guard !normalizedReference.isEmpty, !normalizedText.isEmpty else {
+            return nil
+        }
+
+        guard allVerses[index].reference != normalizedReference || allVerses[index].text != normalizedText else {
+            return allVerses[index]
+        }
+
+        allVerses[index].reference = normalizedReference
+        allVerses[index].text = normalizedText
+        allVerses[index].updatedAt = Date()
+
+        if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
+            allVerses[index].syncStatus = .pendingUpload
+        }
+
+        VerseStore.save(allVerses)
+        return allVerses[index]
+    }
+
     func updateMasteryStatus(forVerseIDs ids: Set<String>, to status: VerseMasteryStatus) -> [Verse] {
         guard !ids.isEmpty else {
             return []

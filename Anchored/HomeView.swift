@@ -27,6 +27,7 @@ struct HomeView: View {
     @State private var isShowingSettings = false
     @State private var isShowingNotifications = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var isShowingAddFlow = false
     @State private var addFocusTrigger = 0
@@ -92,9 +93,9 @@ struct HomeView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 12)
             }
-        }
-        .navigationDestination(isPresented: $isShowingSettings) {
-            SettingsView()
+            .navigationDestination(isPresented: $isShowingSettings) {
+                SettingsView()
+            }
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -150,6 +151,9 @@ struct HomeView: View {
                 await refreshVerseOfTheDayIfNeeded()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .versesDidChange)) { _ in
+            reloadVerses()
+        }
         .overlay(alignment: .bottom) {
             if let quickAddFeedback {
                 FeedbackToast(
@@ -204,8 +208,14 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 Text("Verse of the Day")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColors.textSecondary)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppColors.structuralAccent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.verseOfTheDayBadgeFill)
+                    )
 
                 Spacer(minLength: 0)
 
@@ -232,7 +242,7 @@ struct HomeView: View {
 
             Text(verseOfTheDay.reference)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(AppColors.scriptureAccent)
+                .foregroundStyle(verseOfTheDayReferenceColor)
 
             Text(verseOfTheDay.text)
                 .font(.system(.body, design: .serif))
@@ -283,8 +293,8 @@ struct HomeView: View {
                 .frame(height: 46)
             }
             .buttonStyle(.borderedProminent)
-            .tint(AppColors.primaryButton)
-            .foregroundStyle(AppColors.primaryButtonText)
+            .tint(AppColors.reviewPracticingActionBackground)
+            .foregroundStyle(AppColors.reviewPracticingActionText)
             .disabled(practicingVerses.isEmpty)
 
             Button {
@@ -298,10 +308,15 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
             }
-            .buttonStyle(.bordered)
-            .tint(AppColors.structuralAccent)
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.reviewAllActionBackground)
+            .foregroundStyle(AppColors.reviewAllActionText)
             .disabled(verses.isEmpty)
         }
+    }
+
+    private var verseOfTheDayReferenceColor: Color {
+        colorScheme == .light ? AppColors.verseOfTheDayReference : AppColors.scriptureAccent
     }
 
     private func reloadVerses() {

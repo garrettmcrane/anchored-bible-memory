@@ -71,6 +71,15 @@ struct AppColors {
     static let statusPracticing = dynamic(light: Color(hex: "#B66B3E"), dark: Color(hex: "#D99868"))
     static let statusMemorized = dynamic(light: Color(hex: "#4D7A5A"), dark: Color(hex: "#88AF92"))
     static let shadow = dynamic(light: Color(hex: "#000000").opacity(0.08), dark: Color(hex: "#000000").opacity(0.24))
+    static let reviewPracticingActionBackground = dynamic(light: Color(hex: "#253141"), dark: Brand.gold)
+    static let reviewPracticingActionText = dynamic(light: Dark.textPrimary, dark: Dark.background)
+    static let reviewAllActionBackground = dynamic(light: Color(hex: "#DFC27A"), dark: Brand.gold)
+    static let reviewAllActionText = dynamic(light: Color(hex: "#253141"), dark: Dark.background)
+    static let verseOfTheDayBadgeFill = dynamic(light: Color(hex: "#F1E7C8"), dark: Brand.gold.opacity(0.16))
+    static let verseOfTheDayReference = dynamic(light: Color(hex: "#253141"), dark: Brand.gold)
+    static let addComposerBackground = dynamic(light: Color(hex: "#F8F6F1"), dark: Color(hex: "#30343A"))
+    static let addComposerBorder = dynamic(light: Color(hex: "#D8D2C4"), dark: Color(hex: "#4A4F56"))
+    static let addHeroTint = dynamic(light: Color(hex: "#EEE5D2"), dark: Brand.gold.opacity(0.12))
 
     private static func dynamic(light: Color, dark: Color) -> Color {
         Color(

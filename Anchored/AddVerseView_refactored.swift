@@ -33,7 +33,7 @@ struct AddVerseView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 18) {
                 introCard
                 inputCard
 
@@ -79,33 +79,53 @@ struct AddVerseView: View {
     }
 
     private var introCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Add passages from the offline KJV")
-                .font(.title3.weight(.semibold))
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Enter one or more verses")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundStyle(AppColors.textPrimary)
 
-            Text("Paste references or notes with references. Anchored will resolve what it can in the next step.")
+            Text("Anchored will identify what you type or paste into verses you can add to your library.")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             TranslationPickerSection(selection: $translation)
         }
-        .padding(16)
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AppColors.structuralAccent.opacity(0.08))
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(AppColors.addHeroTint)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private var inputCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Passage Input")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColors.textSecondary)
+
+                Spacer(minLength: 12)
+
+                Button("Paste") {
+                    rawInput = UIPasteboard.general.string ?? rawInput
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColors.structuralAccent)
+            }
+
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AppColors.surface)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(AppColors.addComposerBackground)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
                             .stroke(
-                                isReferenceEditorFocused ? AppColors.structuralAccent.opacity(0.28) : AppColors.background.opacity(0.05),
+                                isReferenceEditorFocused ? AppColors.structuralAccent.opacity(0.3) : AppColors.addComposerBorder,
                                 lineWidth: 1
                             )
                     }
@@ -113,33 +133,42 @@ struct AddVerseView: View {
                 TextEditor(text: $rawInput)
                     .focused($isReferenceEditorFocused)
                     .scrollContentBackground(.hidden)
-                    .font(.body)
-                    .frame(minHeight: 260)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
+                    .font(.system(.body, design: .serif))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(minHeight: 280)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
 
                 if rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("""
-                    John 3:16
-                    Genesis 1:3-5, Romans 8:28
-                    Memory list: John 3:16, Romans 12:2, Jude 24-25
-                    """)
-                        .font(.body)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Examples")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppColors.structuralAccent)
+                            .textCase(.uppercase)
+                            .tracking(0.8)
+
+                        Text("""
+                        John 3:16
+                        Genesis 1:3-5, Romans 8:28
+                        Memory list: John 3:16, Romans 12:2, Jude 24-25
+                        """)
+                        .font(.system(.body, design: .serif))
                         .foregroundStyle(AppColors.textSecondary)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 20)
-                        .allowsHitTesting(false)
+                    }
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 22)
+                    .allowsHitTesting(false)
                 }
             }
-
-            HStack {
-                Spacer()
-
-                Button("Paste") {
-                    rawInput = UIPasteboard.general.string ?? rawInput
-                }
-                .font(.subheadline.weight(.semibold))
-            }
+        }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(AppColors.surface)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
         }
     }
 
@@ -147,9 +176,20 @@ struct AddVerseView: View {
         Button("Continue") {
             continueToReview()
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
+        .font(.headline.weight(.semibold))
+        .foregroundStyle(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.textSecondary : AppColors.reviewPracticingActionText)
+        .frame(maxWidth: .infinity)
+        .frame(height: 54)
+        .background(
+            Capsule(style: .continuous)
+                .fill(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground)
+        )
+        .overlay {
+            Capsule(style: .continuous)
+                .stroke(AppColors.divider.opacity(0.9), lineWidth: 1)
+        }
+        .shadow(color: AppColors.shadow.opacity(0.18), radius: 12, y: 6)
         .disabled(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
@@ -373,18 +413,22 @@ private struct AddVerseReviewView: View {
     }
 
     private var folderCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        HStack(spacing: 14) {
             Text("Folder")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppColors.textSecondary)
-
             folderMenu
         }
-        .padding(18)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColors.surface)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private var folderMenu: some View {
@@ -415,10 +459,10 @@ private struct AddVerseReviewView: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppColors.textPrimary)
             .padding(.horizontal, 14)
-            .frame(height: 48)
+            .frame(height: 42)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(AppColors.surface)
+                    .fill(AppColors.secondarySurface)
             )
         }
         .buttonStyle(.plain)
@@ -435,6 +479,7 @@ private struct AddVerseReviewView: View {
         } label: {
             Text(resolvedSectionTitle)
                 .font(.headline)
+                .foregroundStyle(AppColors.textPrimary)
         }
         .padding(18)
         .background(
@@ -509,13 +554,17 @@ private struct AddVerseReviewView: View {
             } label: {
                 Text(isSaving ? "Saving..." : saveButtonTitle)
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(readyItems.isEmpty ? AppColors.textSecondary : AppColors.reviewPracticingActionText)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
                     .background(
                         Capsule()
-                            .fill(readyItems.isEmpty ? AppColors.textSecondary : AppColors.structuralAccent)
+                            .fill(readyItems.isEmpty ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground)
                     )
+                    .overlay {
+                        Capsule()
+                            .stroke(AppColors.divider.opacity(0.9), lineWidth: 1)
+                    }
             }
             .buttonStyle(.plain)
             .disabled(isSaving || readyItems.isEmpty)

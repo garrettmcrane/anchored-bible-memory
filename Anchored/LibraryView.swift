@@ -84,7 +84,7 @@ struct LibraryView: View {
     @State private var selectedFolders: Set<String> = []
     @State private var sortMode: SortMode = .newest
     @State private var searchText = ""
-    @State private var isShowingSearchField = false
+    @State private var isSearchPresented = false
     @State private var reviewStartConfiguration: ReviewStartConfiguration?
     @State private var activeBatchReview: BatchReviewPresentation?
     @State private var isSelectionMode = false
@@ -92,14 +92,14 @@ struct LibraryView: View {
     @State private var pendingBatchDeleteVerseIDs: Set<String> = []
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = []
-    @FocusState private var isSearchFieldFocused: Bool
     @Namespace private var summarySelectionNamespace
+    @FocusState private var isSearchFieldFocused: Bool
 
     @State private var isShowingAddFlow = false
     @State private var addFocusTrigger = 0
+    @Namespace private var searchTransitionNamespace
 
     private let floatingButtonHeight: CGFloat = 50
-    private let floatingButtonVerticalInset: CGFloat = 8
     private let summaryFadeDistance: CGFloat = 100
 
     private var bottomShellClearance: CGFloat {
@@ -213,7 +213,7 @@ struct LibraryView: View {
     }
 
     private var floatingButtonClearance: CGFloat {
-        floatingButtonHeight + (floatingButtonVerticalInset * 2) + bottomShellClearance + 6
+        floatingButtonHeight + 8
     }
 
     private var batchActionBarClearance: CGFloat {
@@ -272,11 +272,13 @@ struct LibraryView: View {
                         .ignoresSafeArea()
 
                     List {
-                        topSummarySection
-                            .opacity(summaryOpacity)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
+                        if !isSearchActive {
+                            topSummarySection
+                                .opacity(summaryOpacity)
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                        }
 
                         Section {
                             if filteredVerses.isEmpty {
@@ -324,7 +326,6 @@ struct LibraryView: View {
                 .overlay(alignment: .bottom) {
                     bottomOverlay
                 }
-//                .navigationBarHidden(true)
                 .navigationDestination(isPresented: detailVersePresented) {
                     if let verse = detailVerse {
                         VerseDetailView(
@@ -346,17 +347,7 @@ struct LibraryView: View {
                     }
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        addFocusTrigger += 1
-                        isShowingAddFlow = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Add")
-                }
-            }
+            .toolbar {}
             .sheet(isPresented: $showingFolderFilterSheet) {
                 FolderFilterSheet(
                     allFoldersTitle: Self.allFoldersOption,
@@ -439,6 +430,9 @@ struct LibraryView: View {
             .onAppear {
                 reloadVerses()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .versesDidChange)) { _ in
+                reloadVerses()
+            }
             .confirmationDialog(batchDeleteDialogTitle, isPresented: batchDeleteDialogPresented, titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
                     deleteVerses(ids: pendingBatchDeleteVerseIDs)
@@ -510,15 +504,22 @@ struct LibraryView: View {
                         .frame(maxWidth: .infinity)
 
                     Button {
-                        isShowingSearchField = true
-                        isSearchFieldFocused = true
+                        withAnimation(.snappy(duration: 0.28, extraBounce: 0.06)) {
+                            isSearchPresented = true
+                        }
                     } label: {
                         ShellCircularIconLabel(systemImage: "magnifyingglass")
                     }
                     .buttonStyle(.plain)
+                    .matchedTransitionSource(id: "library-search", in: searchTransitionNamespace)
                     .accessibilityLabel("Search library")
                 }
                 .frame(height: 44)
+
+                if isSearchPresented || hasActiveSearch {
+                    librarySearchField
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
 
                 Text("View and practice your library of saved passages.")
                     .font(.subheadline)
@@ -545,8 +546,52 @@ struct LibraryView: View {
             }
         }
         .padding(.horizontal, 0)
-        .padding(.top, 8)
+        .padding(.top, 0)
         .padding(.bottom, 0)
+    }
+
+    private var librarySearchField: some View {
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(AppColors.textSecondary)
+
+                    TextField("Search reference or text", text: $searchText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($isSearchFieldFocused)
+
+                    if hasActiveSearch {
+                        Button {
+                            searchText = ""
+                            isSearchFieldFocused = true
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 42)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .glassEffectID("library-search-field", in: searchTransitionNamespace)
+
+                Button("Cancel") {
+                    withAnimation(.snappy(duration: 0.24)) {
+                        isSearchPresented = false
+                        searchText = ""
+                    }
+                    isSearchFieldFocused = false
+                }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.glass)
+            }
+        }
+        .onAppear {
+            isSearchFieldFocused = true
+        }
     }
 
     @ViewBuilder
@@ -571,11 +616,6 @@ struct LibraryView: View {
         } else {
             VStack(alignment: .leading, spacing: 0) {
                 utilityRail
-
-                if isShowingSearchField || hasActiveSearch {
-                    librarySearchField
-                        .padding(.top, 10)
-                }
 
                 if hasActiveFolderFilter {
                     Text("Folders: \(folderSelectionSummary)")
@@ -644,51 +684,6 @@ struct LibraryView: View {
                 )
                 .accessibilityLabel("Sort")
             }
-        }
-    }
-
-    private var librarySearchField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppColors.textSecondary)
-
-            TextField("Search reference or text", text: $searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .focused($isSearchFieldFocused)
-
-            if hasActiveSearch {
-                Button {
-                    searchText = ""
-                    isSearchFieldFocused = true
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AppColors.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
-            } else {
-                Button("Cancel") {
-                    isShowingSearchField = false
-                    isSearchFieldFocused = false
-                }
-                .buttonStyle(.plain)
-                .font(.system(size: 14, weight: .semibold))
-            }
-        }
-        .padding(.horizontal, 14)
-        .frame(height: 48)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
-        .onAppear {
-            isSearchFieldFocused = true
         }
     }
 
@@ -788,14 +783,7 @@ struct LibraryView: View {
                 .accessibilityLabel(toggleActionTitle(for: verse))
                 .tint(toggleActionTint(for: verse))
             }
-            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                Button {
-                    pendingMoveVerse = MoveVersePresentation(verse: verse)
-                } label: {
-                    Image(systemName: "folder")
-                }
-                .tint(.indigo)
-
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 Button(role: .destructive) {
                     deleteVerse(verse)
                 } label: {
@@ -859,8 +847,8 @@ struct LibraryView: View {
         HStack(spacing: 10) {
             reviewButton(
                 title: "Review Practicing",
-                tint: AppColors.primaryButton,
-                textColor: AppColors.primaryButtonText,
+                tint: AppColors.reviewPracticingActionBackground,
+                textColor: AppColors.reviewPracticingActionText,
                 isEnabled: !practicingReviewVerses.isEmpty || selectedFilter == .memorized
             ) {
                 startLibraryReview(
@@ -872,8 +860,8 @@ struct LibraryView: View {
 
             reviewButton(
                 title: "Review All",
-                tint: AppColors.gold,
-                textColor: AppColors.textPrimary,
+                tint: AppColors.reviewAllActionBackground,
+                textColor: AppColors.reviewAllActionText,
                 isEnabled: !reviewVerses.isEmpty
             ) {
                 startLibraryReview(
@@ -883,9 +871,8 @@ struct LibraryView: View {
                 )
             }
         }
-        .buttonStyle(.plain)
         .padding(.horizontal, 20)
-        .padding(.bottom, bottomShellClearance - 2)
+        .padding(.bottom, floatingReviewButtonBottomInset)
     }
 
     private var batchActionBar: some View {
@@ -978,17 +965,17 @@ struct LibraryView: View {
                 .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(
-                    Capsule()
-                        .fill(isEnabled ? tint : AppColors.secondarySurface)
-                )
-                .overlay {
-                    Capsule()
-                        .stroke(isEnabled ? tint.opacity(0.18) : AppColors.divider.opacity(0.9), lineWidth: 1)
-                }
-                .shadow(color: AppColors.background.opacity(isEnabled ? 0.12 : 0), radius: 12, x: 0, y: 6)
         }
+        .buttonStyle(.glass(.regular.tint(isEnabled ? tint : AppColors.secondarySurface).interactive()))
         .disabled(!isEnabled)
+    }
+
+    private var floatingReviewButtonBottomInset: CGFloat {
+        12
+    }
+
+    private var isSearchActive: Bool {
+        isSearchPresented || hasActiveSearch
     }
 
     private func reloadVerses() {

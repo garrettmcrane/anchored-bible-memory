@@ -571,7 +571,6 @@ struct GroupDetailView: View {
                 VerseRowView(
                     verse: passage.verse,
                     showsChevron: true,
-                    metadataItems: assignedPassageMetadata(for: passage),
                     statusTintOverride: passage.verse.masteryStatus.tintColor
                 )
             }
@@ -603,10 +602,6 @@ struct GroupDetailView: View {
 
     private func memberDisplayName(for membership: GroupMembership) -> String {
         membership.userID == LocalSession.currentUserID ? "You" : membership.userID
-    }
-
-    private func assignedPassageMetadata(for passage: AssignedPassage) -> [VerseRowView.MetadataItem] {
-        [VerseRowView.MetadataItem(text: passage.verse.masteryStatus.rawValue)]
     }
 
     private var groupSubtitle: String {

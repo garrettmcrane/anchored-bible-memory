@@ -16,7 +16,9 @@ struct GroupsView: View {
                     header
 
                     if groups.isEmpty {
+                        Spacer(minLength: 0)
                         emptyState
+                        Spacer(minLength: BottomNavigationShellLayout.overlayClearance - 44)
                     } else {
                         groupsList
                     }
@@ -156,7 +158,7 @@ struct GroupsView: View {
                     .padding(.top, 6)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, BottomNavigationShellLayout.overlayClearance + 16)
+            .padding(.bottom, max(BottomNavigationShellLayout.overlayClearance - 26, 18))
         }
     }
 
