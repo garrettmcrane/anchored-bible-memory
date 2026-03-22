@@ -89,130 +89,25 @@ struct GroupDetailView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(group.name)
-                        .font(.system(size: 30, weight: .bold))
+        ZStack {
+            AppColors.background
+                .ignoresSafeArea()
 
-                    HStack(spacing: 10) {
-                        Label("Owner: \(ownerLabel)", systemImage: "crown.fill")
-                        Label(memberCountText, systemImage: "person.2.fill")
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(AppColors.textSecondary)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    groupHeroSection
+                    reviewSection
+                    progressSection
+                    assignedPassagesSection
+                    membersSection
+                    secondaryActionsSection
                 }
-                .padding(.vertical, 8)
-            }
-            .listRowBackground(Color.clear)
-
-            Section {
-                Button {
-                    startGroupPracticingReview()
-                } label: {
-                    Text("Review Practicing")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(practicingReviewVerses.isEmpty)
-
-                Button {
-                    startGroupAllReview()
-                } label: {
-                    Text("Review All")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .disabled(reviewVerses.isEmpty)
-            }
-
-            Section("Progress") {
-                HStack(spacing: 0) {
-                    progressMetric(value: progressSummary.totalAssignedCount, title: "Assigned")
-                    progressMetric(value: progressSummary.practicingCount, title: "Practicing")
-                    progressMetric(value: progressSummary.memorizedCount, title: "Memorized")
-                }
-                .padding(.vertical, 4)
-            }
-
-            Section("Assigned Passages") {
-                if assignedPassages.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("No passages assigned yet.")
-                            .font(.subheadline.weight(.semibold))
-
-                        Text("Assign verses from your personal memorization library or add brand new verses for this group.")
-                            .font(.subheadline)
-                            .foregroundStyle(AppColors.textSecondary)
-
-                        Button("Assign Passage") {
-                            isShowingAssignSheet = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.vertical, 8)
-                } else {
-                    ForEach(assignedPassages) { passage in
-                        VStack(alignment: .leading, spacing: 8) {
-                            VerseRowView(verse: passage.verse, showsChevron: false)
-
-                            HStack {
-                                progressBadge(for: passage.progress)
-
-                                if let lastReviewedAt = passage.progress.lastReviewedAt {
-                                    Text(lastReviewedAt.formatted(.relative(presentation: .named)))
-                                        .font(.caption)
-                                        .foregroundStyle(AppColors.textSecondary)
-                                }
-
-                                Text("Assigned \(passage.assignment.assignedAt.formatted(.relative(presentation: .named)))")
-                                    .font(.caption)
-                                    .foregroundStyle(AppColors.textSecondary)
-
-                                Spacer()
-
-                                Button("Remove", role: .destructive) {
-                                    removeAssignment(passage.assignment.id)
-                                }
-                                .font(.caption.weight(.semibold))
-                                .buttonStyle(.borderless)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-            }
-
-            Section {
-                ownerMemberRow
-
-                if activeMembers.count > 1 {
-                    ForEach(activeMembers.filter { $0.role != .owner }) { membership in
-                        memberRow(for: membership)
-                    }
-                }
-            } header: {
-                Text("Members")
-            } footer: {
-                Text("The group owner is added automatically when the group is created.")
-            }
-
-            Section {
-                if currentUserIsOwner {
-                    Button("Delete Group", role: .destructive) {
-                        pendingConfirmation = .deleteGroup
-                    }
-                } else if currentUserMembership != nil {
-                    Button("Leave Group", role: .destructive) {
-                        pendingConfirmation = .leaveGroup
-                    }
-                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, BottomNavigationShellLayout.overlayClearance + 22)
             }
         }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Group")
+        .navigationTitle(group.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -314,6 +209,195 @@ struct GroupDetailView: View {
         }
     }
 
+    private var groupHeroSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(group.name)
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+
+                Text("Keep shared passages, group review, and member context together in one place.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 10) {
+                heroStat(title: "Owner", value: ownerLabel)
+                heroStat(title: "Members", value: activeMembers.count.formatted())
+                heroStat(title: "Assigned", value: progressSummary.totalAssignedCount.formatted())
+            }
+        }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(AppColors.elevatedSurface)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
+    }
+
+    private var reviewSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader(title: "Review", subtitle: "Start from the verses this group is actively working on.")
+
+            HStack(spacing: 10) {
+                reviewActionButton(
+                    title: "Review Practicing",
+                    tint: AppColors.primaryButton,
+                    textColor: AppColors.primaryButtonText,
+                    isEnabled: !practicingReviewVerses.isEmpty
+                ) {
+                    startGroupPracticingReview()
+                }
+
+                reviewActionButton(
+                    title: "Review All",
+                    tint: AppColors.surface,
+                    textColor: AppColors.textPrimary,
+                    isEnabled: !reviewVerses.isEmpty
+                ) {
+                    startGroupAllReview()
+                }
+            }
+        }
+    }
+
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader(title: "Progress Summary")
+
+            HStack(spacing: 12) {
+                progressMetricCard(value: progressSummary.totalAssignedCount, title: "Assigned")
+                progressMetricCard(value: progressSummary.practicingCount, title: "Practicing")
+                progressMetricCard(value: progressSummary.memorizedCount, title: "Memorized")
+            }
+        }
+    }
+
+    private var assignedPassagesSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center) {
+                sectionHeader(title: "Assigned Passages", subtitle: assignedPassages.isEmpty ? "Nothing is assigned yet." : "\(assignedPassages.count) passage\(assignedPassages.count == 1 ? "" : "s") in this group")
+
+                Spacer(minLength: 12)
+
+                Button {
+                    isShowingAssignSheet = true
+                } label: {
+                    Text("Assign")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .padding(.horizontal, 14)
+                        .frame(height: 38)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .capsule)
+            }
+
+            if assignedPassages.isEmpty {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Assign verses from your personal library or add new verses directly into the group.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+
+                    HStack(spacing: 10) {
+                        Button("Assign from Library") {
+                            isShowingAssignSheet = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.primaryButton)
+
+                        Button("Add New Verse") {
+                            isShowingAddVerseSheet = true
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(AppColors.structuralAccent)
+                    }
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(cardBackground)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(assignedPassages) { passage in
+                        assignedPassageCard(for: passage)
+                    }
+                }
+            }
+        }
+    }
+
+    private var membersSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader(title: "Members")
+
+            NavigationLink {
+                GroupMembersView(group: group, memberships: activeMembers)
+            } label: {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(AppColors.subtleAccent)
+                            .frame(width: 42, height: 42)
+
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(AppColors.gold)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(memberCountText)
+                            .font(.headline)
+                            .foregroundStyle(AppColors.textPrimary)
+
+                        Text("Owner: \(ownerLabel)")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+
+                    Spacer(minLength: 12)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(cardBackground)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var secondaryActionsSection: some View {
+        if currentUserIsOwner || currentUserMembership != nil {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionHeader(title: "Group Settings")
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(currentUserIsOwner
+                         ? "Deleting removes the group and its assignments from this device."
+                         : "Leaving removes your membership from this group on this device.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+
+                    Button(currentUserIsOwner ? "Delete Group" : "Leave Group", role: .destructive) {
+                        pendingConfirmation = currentUserIsOwner ? .deleteGroup : .leaveGroup
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(AppColors.weakness)
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(cardBackground)
+            }
+        }
+    }
+
     private var confirmationPresented: Binding<Bool> {
         Binding(
             get: { pendingConfirmation != nil },
@@ -355,41 +439,130 @@ struct GroupDetailView: View {
         return memberDisplayName(for: ownerMembership)
     }
 
-    private var ownerMemberRow: some View {
-        memberRow(for: ownerMembership ?? GroupMembership(
-            id: UUID().uuidString,
-            groupID: group.id,
-            userID: LocalSession.currentUserID,
-            role: .owner,
-            joinedAt: group.createdAt,
-            isActive: true
-        ))
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(AppColors.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(AppColors.divider, lineWidth: 1)
+            )
     }
 
-    private func memberRow(for membership: GroupMembership) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: membership.role == .owner ? "person.crop.circle.badge.checkmark" : "person.crop.circle")
-                .font(.title3)
-                .foregroundStyle(membership.role == .owner ? AppColors.gold : AppColors.textSecondary)
+    private func sectionHeader(title: String, subtitle: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(AppColors.textPrimary)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(memberDisplayName(for: membership))
-                    .font(.body.weight(.semibold))
-
-                Text(memberSubtitle(for: membership))
-                    .font(.caption)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.subheadline)
                     .foregroundStyle(AppColors.textSecondary)
-            }
-
-            Spacer()
-
-            if membership.role == .owner {
-                Text("Owner")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 2)
+    }
+
+    private func heroStat(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColors.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.surface.opacity(0.86))
+        )
+    }
+
+    private func reviewActionButton(
+        title: String,
+        tint: Color,
+        textColor: Color,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 46)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(isEnabled ? tint : AppColors.surface)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(isEnabled ? tint.opacity(0.2) : AppColors.divider, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+    }
+
+    private func progressMetricCard(value: Int, title: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(value.formatted())
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColors.textPrimary)
+
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(cardBackground)
+    }
+
+    private func assignedPassageCard(for passage: AssignedPassage) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VerseRowView(verse: passage.verse, showsChevron: false)
+
+            HStack(alignment: .center, spacing: 10) {
+                progressBadge(for: passage.progress)
+
+                if let lastReviewedAt = passage.progress.lastReviewedAt {
+                    metaPill(lastReviewedAt.formatted(.relative(presentation: .named)))
+                }
+
+                metaPill("Assigned \(passage.assignment.assignedAt.formatted(.relative(presentation: .named)))")
+
+                Spacer(minLength: 0)
+            }
+
+            Button("Remove", role: .destructive) {
+                removeAssignment(passage.assignment.id)
+            }
+            .font(.subheadline.weight(.semibold))
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground)
+    }
+
+    private func metaPill(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(AppColors.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(AppColors.elevatedSurface)
+            )
     }
 
     private func memberDisplayName(for membership: GroupMembership) -> String {
@@ -491,19 +664,6 @@ struct GroupDetailView: View {
         case .memorized:
             return 1
         }
-    }
-
-    private func progressMetric(value: Int, title: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value.formatted())
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-
-            Text(title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     private func progressBadge(for progress: GroupVerseProgress) -> some View {

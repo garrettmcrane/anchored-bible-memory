@@ -54,6 +54,7 @@ struct ScriptureAddPreviewView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(passages.count == 1 ? "1 memorization item ready" : "\(passages.count) memorization items ready")
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(AppColors.textPrimary)
 
             Text("Single verses and ranges save as one unit. Separate references save separately.")
                 .font(.subheadline)
@@ -63,8 +64,12 @@ struct ScriptureAddPreviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.structuralAccent.opacity(0.1))
+                .fill(AppColors.secondarySurface)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private var defaultsCard: some View {
@@ -121,8 +126,12 @@ struct ScriptureAddPreviewView: View {
                         .frame(height: 42)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(AppColors.structuralAccent.opacity(0.12))
+                                .fill(AppColors.selectionFill)
                         )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(AppColors.divider, lineWidth: 1)
+                        }
                         .disabled(normalizedCandidateFolderName == nil)
                     }
                 }
@@ -133,6 +142,10 @@ struct ScriptureAddPreviewView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColors.surface)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private var saveButton: some View {
@@ -141,14 +154,14 @@ struct ScriptureAddPreviewView: View {
         } label: {
             Text(isSaving ? "Saving..." : "Save Verses")
                 .fontWeight(.semibold)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(AppColors.primaryButtonText)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
                 .background(
                     Capsule()
-                        .fill(AppColors.structuralAccent)
+                        .fill(AppColors.primaryButton)
                 )
-                .shadow(color: AppColors.background.opacity(0.12), radius: 12, x: 0, y: 6)
+                .shadow(color: AppColors.shadow, radius: 12, x: 0, y: 6)
         }
         .buttonStyle(.plain)
         .disabled(isSaving)
@@ -198,6 +211,10 @@ struct ScriptureAddPreviewView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColors.surface)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
     private func folderMenu(
@@ -236,8 +253,12 @@ struct ScriptureAddPreviewView: View {
             .padding(.vertical, 9)
             .background(
                 Capsule(style: .continuous)
-                    .fill(AppColors.surface)
+                    .fill(AppColors.elevatedSurface)
             )
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(AppColors.divider, lineWidth: 1)
+            }
         }
         .buttonStyle(.plain)
     }

@@ -23,10 +23,10 @@ struct AddHubView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 12) {
                     header
 
-                    VStack(spacing: 14) {
+                    VStack(spacing: 10) {
                         NavigationLink {
                             AddVerseView(
                                 focusTrigger: focusTrigger,
@@ -68,10 +68,11 @@ struct AddHubView: View {
                     }
                 }
                 .padding(20)
+                .padding(.bottom, 24)
             }
             .background(AppColors.background)
             .navigationTitle("Add")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .tint(AppColors.structuralAccent)
             .toolbar {
                 if showsCancelButton {
@@ -86,30 +87,23 @@ struct AddHubView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Build your Scripture library")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(AppColors.textPrimary)
 
             Text("Choose how you want to add verses. Paste references, search the bundled Bible, or come back soon for bulk import.")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
         }
-        .padding(22)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AppColors.elevatedSurface)
         )
-        .overlay(alignment: .topLeading) {
-            Capsule(style: .continuous)
-                .fill(AppColors.structuralAccent)
-                .frame(width: 64, height: 6)
-                .padding(.top, 16)
-                .padding(.leading, 18)
-        }
         .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(AppColors.divider, lineWidth: 1)
         }
     }
@@ -123,18 +117,18 @@ private struct AddHubOptionCard: View {
     var isPlaceholder = false
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(tint.opacity(0.12))
-                    .frame(width: 58, height: 58)
+                    .frame(width: 50, height: 50)
 
                 Image(systemName: systemImage)
-                    .font(.title2.weight(.semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(tint)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
                     Text(title)
                         .font(.headline)
@@ -164,13 +158,14 @@ private struct AddHubOptionCard: View {
                     .foregroundStyle(AppColors.textSecondary)
             }
         }
-        .padding(18)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColors.surface)
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AppColors.divider, lineWidth: 1)
         }
         .opacity(isPlaceholder ? 0.84 : 1)

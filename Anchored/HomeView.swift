@@ -43,6 +43,16 @@ struct HomeView: View {
         }
     }
 
+    private var firstName: String {
+        let trimmedName = LocalSession.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let components = trimmedName.split(separator: " ")
+        return components.first.map(String.init) ?? "Friend"
+    }
+
+    private var personalizedGreetingText: String {
+        "\(greetingText), \(firstName)"
+    }
+
     private var verseOfTheDayIsInLibrary: Bool {
         verses.contains { verse in
             verseMatchesVerseOfTheDay(verse)
@@ -67,7 +77,7 @@ struct HomeView: View {
                 AppColors.background
                     .ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 16) {
                     header
                     greetingSection
                     verseCard
@@ -76,7 +86,7 @@ struct HomeView: View {
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .padding(.top, 16)
                 .padding(.bottom, 12)
             }
             .navigationBarHidden(true)
@@ -156,14 +166,16 @@ struct HomeView: View {
     }
 
     private var greetingSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(greetingText)
-                .font(.system(size: 26, weight: .bold))
+        VStack(alignment: .leading, spacing: 6) {
+            Text(personalizedGreetingText)
+                .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(AppColors.textPrimary)
+                .padding(.top, 2)
 
             Text("Keep your next review close and your library growing steadily.")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -225,7 +237,7 @@ struct HomeView: View {
             HomeMetricColumn(title: "All", value: verses.count)
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AppColors.surface)
@@ -241,16 +253,15 @@ struct HomeView: View {
             Button {
                 startPracticingReview()
             } label: {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: "flame.fill")
                     Text("Review Practicing")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 58)
+                .frame(height: 46)
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.large)
             .tint(AppColors.primaryButton)
             .foregroundStyle(AppColors.primaryButtonText)
             .disabled(practicingVerses.isEmpty)
@@ -258,16 +269,15 @@ struct HomeView: View {
             Button {
                 startAllReview()
             } label: {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: "books.vertical.fill")
                     Text("Review All")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 54)
+                .frame(height: 44)
             }
             .buttonStyle(.bordered)
-            .controlSize(.large)
             .tint(AppColors.structuralAccent)
             .disabled(verses.isEmpty)
         }

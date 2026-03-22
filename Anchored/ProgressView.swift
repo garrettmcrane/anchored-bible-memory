@@ -8,6 +8,12 @@ struct ProgressTabView: View {
 
     private let calendar = Calendar.current
 
+    private var firstName: String {
+        let trimmedName = LocalSession.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let components = trimmedName.split(separator: " ")
+        return components.first.map(String.init) ?? "Friend"
+    }
+
     private var memorizedCount: Int {
         verses.filter(\.isMastered).count
     }
@@ -71,16 +77,40 @@ struct ProgressTabView: View {
         }
     }
 
-    private var insightText: String? {
-        if practicingCount > memorizedCount, !verses.isEmpty {
-            return "You currently have more practicing verses than memorized verses."
+    private var leadingInsightTitle: String {
+        if weeklyReviewCount > 0 {
+            return "Your rhythm is building"
+        }
+
+        if verses.isEmpty {
+            return "Your library starts here"
+        }
+
+        if memorizedCount > 0 {
+            return "You already have traction"
+        }
+
+        return "A steady cadence wins"
+    }
+
+    private var leadingInsightMessage: String {
+        if verses.isEmpty {
+            return "Add a few verses and this space will begin reflecting your memory habits, recent reviews, and where to focus next."
+        }
+
+        if let nextVerse = practicingVerses.first {
+            return "Your next best review is \(nextVerse.reference). Keep your active verses warm and your memorized ones durable."
         }
 
         if weeklyReviewCount > 0 {
-            return "You reviewed \(weeklyReviewCount) \(weeklyReviewCount == 1 ? "time" : "times") this week."
+            return "You reviewed \(weeklyReviewCount) \(weeklyReviewCount == 1 ? "time" : "times") this week. A little consistency here compounds quickly."
         }
 
-        return nil
+        return "Your library is in a strong place. Revisit a favorite verse to keep momentum from going flat."
+    }
+
+    private var strongestFolderName: String? {
+        folderBreakdown.first?.name
     }
 
     var body: some View {
@@ -90,21 +120,16 @@ struct ProgressTabView: View {
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 20) {
                         header
-                        introSection
-                        summarySection
+                        profileHeroSection
+                        momentumSection
                         activitySection
-                        folderBreakdownSection
-                        practicingSection
-
-                        if let insightText {
-                            insightCard(text: insightText)
-                        }
+                        librarySection
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 28)
+                    .padding(.top, 16)
+                    .padding(.bottom, BottomNavigationShellLayout.overlayClearance + 22)
                 }
             }
             .navigationBarHidden(true)
@@ -132,21 +157,34 @@ struct ProgressTabView: View {
         )
     }
 
-    private var introSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Your progress at a glance")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(AppColors.textPrimary)
+    private var profileHeroSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Good to see you, \(firstName)")
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
 
-            Text("Review activity, library progress, and personal momentum all live here.")
-                .font(.subheadline)
-                .foregroundStyle(AppColors.textSecondary)
-        }
-    }
+                Text(leadingInsightTitle)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppColors.scriptureAccent)
 
-    private var summarySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Overview")
+                Text(leadingInsightMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10)
+                ],
+                spacing: 10
+            ) {
+                ProfileHighlightPill(title: "Memorized", value: memorizedCount.formatted())
+                ProfileHighlightPill(title: "Practicing", value: practicingCount.formatted())
+                ProfileHighlightPill(title: "Library", value: verses.count.formatted())
+            }
 
             LazyVGrid(
                 columns: [
@@ -155,10 +193,45 @@ struct ProgressTabView: View {
                 ],
                 spacing: 12
             ) {
-                ProgressMetricCard(title: "Memorized", value: memorizedCount)
-                ProgressMetricCard(title: "Practicing", value: practicingCount)
-                ProgressMetricCard(title: "Times Reviewed", value: timesReviewedCount)
-                ProgressMetricCard(title: "All Verses", value: verses.count)
+                profileDetail(label: "This week", value: "\(weeklyReviewCount) reviews")
+
+                if let strongestFolderName {
+                    profileDetail(label: "Top folder", value: strongestFolderName)
+                }
+            }
+        }
+        .padding(22)
+        .background(heroBackground)
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
+    }
+
+    private var momentumSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader(title: "Momentum", subtitle: "Your recent pace and lifetime repetition")
+
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12)
+                ],
+                spacing: 12
+            ) {
+                MomentumCard(
+                    title: "This Week",
+                    value: weeklyReviewCount.formatted(),
+                    detail: weeklyReviewCount == 1 ? "review completed" : "reviews completed",
+                    accent: AppColors.scriptureAccent
+                )
+
+                MomentumCard(
+                    title: "Lifetime Reviews",
+                    value: timesReviewedCount.formatted(),
+                    detail: verses.isEmpty ? "build your library" : "across your verses",
+                    accent: AppColors.structuralAccent
+                )
             }
         }
     }
@@ -175,19 +248,32 @@ struct ProgressTabView: View {
         }
     }
 
-    private var folderBreakdownSection: some View {
+    private var librarySection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Folder Breakdown")
+            sectionHeader(title: "Library Snapshot", subtitle: "How your verses are distributed right now")
 
             if folderBreakdown.isEmpty {
                 ProgressEmptyStateCard(message: "Your verse folders will appear here as you build your library.")
             } else {
-                VStack(spacing: 12) {
-                    ForEach(folderBreakdown) { item in
-                        FolderBreakdownRow(
-                            item: item,
-                            totalCount: max(verses.count, 1)
-                        )
+                VStack(alignment: .leading, spacing: 16) {
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 12),
+                            GridItem(.flexible(), spacing: 12)
+                        ],
+                        spacing: 12
+                    ) {
+                        LibrarySnapshotCard(title: "Folders", value: folderBreakdown.count.formatted())
+                        LibrarySnapshotCard(title: "Largest Folder", value: strongestFolderName ?? "None")
+                    }
+
+                    VStack(spacing: 12) {
+                        ForEach(folderBreakdown) { item in
+                            FolderBreakdownRow(
+                                item: item,
+                                totalCount: max(verses.count, 1)
+                            )
+                        }
                     }
                 }
                 .padding(18)
@@ -196,52 +282,18 @@ struct ProgressTabView: View {
         }
     }
 
-    private var practicingSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Practicing")
-
-            if practicingVerses.isEmpty {
-                ProgressEmptyStateCard(message: "Everything is currently marked Memorized.")
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(practicingVerses.prefix(5)).indices, id: \.self) { index in
-                        let verse = practicingVerses[index]
-
-                        NeedsAttentionRow(verse: verse)
-
-                        if index < min(practicingVerses.count, 5) - 1 {
-                            Divider()
-                                .padding(.horizontal, 18)
-                        }
-                    }
-                }
-                .padding(.vertical, 8)
-                .background(cardBackground)
-            }
-        }
-    }
-
-    private func insightCard(text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Insight")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.textSecondary)
-
-            Text(text)
-                .font(.body.weight(.medium))
-                .foregroundStyle(AppColors.textPrimary)
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(
-                    AppColors.secondarySurface
+    private var heroBackground: some View {
+        RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        AppColors.elevatedSurface,
+                        AppColors.secondarySurface
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+            )
     }
 
     private var cardBackground: some View {
@@ -263,8 +315,29 @@ struct ProgressTabView: View {
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(AppColors.textSecondary)
-            }
+                }
         }
+    }
+
+    private func profileDetail(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColors.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.surface.opacity(0.7))
+        )
     }
 
     private func reloadData() {
@@ -300,27 +373,95 @@ struct ProgressTabView: View {
     }
 }
 
-private struct ProgressMetricCard: View {
+private struct ProfileHighlightPill: View {
     let title: String
-    let value: Int
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColors.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, minHeight: 86, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.surface.opacity(0.82))
+        )
+    }
+}
+
+private struct MomentumCard: View {
+    let title: String
+    let value: String
+    let detail: String
+    let accent: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.subheadline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppColors.textSecondary)
 
-            Text(value.formatted())
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+            Text(value)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+
+            Text(detail)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Capsule(style: .continuous)
+                .fill(accent.opacity(0.28))
+                .frame(width: 34, height: 5)
         }
-        .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 148, alignment: .leading)
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AppColors.surface)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
+    }
+}
+
+private struct LibrarySnapshotCard: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.headline)
+                .foregroundStyle(AppColors.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.secondarySurface)
         )
     }
 }

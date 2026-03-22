@@ -27,25 +27,30 @@ struct LibraryView: View {
         let isSelected: Bool
 
         var body: some View {
-            VStack(spacing: 4) {
+            VStack(spacing: 5) {
                 Text(value.formatted())
-                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
                 Text(title)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
                     .textCase(.uppercase)
-                    .tracking(0.4)
+                    .tracking(0.45)
                     .lineLimit(1)
-
-                Capsule(style: .continuous)
-                    .fill(isSelected ? AppColors.gold.opacity(0.2) : Color.clear)
-                    .frame(width: 28, height: 4)
             }
             .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(isSelected ? AppColors.selectionFill : Color.clear)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isSelected ? AppColors.gold.opacity(0.42) : Color.clear, lineWidth: 1)
+            }
         }
     }
 
@@ -72,7 +77,6 @@ struct LibraryView: View {
     private static let allFoldersOption = "All Folders"
     private static let uncategorizedFolderName = "Uncategorized"
 
-    @State private var showingAddVerse = false
     @State private var showingFolderFilterSheet = false
     @State private var detailVerse: Verse? = nil
     @State private var selectedVerseReview: SingleVerseReviewPresentation? = nil
@@ -184,7 +188,7 @@ struct LibraryView: View {
     }
 
     private var floatingButtonClearance: CGFloat {
-        floatingButtonHeight + (floatingButtonVerticalInset * 2) + bottomShellClearance + 16
+        floatingButtonHeight + (floatingButtonVerticalInset * 2) + bottomShellClearance + 6
     }
 
     private var batchActionBarClearance: CGFloat {
@@ -316,14 +320,6 @@ struct LibraryView: View {
                         )
                     }
                 }
-            }
-        }
-        .sheet(isPresented: $showingAddVerse) {
-            AddHubView(showsCancelButton: true) { newVerse in
-                VerseRepository.shared.addVerse(newVerse)
-            } onComplete: {
-                reloadVerses()
-                showingAddVerse = false
             }
         }
         .sheet(isPresented: $showingFolderFilterSheet) {
@@ -467,21 +463,25 @@ struct LibraryView: View {
                         .font(.system(size: 24, weight: .semibold))
                         .foregroundStyle(AppColors.textPrimary)
 
+                    Text("Your saved passages, organized and ready to review.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
 
                 Spacer()
 
                 Button {
-                    showingAddVerse = true
+                    isShowingSearchField = true
+                    isSearchFieldFocused = true
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "magnifyingglass")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(AppColors.textPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: .circle)
-                .accessibilityLabel("Add verse")
+                .accessibilityLabel("Search library")
             }
 
             HStack(spacing: 0) {
@@ -491,8 +491,8 @@ struct LibraryView: View {
                 SummaryDivider()
                 summaryFilterMetric(value: memorizedCount, title: "Memorized", filter: .memorized)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(AppColors.surface)
@@ -563,7 +563,24 @@ struct LibraryView: View {
 
             Spacer(minLength: 0)
 
-            HStack(spacing: 4) {
+            HStack(spacing: 8) {
+                Button {
+                    showingFolderFilterSheet = true
+                } label: {
+                    Image(systemName: hasActiveFolderFilter ? "folder.fill" : "folder")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(hasActiveFolderFilter ? AppColors.gold : AppColors.textPrimary)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(
+                    hasActiveFolderFilter
+                        ? .regular.tint(AppColors.gold).interactive()
+                        : .regular.interactive(),
+                    in: .circle
+                )
+                .accessibilityLabel("Folders")
+
                 Menu {
                     Picker("Sort", selection: $sortMode) {
                         ForEach(SortMode.allCases, id: \.self) { mode in
@@ -584,36 +601,6 @@ struct LibraryView: View {
                     in: .circle
                 )
                 .accessibilityLabel("Sort")
-
-                Button {
-                    showingFolderFilterSheet = true
-                } label: {
-                    Image(systemName: hasActiveFolderFilter ? "folder.fill" : "folder")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(hasActiveFolderFilter ? AppColors.gold : AppColors.textPrimary)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .glassEffect(
-                    hasActiveFolderFilter
-                        ? .regular.tint(AppColors.gold).interactive()
-                        : .regular.interactive(),
-                    in: .circle
-                )
-                .accessibilityLabel("Folders")
-
-                Button {
-                    isShowingSearchField = true
-                    isSearchFieldFocused = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .circle)
-                .accessibilityLabel("Search library")
             }
         }
     }
@@ -854,7 +841,7 @@ struct LibraryView: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
-        .padding(.bottom, floatingButtonVerticalInset + bottomShellClearance)
+        .padding(.bottom, bottomShellClearance - 2)
     }
 
     private var batchActionBar: some View {
