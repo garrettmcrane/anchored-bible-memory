@@ -95,6 +95,10 @@ struct LibraryView: View {
     private let floatingButtonVerticalInset: CGFloat = 8
     private let summaryFadeDistance: CGFloat = 100
 
+    private var bottomShellClearance: CGFloat {
+        BottomNavigationShellLayout.overlayClearance
+    }
+
     private var folderOptions: [String] {
         let folderNames = Set(
             verses.map { verse in
@@ -180,11 +184,11 @@ struct LibraryView: View {
     }
 
     private var floatingButtonClearance: CGFloat {
-        floatingButtonHeight + (floatingButtonVerticalInset * 2) + 16
+        floatingButtonHeight + (floatingButtonVerticalInset * 2) + bottomShellClearance + 16
     }
 
     private var batchActionBarClearance: CGFloat {
-        96
+        96 + bottomShellClearance
     }
 
     private var bottomOverlayClearance: CGFloat {
@@ -849,7 +853,7 @@ struct LibraryView: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
-        .padding(.bottom, floatingButtonVerticalInset)
+        .padding(.bottom, floatingButtonVerticalInset + bottomShellClearance)
     }
 
     private var batchActionBar: some View {
@@ -893,7 +897,7 @@ struct LibraryView: View {
         }
         .shadow(color: AppColors.background.opacity(0.08), radius: 18, x: 0, y: 8)
         .padding(.horizontal, 20)
-        .padding(.bottom, 8)
+        .padding(.bottom, 8 + bottomShellClearance)
     }
 
     private func batchActionButton(
