@@ -178,8 +178,8 @@ struct VerseRepository {
         VerseQueries.newestFirst(VerseQueries.verses(loadVerses(), inFolder: folderName))
     }
 
-    func learningVerses() -> [Verse] {
-        VerseQueries.newestFirst(VerseQueries.learningVerses(loadVerses()))
+    func practicingVerses() -> [Verse] {
+        VerseQueries.newestFirst(VerseQueries.practicingVerses(loadVerses()))
     }
 
     func memorizedVerses() -> [Verse] {

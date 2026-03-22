@@ -1,78 +1,47 @@
 import Foundation
 
 enum VerseMasteryStatus: String, CaseIterable, Codable, Identifiable {
-    case learning = "Learning"
+    case practicing = "Practicing"
     case memorized = "Memorized"
 
     var id: String {
         rawValue
     }
-}
 
-enum VerseStrengthBand {
-    case strong
-    case steady
-    case warning
-    case weak
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        switch rawValue {
+        case Self.practicing.rawValue, "Learning":
+            self = .practicing
+        case Self.memorized.rawValue:
+            self = .memorized
+        default:
+            self = .practicing
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 enum VerseStrengthService {
-    static let decayWindowDays = 10.0
-    static let defaultUnreviewedStrength = 0.3
-    static let incorrectReviewStrength = 0.2
-    static let correctReviewBoost = 0.4
-    static let needsAttentionThreshold = 0.4
-
-    static func currentStrength(for verse: Verse, now: Date = Date(), calendar: Calendar = .current) -> Double {
-        guard let lastReviewedAt = verse.lastReviewedAt else {
-            return defaultUnreviewedStrength
-        }
-
-        let daysSinceReview = max(0, Double(
-            calendar.dateComponents(
-                [.day],
-                from: calendar.startOfDay(for: lastReviewedAt),
-                to: calendar.startOfDay(for: now)
-            ).day ?? 0
-        ))
-
-        return max(0, clampedStrength(verse.strength) - (daysSinceReview / decayWindowDays))
-    }
+    static let practicingStrength = 0.0
+    static let memorizedStrength = 1.0
 
     static func updatedStoredStrength(for verse: Verse, result: ReviewResult, reviewedAt: Date) -> Double {
         switch result {
         case .correct:
-            return min(1, currentStrength(for: verse, now: reviewedAt) + correctReviewBoost)
+            return memorizedStrength
         case .missed:
-            return incorrectReviewStrength
-        }
-    }
-
-    static func needsAttention(for verse: Verse, now: Date = Date()) -> Bool {
-        currentStrength(for: verse, now: now) < needsAttentionThreshold
-    }
-
-    static func band(for strength: Double) -> VerseStrengthBand {
-        switch clampedStrength(strength) {
-        case 0.75...1:
-            return .strong
-        case 0.5..<0.75:
-            return .steady
-        case 0.25..<0.5:
-            return .warning
-        default:
-            return .weak
+            return practicingStrength
         }
     }
 
     static func reviewPriority(_ lhs: Verse, _ rhs: Verse, now: Date = Date()) -> Bool {
-        let lhsStrength = currentStrength(for: lhs, now: now)
-        let rhsStrength = currentStrength(for: rhs, now: now)
-
-        if lhsStrength != rhsStrength {
-            return lhsStrength < rhsStrength
-        }
-
         if lhs.isMastered != rhs.isMastered {
             return !lhs.isMastered
         }
@@ -154,7 +123,7 @@ struct Verse: Identifiable, Codable, Equatable {
     }
 
     var masteryStatus: VerseMasteryStatus {
-        get { isMastered ? .memorized : .learning }
+        get { isMastered ? .memorized : .practicing }
         set { isMastered = newValue == .memorized }
     }
 
@@ -207,6 +176,6 @@ struct Verse: Identifiable, Codable, Equatable {
     }
 
     private static func defaultStrength(lastReviewedAt: Date?) -> Double {
-        lastReviewedAt == nil ? VerseStrengthService.defaultUnreviewedStrength : 1
+        lastReviewedAt == nil ? VerseStrengthService.practicingStrength : VerseStrengthService.memorizedStrength
     }
 }

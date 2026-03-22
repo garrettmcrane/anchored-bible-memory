@@ -35,8 +35,8 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
         switch resultTier {
         case .perfect:
             return "Perfect"
-        case .imperfect:
-            return "Strong"
+        case .successful:
+            return "Memorized"
         case .missed:
             return "Needs Work"
         }
@@ -46,10 +46,10 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
         switch resultTier {
         case .perfect:
             return "Perfect recall"
-        case .imperfect:
+        case .successful:
             return "\(scorePercent)% accurate"
         case .missed:
-            return "A few misses"
+            return "Below the 95% target"
         }
     }
 
@@ -61,8 +61,8 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
         switch scorePercent {
         case 100:
             return .perfect
-        case 80...99:
-            return .imperfect
+        case 95...99:
+            return .successful
         default:
             return .missed
         }
@@ -71,11 +71,11 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
     var tintColor: Color {
         switch resultTier {
         case .perfect:
+            return AppColors.statusMemorized
+        case .successful:
             return AppColors.success
-        case .imperfect:
-            return AppColors.warning
         case .missed:
-            return AppColors.weakness
+            return AppColors.statusPracticing
         }
     }
 
@@ -86,7 +86,7 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
 
 enum FirstLetterTypingResultTier {
     case perfect
-    case imperfect
+    case successful
     case missed
 }
 

@@ -68,6 +68,8 @@ struct AppColors {
     static let success = dynamic(light: Color(hex: "#466C57"), dark: Color(hex: "#7FA287"))
     static let warning = dynamic(light: Color(hex: "#9C7840"), dark: Color(hex: "#D0AF72"))
     static let weakness = dynamic(light: Color(hex: "#A45F5B"), dark: Color(hex: "#C78882"))
+    static let statusPracticing = dynamic(light: Color(hex: "#B66B3E"), dark: Color(hex: "#D99868"))
+    static let statusMemorized = dynamic(light: Color(hex: "#4D7A5A"), dark: Color(hex: "#88AF92"))
     static let shadow = dynamic(light: Color(hex: "#000000").opacity(0.08), dark: Color(hex: "#000000").opacity(0.24))
 
     private static func dynamic(light: Color, dark: Color) -> Color {
@@ -125,5 +127,42 @@ extension Color {
             blue: Double(blue) / 255,
             opacity: Double(alpha) / 255
         )
+    }
+}
+
+extension VerseMasteryStatus {
+    var tintColor: Color {
+        switch self {
+        case .practicing:
+            return AppColors.statusPracticing
+        case .memorized:
+            return AppColors.statusMemorized
+        }
+    }
+
+    var subtleFillColor: Color {
+        tintColor.opacity(0.14)
+    }
+
+    var badgeTitle: String {
+        rawValue
+    }
+
+    var actionTitle: String {
+        switch self {
+        case .practicing:
+            return "Mark Practicing"
+        case .memorized:
+            return "Mark Memorized"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .practicing:
+            return "flame.fill"
+        case .memorized:
+            return "checkmark.circle.fill"
+        }
     }
 }

@@ -9,7 +9,7 @@ enum VerseQueries {
         verses.sorted { $0.createdAt > $1.createdAt }
     }
 
-    nonisolated static func learningVerses(_ verses: [Verse]) -> [Verse] {
+    nonisolated static func practicingVerses(_ verses: [Verse]) -> [Verse] {
         excludingSoftDeleted(verses).filter { !$0.isMastered }
     }
 

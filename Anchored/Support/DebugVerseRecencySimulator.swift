@@ -43,9 +43,9 @@ struct DebugVerseRecencySimulator {
         var strength: Double {
             switch self {
             case .clear:
-                return VerseStrengthService.defaultUnreviewedStrength
+                return VerseStrengthService.practicingStrength
             default:
-                return 1
+                return VerseStrengthService.memorizedStrength
             }
         }
     }

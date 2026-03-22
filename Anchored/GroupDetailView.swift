@@ -39,9 +39,8 @@ struct GroupDetailView: View {
     @State private var activeBatchReview: BatchReviewPresentation?
     @State private var progressSummary = GroupProgressSummary(
         totalAssignedCount: 0,
-        notStartedCount: 0,
-        inProgressCount: 0,
-        masteredCount: 0
+        practicingCount: 0,
+        memorizedCount: 0
     )
 
     init(group: Group) {
@@ -83,6 +82,12 @@ struct GroupDetailView: View {
             .map(\.verse)
     }
 
+    private var practicingReviewVerses: [Verse] {
+        assignedPassages
+            .filter { $0.progress.status == .practicing }
+            .map(\.verse)
+    }
+
     var body: some View {
         List {
             Section {
@@ -103,12 +108,22 @@ struct GroupDetailView: View {
 
             Section {
                 Button {
-                    startGroupReview()
+                    startGroupPracticingReview()
                 } label: {
-                    Text("Review Group Verses")
+                    Text("Review Practicing")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(practicingReviewVerses.isEmpty)
+
+                Button {
+                    startGroupAllReview()
+                } label: {
+                    Text("Review All")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
                 .controlSize(.large)
                 .disabled(reviewVerses.isEmpty)
             }
@@ -116,9 +131,8 @@ struct GroupDetailView: View {
             Section("Progress") {
                 HStack(spacing: 0) {
                     progressMetric(value: progressSummary.totalAssignedCount, title: "Assigned")
-                    progressMetric(value: progressSummary.notStartedCount, title: "Not Started")
-                    progressMetric(value: progressSummary.inProgressCount, title: "In Progress")
-                    progressMetric(value: progressSummary.masteredCount, title: "Mastered")
+                    progressMetric(value: progressSummary.practicingCount, title: "Practicing")
+                    progressMetric(value: progressSummary.memorizedCount, title: "Memorized")
                 }
                 .padding(.vertical, 4)
             }
@@ -407,9 +421,8 @@ struct GroupDetailView: View {
                 verse: passage.verse,
                 progress: progressByVerseID[passage.verse.id] ?? GroupVerseProgress(
                     verseID: passage.verse.id,
-                    status: .notStarted,
+                    status: .practicing,
                     reviewCount: 0,
-                    consecutiveCorrectCount: 0,
                     lastReviewedAt: nil
                 )
             )
@@ -447,26 +460,36 @@ struct GroupDetailView: View {
         dismiss()
     }
 
-    private func startGroupReview() {
+    private func startGroupPracticingReview() {
+        guard !practicingReviewVerses.isEmpty else {
+            return
+        }
+
+        reviewStartConfiguration = ReviewStartConfiguration(
+            title: "Review Practicing",
+            description: "Review only the group verses you are still working on. Group progress stays separate from your personal library.",
+            verses: practicingReviewVerses
+        )
+    }
+
+    private func startGroupAllReview() {
         guard !reviewVerses.isEmpty else {
             return
         }
 
         reviewStartConfiguration = ReviewStartConfiguration(
-            title: "Group Review",
-            description: "Review only the verses assigned to this group. Group progress stays separate from your personal memorization library.",
+            title: "Review All",
+            description: "Review every verse assigned to this group. Group progress stays separate from your personal library.",
             verses: reviewVerses
         )
     }
 
     private func progressRank(_ status: GroupVerseProgressStatus) -> Int {
         switch status {
-        case .notStarted:
+        case .practicing:
             return 0
-        case .inProgress:
+        case .memorized:
             return 1
-        case .mastered:
-            return 2
         }
     }
 
@@ -494,12 +517,10 @@ struct GroupDetailView: View {
 
     private func progressTint(for status: GroupVerseProgressStatus) -> Color {
         switch status {
-        case .notStarted:
-            return AppColors.textSecondary
-        case .inProgress:
-            return AppColors.warning
-        case .mastered:
-            return AppColors.success
+        case .practicing:
+            return AppColors.statusPracticing
+        case .memorized:
+            return AppColors.statusMemorized
         }
     }
 }

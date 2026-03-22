@@ -51,20 +51,16 @@ struct HomeView: View {
         }
     }
 
-    private var learningVerses: [Verse] {
-        VerseQueries.learningVerses(verses)
+    private var practicingVerses: [Verse] {
+        VerseQueries.practicingVerses(verses)
     }
 
     private var memorizedCount: Int {
         VerseQueries.memorizedVerses(verses).count
     }
 
-    private var learningCount: Int {
-        learningVerses.count
-    }
-
-    private var needsAttentionCount: Int {
-        verses.filter { VerseStrengthService.needsAttention(for: $0) }.count
+    private var practicingCount: Int {
+        practicingVerses.count
     }
 
     var body: some View {
@@ -77,7 +73,7 @@ struct HomeView: View {
                     header
                     verseCard
                     summarySection
-                    reviewButton
+                    reviewButtons
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 20)
@@ -230,8 +226,8 @@ struct HomeView: View {
     private var summarySection: some View {
         HStack(spacing: 0) {
             HomeMetricColumn(title: "Memorized", value: memorizedCount)
-            HomeMetricColumn(title: "Learning", value: learningCount)
-            HomeMetricColumn(title: "Needs Attention", value: needsAttentionCount)
+            HomeMetricColumn(title: "Practicing", value: practicingCount)
+            HomeMetricColumn(title: "All", value: verses.count)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 16)
@@ -245,23 +241,41 @@ struct HomeView: View {
         )
     }
 
-    private var reviewButton: some View {
-        Button {
-            startSmartReview()
-        } label: {
-            HStack {
-                Image(systemName: "play.circle.fill")
-                Text("Review Now")
-                    .fontWeight(.semibold)
+    private var reviewButtons: some View {
+        VStack(spacing: 12) {
+            Button {
+                startPracticingReview()
+            } label: {
+                HStack {
+                    Image(systemName: "flame.fill")
+                    Text("Review Practicing")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 58)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 58)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(AppColors.primaryButton)
+            .foregroundStyle(AppColors.primaryButtonText)
+            .disabled(practicingVerses.isEmpty)
+
+            Button {
+                startAllReview()
+            } label: {
+                HStack {
+                    Image(systemName: "books.vertical.fill")
+                    Text("Review All")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(AppColors.structuralAccent)
+            .disabled(verses.isEmpty)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .tint(AppColors.primaryButton)
-        .foregroundStyle(AppColors.primaryButtonText)
-        .disabled(smartReviewQueue.isEmpty)
     }
 
     private func reloadVerses() {
@@ -277,20 +291,30 @@ struct HomeView: View {
         verses = await VerseRepository.shared.loadVersesAsync()
     }
 
-    private var smartReviewQueue: [Verse] {
-        reviewQueueBuilder.buildQueue(from: verses)
-    }
-
-    private func startSmartReview() {
-        let queue = smartReviewQueue
+    private func startPracticingReview() {
+        let queue = reviewQueueBuilder.buildPracticingQueue(from: verses)
 
         guard !queue.isEmpty else {
             return
         }
 
         reviewStartConfiguration = ReviewStartConfiguration(
-            title: "Smart Review",
-            description: "Prioritizes weaker verses and learning passages first.",
+            title: "Review Practicing",
+            description: "Review only the verses you are still working on.",
+            verses: queue
+        )
+    }
+
+    private func startAllReview() {
+        let queue = reviewQueueBuilder.buildAllQueue(from: verses)
+
+        guard !queue.isEmpty else {
+            return
+        }
+
+        reviewStartConfiguration = ReviewStartConfiguration(
+            title: "Review All",
+            description: "Review every verse in your personal library.",
             verses: queue
         )
     }

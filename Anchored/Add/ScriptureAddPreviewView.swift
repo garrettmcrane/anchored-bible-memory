@@ -10,7 +10,7 @@ struct ScriptureAddPreviewView: View {
     @State private var selectedFolder = "Uncategorized"
     @State private var isAddingNewFolder = false
     @State private var newFolderName = ""
-    @State private var masteryStatus: VerseMasteryStatus = .learning
+    @State private var masteryStatus: VerseMasteryStatus = .practicing
     @State private var folderOverrides: [String: String] = [:]
     @State private var successMessage: String?
     @State private var isSaving = false

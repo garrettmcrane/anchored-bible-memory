@@ -25,6 +25,7 @@ struct ReviewRepository {
         updatedVerse.strength = VerseStrengthService.updatedStoredStrength(for: verse, result: result, reviewedAt: reviewedAt)
         updatedVerse.lastReviewedAt = reviewedAt
         updatedVerse.updatedAt = reviewedAt
+        updatedVerse.masteryStatus = result == .correct ? .memorized : .practicing
 
         switch result {
         case .correct:

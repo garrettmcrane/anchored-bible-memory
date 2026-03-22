@@ -59,7 +59,7 @@ struct LibraryView: View {
 
     enum FilterType: String, CaseIterable {
         case all = "All"
-        case learning = "Learning"
+        case practicing = "Practicing"
         case memorized = "Memorized"
     }
 
@@ -109,8 +109,8 @@ struct LibraryView: View {
         switch selectedFilter {
         case .all:
             return verses
-        case .learning:
-            return VerseQueries.learningVerses(verses)
+        case .practicing:
+            return VerseQueries.practicingVerses(verses)
         case .memorized:
             return VerseQueries.memorizedVerses(verses)
         }
@@ -159,8 +159,8 @@ struct LibraryView: View {
         }
     }
 
-    private var learningCount: Int {
-        VerseQueries.learningVerses(verses).count
+    private var practicingCount: Int {
+        VerseQueries.practicingVerses(verses).count
     }
 
     private var memorizedCount: Int {
@@ -173,6 +173,10 @@ struct LibraryView: View {
 
     private var reviewVerses: [Verse] {
         filteredVerses.sorted { VerseStrengthService.reviewPriority($0, $1) }
+    }
+
+    private var practicingReviewVerses: [Verse] {
+        reviewVerses.filter { $0.masteryStatus == .practicing }
     }
 
     private var floatingButtonClearance: CGFloat {
@@ -478,7 +482,7 @@ struct LibraryView: View {
             HStack(spacing: 0) {
                 summaryFilterMetric(value: totalCount, title: "All", filter: .all)
                 SummaryDivider()
-                summaryFilterMetric(value: learningCount, title: "Learning", filter: .learning)
+                summaryFilterMetric(value: practicingCount, title: "Practicing", filter: .practicing)
                 SummaryDivider()
                 summaryFilterMetric(value: memorizedCount, title: "Memorized", filter: .memorized)
             }
@@ -816,26 +820,32 @@ struct LibraryView: View {
 
     @ViewBuilder
     private func floatingReviewButton() -> some View {
-        Button {
-            reviewStartConfiguration = ReviewStartConfiguration(
-                title: "Review Verses",
-                description: "Review the verses currently shown in your library.",
-                verses: reviewVerses
-            )
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "play.circle.fill")
-                Text("Review Verses")
-                    .fontWeight(.semibold)
+        HStack(spacing: 10) {
+            reviewButton(
+                title: "Review Practicing",
+                tint: AppColors.primaryButton,
+                textColor: AppColors.primaryButtonText,
+                isEnabled: !practicingReviewVerses.isEmpty
+            ) {
+                startLibraryReview(
+                    title: "Review Practicing",
+                    description: "Review only the practicing verses currently shown in your library.",
+                    verses: practicingReviewVerses
+                )
             }
-            .foregroundStyle(AppColors.textPrimary)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(
-                Capsule()
-                    .fill(AppColors.gold)
-            )
-            .shadow(color: AppColors.background.opacity(0.12), radius: 12, x: 0, y: 6)
+
+            reviewButton(
+                title: "Review All",
+                tint: AppColors.gold,
+                textColor: AppColors.textPrimary,
+                isEnabled: !reviewVerses.isEmpty
+            ) {
+                startLibraryReview(
+                    title: "Review All",
+                    description: "Review every verse currently shown in your library.",
+                    verses: reviewVerses
+                )
+            }
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
@@ -847,19 +857,19 @@ struct LibraryView: View {
             batchActionButton(
                 title: "Mark Memorized",
                 systemImage: "checkmark.circle.fill",
-                tint: AppColors.gold,
+                tint: AppColors.statusMemorized,
                 isEnabled: hasSelection
             ) {
                 updateMasteryStatusForSelectedVerses(to: .memorized)
             }
 
             batchActionButton(
-                title: "Mark Learning",
-                systemImage: "arrow.uturn.backward.circle",
-                tint: AppColors.gold,
+                title: "Mark Practicing",
+                systemImage: "flame.fill",
+                tint: AppColors.statusPracticing,
                 isEnabled: hasSelection
             ) {
-                updateMasteryStatusForSelectedVerses(to: .learning)
+                updateMasteryStatusForSelectedVerses(to: .practicing)
             }
 
             batchActionButton(
@@ -915,6 +925,32 @@ struct LibraryView: View {
         .disabled(!isEnabled)
     }
 
+    private func reviewButton(
+        title: String,
+        tint: Color,
+        textColor: Color,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .fontWeight(.semibold)
+            .foregroundStyle(textColor)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(
+                Capsule()
+                    .fill(isEnabled ? tint : AppColors.surface)
+            )
+            .overlay {
+                Capsule()
+                    .stroke(isEnabled ? tint.opacity(0.18) : AppColors.divider, lineWidth: 1)
+            }
+            .shadow(color: AppColors.background.opacity(isEnabled ? 0.12 : 0), radius: 12, x: 0, y: 6)
+        }
+        .disabled(!isEnabled)
+    }
+
     private func reloadVerses() {
         verses = VerseRepository.shared.loadVerses()
 
@@ -943,6 +979,18 @@ struct LibraryView: View {
         }
 
         return normalizedFolderName
+    }
+
+    private func startLibraryReview(title: String, description: String, verses: [Verse]) {
+        guard !verses.isEmpty else {
+            return
+        }
+
+        reviewStartConfiguration = ReviewStartConfiguration(
+            title: title,
+            description: description,
+            verses: verses
+        )
     }
 
     private func reviewSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
@@ -996,24 +1044,24 @@ struct LibraryView: View {
     }
 
     private func toggleMasteryStatus(for verse: Verse) {
-        let targetStatus: VerseMasteryStatus = verse.masteryStatus == .learning ? .memorized : .learning
+        let targetStatus: VerseMasteryStatus = verse.masteryStatus == .practicing ? .memorized : .practicing
         updateMasteryStatus(forVerseIDs: Set([verse.id]), to: targetStatus)
     }
 
     private func toggleActionTitle(for verse: Verse) -> String {
-        verse.masteryStatus == .learning ? "Memorized" : "Learning"
+        verse.masteryStatus == .practicing ? "Memorized" : "Practicing"
     }
 
     private func toggleActionMenuTitle(for verse: Verse) -> String {
-        verse.masteryStatus == .learning ? "Mark Memorized" : "Mark Learning"
+        verse.masteryStatus == .practicing ? "Mark Memorized" : "Mark Practicing"
     }
 
     private func toggleActionSystemImage(for verse: Verse) -> String {
-        verse.masteryStatus == .learning ? "checkmark.circle" : "arrow.uturn.backward.circle"
+        verse.masteryStatus == .practicing ? "checkmark.circle" : "flame.fill"
     }
 
     private func toggleActionTint(for verse: Verse) -> Color {
-        AppColors.gold
+        verse.masteryStatus == .practicing ? AppColors.statusMemorized : AppColors.statusPracticing
     }
 
     private func enterSelectionMode() {

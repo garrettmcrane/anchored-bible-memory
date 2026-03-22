@@ -57,6 +57,7 @@ struct VerseDetailView: View {
 
                 VStack(alignment: .leading, spacing: 16) {
                     sectionLabel("Status")
+                    statusCard
                     masteryPicker
 
                     HStack(spacing: 12) {
@@ -67,8 +68,8 @@ struct VerseDetailView: View {
                         )
 
                         signalCard(
-                            title: "Correct Reviews",
-                            value: "\(streakCount)",
+                            title: "Total Reviews",
+                            value: "\(currentVerse.reviewCount)",
                             valueColor: AppColors.textPrimary
                         )
                     }
@@ -177,14 +178,6 @@ struct VerseDetailView: View {
         }
     }
 
-    private var streakCount: Int {
-        currentVerse.correctCount
-    }
-
-    private var strength: Double {
-        VerseStrengthService.currentStrength(for: currentVerse)
-    }
-
     private var folderName: String {
         let trimmedFolderName = currentVerse.folderName.trimmingCharacters(in: .whitespacesAndNewlines)
         let collapsedWhitespaceFolderName = trimmedFolderName
@@ -224,51 +217,11 @@ struct VerseDetailView: View {
     }
 
     private var lastReviewedColor: Color {
-        switch VerseStrengthService.band(for: strength) {
-        case .strong:
-            return AppColors.success
-        case .steady:
-            return AppColors.success
-        case .warning:
-            return AppColors.warning
-        case .weak:
-            return AppColors.weakness
-        }
+        currentVerse.masteryStatus.tintColor
     }
 
     private var addedDateText: String {
         currentVerse.createdAt.formatted(.dateTime.month(.wide).day().year())
-    }
-
-    private var progressBar: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(AppColors.progressTrack)
-
-                Capsule()
-                    .fill(progressTint)
-                    .frame(width: geometry.size.width * progressValue)
-            }
-        }
-        .frame(height: 6)
-    }
-
-    private var progressTint: Color {
-        switch VerseStrengthService.band(for: strength) {
-        case .strong:
-            return AppColors.success
-        case .steady:
-            return AppColors.success
-        case .warning:
-            return AppColors.warning
-        case .weak:
-            return AppColors.weakness
-        }
-    }
-
-    private var progressValue: CGFloat {
-        CGFloat(strength)
     }
 
     private var detailDivider: some View {
@@ -329,6 +282,29 @@ struct VerseDetailView: View {
         }
     }
 
+    private var statusCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(currentVerse.masteryStatus.badgeTitle, systemImage: currentVerse.masteryStatus.iconName)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(currentVerse.masteryStatus.tintColor)
+
+            Text(statusSummary)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 15)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(currentVerse.masteryStatus.subtleFillColor)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(currentVerse.masteryStatus.tintColor.opacity(0.18), lineWidth: 1)
+        }
+    }
+
     private func detailRow(title: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             Text(title)
@@ -358,14 +334,6 @@ struct VerseDetailView: View {
                 .lineSpacing(6)
                 .foregroundStyle(AppColors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 10) {
-                progressBar
-
-                Text(progressSummary)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(AppColors.textSecondary)
-            }
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 24)
@@ -431,12 +399,12 @@ struct VerseDetailView: View {
         isLightMode ? AppColors.structuralAccent : AppColors.textPrimary
     }
 
-    private var progressSummary: String {
+    private var statusSummary: String {
         switch currentVerse.masteryStatus {
-        case .learning:
-            return "In active review"
+        case .practicing:
+            return "Still working on this verse. A successful review will move it to Memorized."
         case .memorized:
-            return "Marked memorized"
+            return "You currently know this verse well. A missed review will move it back to Practicing."
         }
     }
 

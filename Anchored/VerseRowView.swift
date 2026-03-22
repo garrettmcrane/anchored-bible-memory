@@ -10,29 +10,15 @@ struct VerseRowView: View {
         let isSelected: Bool
     }
 
-    private var strength: Double {
-        VerseStrengthService.currentStrength(for: verse)
-    }
-
-    private var progressTint: Color {
-        switch VerseStrengthService.band(for: strength) {
-        case .strong:
-            return AppColors.success
-        case .steady:
-            return AppColors.success
-        case .warning:
-            return AppColors.warning
-        case .weak:
-            return AppColors.weakness
-        }
+    private var status: VerseMasteryStatus {
+        verse.masteryStatus
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top) {
+            HStack(alignment: .center, spacing: 12) {
                 if let selectionState {
                     selectionIndicator(isSelected: selectionState.isSelected)
-                        .padding(.top, 2)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -50,29 +36,35 @@ struct VerseRowView: View {
                             .font(.caption2)
                             .foregroundStyle(AppColors.textSecondary.opacity(0.75))
                             .lineLimit(1)
-
-                        ProgressView(value: strength)
-                            .tint(progressTint)
-                            .scaleEffect(x: 1, y: 0.7, anchor: .center)
-
-                        Text(verse.masteryStatus.rawValue)
-                            .font(.caption2)
-                            .foregroundStyle(AppColors.textSecondary)
-                            .lineLimit(1)
                     }
                 }
-
-                Spacer(minLength: 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, showsChevron ? 84 : 64)
 
                 if showsChevron {
                     Image(systemName: "chevron.right")
                         .foregroundColor(AppColors.textSecondary)
                         .font(.system(size: 12, weight: .semibold))
-                        .padding(.top, 2)
                 }
             }
         }
         .padding(.vertical, 1)
+        .overlay(alignment: .topTrailing) {
+            statusBadge
+                .padding(.top, -2)
+                .padding(.trailing, -8)
+        }
+    }
+
+    private var statusBadge: some View {
+        Text(status.badgeTitle)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(status.subtleFillColor))
+            .foregroundStyle(status.tintColor)
+            .lineLimit(1)
+            .fixedSize()
     }
 
     private func selectionIndicator(isSelected: Bool) -> some View {

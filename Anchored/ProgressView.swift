@@ -10,7 +10,7 @@ struct ProgressTabView: View {
         verses.filter(\.isMastered).count
     }
 
-    private var learningCount: Int {
+    private var practicingCount: Int {
         verses.filter { !$0.isMastered }.count
     }
 
@@ -20,10 +20,10 @@ struct ProgressTabView: View {
         }
     }
 
-    private var needsAttentionVerses: [Verse] {
+    private var practicingVerses: [Verse] {
         verses
-            .filter { VerseStrengthService.needsAttention(for: $0) }
-            .sorted(by: needsAttentionSort)
+            .filter { $0.masteryStatus == .practicing }
+            .sorted { VerseStrengthService.reviewPriority($0, $1) }
     }
 
     private var folderBreakdown: [FolderBreakdownItem] {
@@ -70,8 +70,8 @@ struct ProgressTabView: View {
     }
 
     private var insightText: String? {
-        if learningCount > memorizedCount, !verses.isEmpty {
-            return "You are currently learning more verses than you have memorized."
+        if practicingCount > memorizedCount, !verses.isEmpty {
+            return "You currently have more practicing verses than memorized verses."
         }
 
         if weeklyReviewCount > 0 {
@@ -93,7 +93,7 @@ struct ProgressTabView: View {
                         summarySection
                         activitySection
                         folderBreakdownSection
-                        needsAttentionSection
+                        practicingSection
 
                         if let insightText {
                             insightCard(text: insightText)
@@ -135,9 +135,9 @@ struct ProgressTabView: View {
                 spacing: 12
             ) {
                 ProgressMetricCard(title: "Memorized", value: memorizedCount)
-                ProgressMetricCard(title: "Learning", value: learningCount)
+                ProgressMetricCard(title: "Practicing", value: practicingCount)
                 ProgressMetricCard(title: "Times Reviewed", value: timesReviewedCount)
-                ProgressMetricCard(title: "Needs Attention", value: needsAttentionVerses.count)
+                ProgressMetricCard(title: "All Verses", value: verses.count)
             }
         }
     }
@@ -175,20 +175,20 @@ struct ProgressTabView: View {
         }
     }
 
-    private var needsAttentionSection: some View {
+    private var practicingSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Needs Attention")
+            sectionHeader(title: "Practicing")
 
-            if needsAttentionVerses.isEmpty {
-                ProgressEmptyStateCard(message: "Nothing urgent right now.")
+            if practicingVerses.isEmpty {
+                ProgressEmptyStateCard(message: "Everything is currently marked Memorized.")
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(needsAttentionVerses.prefix(5)).indices, id: \.self) { index in
-                        let verse = needsAttentionVerses[index]
+                    ForEach(Array(practicingVerses.prefix(5)).indices, id: \.self) { index in
+                        let verse = practicingVerses[index]
 
                         NeedsAttentionRow(verse: verse)
 
-                        if index < min(needsAttentionVerses.count, 5) - 1 {
+                        if index < min(practicingVerses.count, 5) - 1 {
                             Divider()
                                 .padding(.horizontal, 18)
                         }
@@ -276,10 +276,6 @@ struct ProgressTabView: View {
             .joined(separator: " ")
 
         return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
-    }
-
-    private func needsAttentionSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
-        VerseStrengthService.reviewPriority(lhs, rhs)
     }
 }
 

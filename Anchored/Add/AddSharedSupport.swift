@@ -7,7 +7,7 @@ struct ScriptureAddPreviewContext: Identifiable, Hashable {
 
 struct ScriptureSaveOptions {
     var folderName: String = "Uncategorized"
-    var masteryStatus: VerseMasteryStatus = .learning
+    var masteryStatus: VerseMasteryStatus = .practicing
 }
 
 struct ScriptureAddSaveItem: Identifiable, Hashable {

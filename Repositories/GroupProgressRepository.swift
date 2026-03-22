@@ -3,8 +3,6 @@ import Foundation
 struct GroupProgressRepository {
     static let shared = GroupProgressRepository()
 
-    private let masteredThreshold = 3
-
     func progressByVerseID(forGroupID groupID: String, verseIDs: [String]) -> [String: GroupVerseProgress] {
         let uniqueVerseIDs = Array(Set(verseIDs))
         let recordsByVerseID = Dictionary(grouping: groupRecords(forGroupID: groupID), by: \.verseID)
@@ -19,9 +17,8 @@ struct GroupProgressRepository {
 
         return GroupProgressSummary(
             totalAssignedCount: Array(Set(verseIDs)).count,
-            notStartedCount: progressValues.filter { $0.status == .notStarted }.count,
-            inProgressCount: progressValues.filter { $0.status == .inProgress }.count,
-            masteredCount: progressValues.filter { $0.status == .mastered }.count
+            practicingCount: progressValues.filter { $0.status == .practicing }.count,
+            memorizedCount: progressValues.filter { $0.status == .memorized }.count
         )
     }
 
@@ -35,31 +32,19 @@ struct GroupProgressRepository {
         guard !records.isEmpty else {
             return GroupVerseProgress(
                 verseID: verseID,
-                status: .notStarted,
+                status: .practicing,
                 reviewCount: 0,
-                consecutiveCorrectCount: 0,
                 lastReviewedAt: nil
             )
         }
 
-        var consecutiveCorrectCount = 0
-
-        for record in records {
-            switch record.result {
-            case .correct:
-                consecutiveCorrectCount += 1
-            case .missed:
-                consecutiveCorrectCount = 0
-            }
-        }
-
-        let status: GroupVerseProgressStatus = consecutiveCorrectCount >= masteredThreshold ? .mastered : .inProgress
+        let latestResult = records.last?.result ?? .missed
+        let status: GroupVerseProgressStatus = latestResult == .correct ? .memorized : .practicing
 
         return GroupVerseProgress(
             verseID: verseID,
             status: status,
             reviewCount: records.count,
-            consecutiveCorrectCount: consecutiveCorrectCount,
             lastReviewedAt: records.last?.reviewedAt
         )
     }
