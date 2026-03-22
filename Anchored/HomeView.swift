@@ -292,8 +292,7 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 46)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.reviewPracticingActionBackground)
+            .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
             .foregroundStyle(AppColors.reviewPracticingActionText)
             .disabled(practicingVerses.isEmpty)
 
@@ -308,8 +307,7 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.reviewAllActionBackground)
+            .buttonStyle(.glass(.regular.tint(AppColors.reviewAllActionBackground).interactive()))
             .foregroundStyle(AppColors.reviewAllActionText)
             .disabled(verses.isEmpty)
         }

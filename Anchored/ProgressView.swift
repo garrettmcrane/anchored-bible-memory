@@ -183,6 +183,8 @@ struct ProgressTabView: View {
                 Text(displayName)
                     .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .multilineTextAlignment(.center)
 
                 Text(leadingInsightTitle)
                     .font(.title3.weight(.semibold))

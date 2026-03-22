@@ -272,13 +272,11 @@ struct LibraryView: View {
                         .ignoresSafeArea()
 
                     List {
-                        if !isSearchActive {
-                            topSummarySection
-                                .opacity(summaryOpacity)
-                                .listRowInsets(EdgeInsets())
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                        }
+                        topSummarySection
+                            .opacity(summaryOpacity)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
 
                         Section {
                             if filteredVerses.isEmpty {
@@ -508,9 +506,12 @@ struct LibraryView: View {
                             isSearchPresented = true
                         }
                     } label: {
-                        ShellCircularIconLabel(systemImage: "magnifyingglass")
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: ShellCircularIconLabel.iconSize, weight: .semibold))
+                            .foregroundStyle(AppColors.textPrimary)
+                            .frame(width: ShellCircularIconLabel.diameter, height: ShellCircularIconLabel.diameter)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.glass)
                     .matchedTransitionSource(id: "library-search", in: searchTransitionNamespace)
                     .accessibilityLabel("Search library")
                 }
@@ -546,7 +547,7 @@ struct LibraryView: View {
             }
         }
         .padding(.horizontal, 0)
-        .padding(.top, 0)
+        .padding(.top, 8)
         .padding(.bottom, 0)
     }
 
@@ -630,19 +631,6 @@ struct LibraryView: View {
 
     private var utilityRail: some View {
         HStack(spacing: 8) {
-            Button {
-                enterSelectionMode()
-            } label: {
-                Text("Select")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .padding(.horizontal, 14)
-                    .frame(height: 44)
-            }
-            .buttonStyle(.plain)
-            .fixedSize()
-            .glassEffect(.regular.interactive(), in: .capsule)
-
             Spacer(minLength: 0)
 
             HStack(spacing: 8) {
@@ -683,6 +671,19 @@ struct LibraryView: View {
                     in: .circle
                 )
                 .accessibilityLabel("Sort")
+
+                Button {
+                    enterSelectionMode()
+                } label: {
+                    Text("Select")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .padding(.horizontal, 14)
+                        .frame(height: 44)
+                }
+                .buttonStyle(.plain)
+                .fixedSize()
+                .glassEffect(.regular.interactive(), in: .capsule)
             }
         }
     }
@@ -964,14 +965,14 @@ struct LibraryView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(height: 44)
         }
         .buttonStyle(.glass(.regular.tint(isEnabled ? tint : AppColors.secondarySurface).interactive()))
         .disabled(!isEnabled)
     }
 
     private var floatingReviewButtonBottomInset: CGFloat {
-        12
+        14
     }
 
     private var isSearchActive: Bool {

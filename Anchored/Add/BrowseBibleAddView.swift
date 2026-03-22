@@ -211,13 +211,10 @@ struct BrowseBibleAddView: View {
                         buildPreview()
                     }
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(AppColors.primaryButtonText)
+                    .foregroundStyle(selectedReference == nil ? AppColors.textSecondary : AppColors.reviewPracticingActionText)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(selectedReference == nil ? AppColors.textSecondary : AppColors.primaryButton)
-                    )
+                    .buttonStyle(.glass(.regular.tint(selectedReference == nil ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground).interactive()))
                     .disabled(selectedReference == nil)
                 }
             }

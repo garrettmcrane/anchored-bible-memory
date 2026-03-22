@@ -176,20 +176,11 @@ struct AddVerseView: View {
         Button("Continue") {
             continueToReview()
         }
-        .buttonStyle(.plain)
         .font(.headline.weight(.semibold))
         .foregroundStyle(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.textSecondary : AppColors.reviewPracticingActionText)
         .frame(maxWidth: .infinity)
         .frame(height: 54)
-        .background(
-            Capsule(style: .continuous)
-                .fill(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground)
-        )
-        .overlay {
-            Capsule(style: .continuous)
-                .stroke(AppColors.divider.opacity(0.9), lineWidth: 1)
-        }
-        .shadow(color: AppColors.shadow.opacity(0.18), radius: 12, y: 6)
+        .buttonStyle(.glass(.regular.tint(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground).interactive()))
         .disabled(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
@@ -557,16 +548,8 @@ private struct AddVerseReviewView: View {
                     .foregroundStyle(readyItems.isEmpty ? AppColors.textSecondary : AppColors.reviewPracticingActionText)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
-                    .background(
-                        Capsule()
-                            .fill(readyItems.isEmpty ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground)
-                    )
-                    .overlay {
-                        Capsule()
-                            .stroke(AppColors.divider.opacity(0.9), lineWidth: 1)
-                    }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.glass(.regular.tint(readyItems.isEmpty ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground).interactive()))
             .disabled(isSaving || readyItems.isEmpty)
             .padding(.horizontal, 20)
             .padding(.top, 14)

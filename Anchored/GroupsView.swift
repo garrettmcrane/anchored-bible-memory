@@ -56,19 +56,11 @@ struct GroupsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Groups")
-                        .font(.system(size: 30, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
-
-                    Text("Memorize together without losing the focus of your personal library.")
-                        .font(.subheadline)
-                        .foregroundStyle(AppColors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer()
+            ZStack(alignment: .trailing) {
+                Text("Groups")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
 
                 Button {
                     isShowingCreateGroupSheet = true
@@ -83,6 +75,12 @@ struct GroupsView: View {
                 .glassEffect(.regular.interactive(), in: .capsule)
                 .accessibilityLabel("Create group")
             }
+            .frame(height: 44)
+
+            Text("Memorize together without losing the focus of your personal library.")
+                .font(.subheadline)
+                .foregroundStyle(AppColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if !groups.isEmpty {
                 HStack(spacing: 12) {
@@ -118,9 +116,8 @@ struct GroupsView: View {
             Button("Create Group") {
                 isShowingCreateGroupSheet = true
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(AppColors.primaryButton)
+            .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
+            .foregroundStyle(AppColors.reviewPracticingActionText)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)

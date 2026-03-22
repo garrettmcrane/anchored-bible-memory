@@ -154,16 +154,11 @@ struct ScriptureAddPreviewView: View {
         } label: {
             Text(isSaving ? "Saving..." : "Save Verses")
                 .fontWeight(.semibold)
-                .foregroundStyle(AppColors.primaryButtonText)
+                .foregroundStyle(AppColors.reviewPracticingActionText)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(
-                    Capsule()
-                        .fill(AppColors.primaryButton)
-                )
-                .shadow(color: AppColors.shadow, radius: 12, x: 0, y: 6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
         .disabled(isSaving)
     }
 

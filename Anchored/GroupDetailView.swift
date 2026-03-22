@@ -496,8 +496,8 @@ struct GroupDetailView: View {
         HStack(spacing: 10) {
             reviewButton(
                 title: "Review Practicing",
-                tint: AppColors.primaryButton,
-                textColor: AppColors.primaryButtonText,
+                tint: AppColors.reviewPracticingActionBackground,
+                textColor: AppColors.reviewPracticingActionText,
                 isEnabled: !practicingReviewVerses.isEmpty
             ) {
                 startGroupPracticingReview()
@@ -505,14 +505,13 @@ struct GroupDetailView: View {
 
             reviewButton(
                 title: "Review All",
-                tint: AppColors.gold,
-                textColor: AppColors.textPrimary,
+                tint: AppColors.reviewAllActionBackground,
+                textColor: AppColors.reviewAllActionText,
                 isEnabled: !reviewVerses.isEmpty
             ) {
                 startGroupAllReview()
             }
         }
-        .buttonStyle(.plain)
         .padding(.horizontal, 20)
         .padding(.bottom, BottomNavigationShellLayout.overlayClearance - 2)
     }
@@ -527,20 +526,11 @@ struct GroupDetailView: View {
         Button(action: action) {
             Text(title)
                 .fontWeight(.semibold)
-                .foregroundStyle(textColor)
+                .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(
-                    Capsule()
-                        .fill(isEnabled ? tint : AppColors.surface)
-                )
-                .overlay {
-                    Capsule()
-                        .stroke(isEnabled ? tint.opacity(0.18) : AppColors.divider, lineWidth: 1)
-                }
-                .shadow(color: AppColors.background.opacity(isEnabled ? 0.12 : 0), radius: 12, x: 0, y: 6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass(.regular.tint(isEnabled ? tint : AppColors.secondarySurface).interactive()))
         .disabled(!isEnabled)
     }
 

@@ -4,10 +4,14 @@ struct VerseDetailView: View {
     fileprivate struct VerseEditDraft: Equatable {
         var reference: String
         var text: String
+        var folderName: String
+        var masteryStatus: VerseMasteryStatus
 
-        init(reference: String, text: String) {
+        init(reference: String, text: String, folderName: String, masteryStatus: VerseMasteryStatus) {
             self.reference = reference
             self.text = text
+            self.folderName = folderName
+            self.masteryStatus = masteryStatus
         }
 
         var normalizedReference: String {
@@ -56,7 +60,7 @@ struct VerseDetailView: View {
         self.onVerseUpdated = onVerseUpdated
         self.onVerseDeleted = onVerseDeleted
         _currentVerse = State(initialValue: verse)
-        _editDraft = State(initialValue: VerseEditDraft(reference: verse.reference, text: verse.text))
+        _editDraft = State(initialValue: VerseEditDraft(reference: verse.reference, text: verse.text, folderName: verse.folderName, masteryStatus: verse.masteryStatus))
     }
 
     var body: some View {
@@ -89,7 +93,6 @@ struct VerseDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     sectionLabel("Status")
                     statusCard
-                    masteryPicker
 
                     HStack(spacing: 12) {
                         signalCard(
@@ -110,9 +113,11 @@ struct VerseDetailView: View {
                     sectionLabel("Details")
 
                     VStack(spacing: 0) {
-                        folderRow
-                        detailDivider
                         detailRow(title: "Added", value: addedDateText)
+                        detailDivider
+                        detailRow(title: "Folder", value: folderName)
+                        detailDivider
+                        detailRow(title: "Status", value: currentVerse.masteryStatus.rawValue)
                         detailDivider
                         detailRow(title: "Times Reviewed", value: "\(currentVerse.reviewCount)")
                     }
@@ -147,12 +152,12 @@ struct VerseDetailView: View {
         .tint(AppColors.structuralAccent)
         .onChange(of: verse) { _, newValue in
             currentVerse = newValue
-            editDraft = VerseEditDraft(reference: newValue.reference, text: newValue.text)
+            editDraft = VerseEditDraft(reference: newValue.reference, text: newValue.text, folderName: newValue.folderName, masteryStatus: newValue.masteryStatus)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Edit") {
-                    editDraft = VerseEditDraft(reference: currentVerse.reference, text: currentVerse.text)
+                    editDraft = VerseEditDraft(reference: currentVerse.reference, text: currentVerse.text, folderName: currentVerse.folderName, masteryStatus: currentVerse.masteryStatus)
                     isShowingEditSheet = true
                 }
                 .fontWeight(.semibold)
@@ -166,17 +171,9 @@ struct VerseDetailView: View {
         .sheet(isPresented: $isShowingEditSheet) {
             VerseEditSheet(
                 draft: $editDraft,
+                currentFolderName: currentVerse.folderName,
                 onSave: saveEditedVerse
             )
-        }
-        .sheet(isPresented: $isShowingMoveSheet) {
-            FolderDestinationSheet(
-                title: "Move to Folder",
-                currentFolderName: currentVerse.folderName,
-                additionalFolders: []
-            ) { folderName in
-                moveVerse(to: folderName)
-            }
         }
         .confirmationDialog("Delete Verse?", isPresented: $isShowingDeleteConfirmation, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
@@ -186,42 +183,6 @@ struct VerseDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This action cannot be undone.")
-        }
-    }
-
-    private var masteryPicker: some View {
-        HStack(spacing: 10) {
-            ForEach(VerseMasteryStatus.allCases) { status in
-                let isSelected = currentVerse.masteryStatus == status
-
-                Button {
-                    updateMasteryStatus(to: status)
-                } label: {
-                    Text(status.rawValue)
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(isSelected ? selectionFillColor : controlSurfaceColor)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(isSelected ? selectionStrokeColor : AppColors.divider, lineWidth: 1)
-                        }
-                        .foregroundStyle(isSelected ? selectionTextColor : AppColors.textSecondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(controlTrayColor)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
         }
     }
 
@@ -274,33 +235,6 @@ struct VerseDetailView: View {
     private var detailDivider: some View {
         Divider()
             .overlay(AppColors.divider)
-    }
-
-    private var folderRow: some View {
-        Button {
-            isShowingMoveSheet = true
-        } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                Text("Folder")
-                    .foregroundStyle(AppColors.textSecondary)
-
-                Spacer()
-
-                HStack(spacing: 8) {
-                    Text(folderName)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .multilineTextAlignment(.trailing)
-
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(AppColors.structuralAccent)
-                }
-            }
-            .font(.subheadline)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     private func signalCard(title: String, value: String, valueColor: Color) -> some View {
@@ -418,10 +352,6 @@ struct VerseDetailView: View {
         isLightMode ? AppColors.surface : AppColors.elevatedSurface
     }
 
-    private var controlTrayColor: Color {
-        isLightMode ? AppColors.secondarySurface : AppColors.surface
-    }
-
     private var referenceColor: Color {
         isLightMode ? AppColors.structuralAccent : AppColors.scriptureAccent
     }
@@ -434,18 +364,6 @@ struct VerseDetailView: View {
         isLightMode ? AppColors.surface : AppColors.primaryButtonText
     }
 
-    private var selectionFillColor: Color {
-        isLightMode ? AppColors.structuralAccent.opacity(0.12) : AppColors.selectionFill
-    }
-
-    private var selectionStrokeColor: Color {
-        isLightMode ? AppColors.structuralAccent.opacity(0.35) : AppColors.structuralAccent.opacity(0.24)
-    }
-
-    private var selectionTextColor: Color {
-        isLightMode ? AppColors.structuralAccent : AppColors.textPrimary
-    }
-
     private var statusSummary: String {
         switch currentVerse.masteryStatus {
         case .practicing:
@@ -453,28 +371,6 @@ struct VerseDetailView: View {
         case .memorized:
             return "You currently know this verse well. A missed review will move it back to Practicing."
         }
-    }
-
-    private func updateMasteryStatus(to status: VerseMasteryStatus) {
-        guard currentVerse.masteryStatus != status else {
-            return
-        }
-
-        guard let updatedVerse = VerseRepository.shared.updateMasteryStatus(forVerseID: currentVerse.id, to: status) else {
-            return
-        }
-
-        currentVerse = updatedVerse
-        onVerseUpdated(updatedVerse)
-    }
-
-    private func moveVerse(to folderName: String) {
-        guard let updatedVerse = VerseRepository.shared.moveVerse(id: currentVerse.id, toFolder: folderName) else {
-            return
-        }
-
-        currentVerse = updatedVerse
-        onVerseUpdated(updatedVerse)
     }
 
     private func deleteVerse() {
@@ -493,16 +389,29 @@ struct VerseDetailView: View {
             return
         }
 
-        currentVerse = updatedVerse
-        editDraft = VerseEditDraft(reference: updatedVerse.reference, text: updatedVerse.text)
+        var finalVerse = updatedVerse
+
+        if updatedVerse.masteryStatus != editDraft.masteryStatus,
+           let masteryUpdatedVerse = VerseRepository.shared.updateMasteryStatus(forVerseID: updatedVerse.id, to: editDraft.masteryStatus) {
+            finalVerse = masteryUpdatedVerse
+        }
+
+        if ScriptureAddPipeline.normalizedFolderName(finalVerse.folderName) != ScriptureAddPipeline.normalizedFolderName(editDraft.folderName),
+           let movedVerse = VerseRepository.shared.moveVerse(id: finalVerse.id, toFolder: editDraft.folderName) {
+            finalVerse = movedVerse
+        }
+
+        currentVerse = finalVerse
+        editDraft = VerseEditDraft(reference: finalVerse.reference, text: finalVerse.text, folderName: finalVerse.folderName, masteryStatus: finalVerse.masteryStatus)
         isShowingEditSheet = false
-        onVerseUpdated(updatedVerse)
+        onVerseUpdated(finalVerse)
     }
 }
 
 private struct VerseEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var draft: VerseDetailView.VerseEditDraft
+    let currentFolderName: String
     let onSave: () -> Void
 
     @FocusState private var focusedField: Field?
@@ -527,6 +436,26 @@ private struct VerseEditSheet: View {
                         .lineLimit(6...12)
                         .textInputAutocapitalization(.sentences)
                         .focused($focusedField, equals: .text)
+                }
+
+                Section("Status") {
+                    Picker("Status", selection: $draft.masteryStatus) {
+                        ForEach(VerseMasteryStatus.allCases) { status in
+                            Text(status.rawValue).tag(status)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section("Folder") {
+                    TextField("Folder name", text: $draft.folderName)
+                        .textInputAutocapitalization(.words)
+
+                    if draft.folderName.trimmingCharacters(in: .whitespacesAndNewlines) != currentFolderName.trimmingCharacters(in: .whitespacesAndNewlines) {
+                        Text("This verse will move to the updated folder when you save.")
+                            .font(.footnote)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
                 }
             }
             .navigationTitle("Edit Verse")
