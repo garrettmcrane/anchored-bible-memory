@@ -35,7 +35,7 @@ struct AddHubView: View {
                             )
                         } label: {
                             AddHubOptionCard(
-                                title: "Paste / Type",
+                                title: "Type Verses",
                                 subtitle: "Paste references or messy notes, resolve them against the offline KJV, and save what you want.",
                                 systemImage: "doc.text",
                                 tint: AppColors.structuralAccent
@@ -60,7 +60,7 @@ struct AddHubView: View {
 
                         AddHubOptionCard(
                             title: "Import",
-                            subtitle: "Bulk import is planned next. For now, use Paste / Type to bring in references from copied notes.",
+                            subtitle: "Bulk import is planned next. For now, use Type Verses to bring in references from copied notes.",
                             systemImage: "square.and.arrow.down",
                             tint: AppColors.textSecondary,
                             isPlaceholder: true

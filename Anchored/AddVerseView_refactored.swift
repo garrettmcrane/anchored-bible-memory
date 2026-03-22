@@ -49,7 +49,7 @@ struct AddVerseView: View {
             .padding(20)
         }
         .background(AppColors.background)
-        .navigationTitle("Paste / Type")
+        .navigationTitle("Type Verses")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $reviewContext) { context in
             AddVerseReviewView(
@@ -64,6 +64,16 @@ struct AddVerseView: View {
         .onAppear {
             if focusTrigger > 0 {
                 isReferenceEditorFocused = true
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+
+                Button("Done") {
+                    isReferenceEditorFocused = false
+                }
+                .font(.subheadline.weight(.semibold))
             }
         }
     }

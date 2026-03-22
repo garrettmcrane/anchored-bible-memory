@@ -1,9 +1,16 @@
 import SwiftUI
 
 struct VerseRowView: View {
+    struct MetadataItem: Identifiable {
+        let text: String
+        var id: String { text }
+    }
+
     let verse: Verse
     var showsChevron: Bool = true
     var selectionState: SelectionState? = nil
+    var metadataItems: [MetadataItem]? = nil
+    var statusTintOverride: Color? = nil
     private static let uncategorizedFolderName = "Uncategorized"
 
     struct SelectionState {
@@ -14,57 +21,68 @@ struct VerseRowView: View {
         verse.masteryStatus
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 12) {
-                if let selectionState {
-                    selectionIndicator(isSelected: selectionState.isSelected)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(verse.reference)
-                        .font(.headline)
-
-                    Text(verse.text)
-                        .font(.subheadline)
-                        .foregroundStyle(AppColors.textSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    HStack(spacing: 8) {
-                        Text(folderName)
-                            .font(.caption2)
-                            .foregroundStyle(AppColors.textSecondary.opacity(0.75))
-                            .lineLimit(1)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.trailing, showsChevron ? 84 : 64)
-
-                if showsChevron {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(AppColors.textSecondary)
-                        .font(.system(size: 12, weight: .semibold))
-                }
-            }
-        }
-        .padding(.vertical, 1)
-        .overlay(alignment: .topTrailing) {
-            statusBadge
-                .padding(.top, -2)
-                .padding(.trailing, -8)
-        }
+    private var statusTint: Color {
+        statusTintOverride ?? status.tintColor
     }
 
-    private var statusBadge: some View {
-        Text(status.badgeTitle)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(status.subtleFillColor))
-            .foregroundStyle(status.tintColor)
-            .lineLimit(1)
-            .fixedSize()
+    private var resolvedMetadataItems: [MetadataItem] {
+        metadataItems ?? [MetadataItem(text: folderName)]
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            if let selectionState {
+                selectionIndicator(isSelected: selectionState.isSelected)
+                    .padding(.top, 12)
+            }
+
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(statusTint)
+                .frame(width: 3)
+                .padding(.vertical, 4)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text(verse.reference)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+
+                Text(verse.text)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                if !resolvedMetadataItems.isEmpty {
+                    metadataRow
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(AppColors.textSecondary)
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.top, 4)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var metadataRow: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(resolvedMetadataItems.enumerated()), id: \.element.id) { index, item in
+                if index > 0 {
+                    Circle()
+                        .fill(AppColors.textSecondary.opacity(0.28))
+                        .frame(width: 3, height: 3)
+                }
+
+                Text(item.text)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppColors.textSecondary.opacity(0.82))
+                    .lineLimit(1)
+            }
+        }
     }
 
     private func selectionIndicator(isSelected: Bool) -> some View {

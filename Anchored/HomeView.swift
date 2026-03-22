@@ -28,6 +28,9 @@ struct HomeView: View {
     @State private var isShowingNotifications = false
     @Environment(\.scenePhase) private var scenePhase
 
+    @State private var isShowingAddFlow = false
+    @State private var addFocusTrigger = 0
+
     private let reviewQueueBuilder = ReviewQueueBuilder()
 
     private var greetingText: String {
@@ -89,9 +92,21 @@ struct HomeView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 12)
             }
-            .navigationBarHidden(true)
-            .navigationDestination(isPresented: $isShowingSettings) {
-                SettingsView()
+        }
+        .navigationDestination(isPresented: $isShowingSettings) {
+            SettingsView()
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingNotifications = false
+                    isShowingSettings = false
+                    // Present Add flow
+                    addVerse()
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("Add")
             }
         }
         .sheet(item: $reviewStartConfiguration) { configuration in
@@ -150,6 +165,12 @@ struct HomeView: View {
         .animation(.easeInOut(duration: 0.2), value: quickAddFeedback)
         .sheet(isPresented: $isShowingNotifications) {
             NotificationsPlaceholderView()
+        }
+        .sheet(isPresented: $isShowingAddFlow) {
+            AddHubView(showsCancelButton: true, focusTrigger: addFocusTrigger) { newVerse in
+                VerseRepository.shared.addVerse(newVerse)
+                verses = VerseRepository.shared.loadVerses()
+            }
         }
     }
 
@@ -409,6 +430,10 @@ struct HomeView: View {
             .lowercased()
     }
 
+    private func addVerse() {
+        addFocusTrigger += 1
+        isShowingAddFlow = true
+    }
 }
 
 private struct HomeMetricColumn: View {

@@ -25,40 +25,39 @@ struct LibraryView: View {
         let value: Int
         let title: String
         let isSelected: Bool
+        let selectionNamespace: Namespace.ID
 
         var body: some View {
-            VStack(spacing: 5) {
-                Text(value.formatted())
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+            ZStack {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(AppColors.surface.opacity(0.82))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(AppColors.divider.opacity(0.9), lineWidth: 1)
+                        }
+                        .matchedGeometryEffect(id: "library-summary-selection", in: selectionNamespace)
+                }
 
-                Text(title)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
-                    .textCase(.uppercase)
-                    .tracking(0.45)
-                    .lineLimit(1)
+                VStack(spacing: 6) {
+                    Text(value.formatted())
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+
+                    Text(title)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary.opacity(0.92))
+                        .textCase(.uppercase)
+                        .tracking(0.55)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 14)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isSelected ? AppColors.selectionFill : Color.clear)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(isSelected ? AppColors.gold.opacity(0.42) : Color.clear, lineWidth: 1)
-            }
-        }
-    }
-
-    private struct SummaryDivider: View {
-        var body: some View {
-            Rectangle()
-                .fill(AppColors.divider)
-                .frame(width: 1, height: 32)
+            .contentShape(.rect(cornerRadius: 20))
         }
     }
 
@@ -94,6 +93,10 @@ struct LibraryView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = []
     @FocusState private var isSearchFieldFocused: Bool
+    @Namespace private var summarySelectionNamespace
+
+    @State private var isShowingAddFlow = false
+    @State private var addFocusTrigger = 0
 
     private let floatingButtonHeight: CGFloat = 50
     private let floatingButtonVerticalInset: CGFloat = 8
@@ -124,13 +127,32 @@ struct LibraryView: View {
         }
     }
 
-    private var folderFilteredVerses: [Verse] {
+    private var baseFolderFilteredVerses: [Verse] {
         guard !selectedFolders.isEmpty else {
-            return statusFilteredVerses
+            return verses
         }
 
-        return statusFilteredVerses.filter { verse in
+        return verses.filter { verse in
             selectedFolders.contains(normalizedFolderName(verse.folderName))
+        }
+    }
+
+    private var baseSearchFilteredVerses: [Verse] {
+        guard hasActiveSearch else {
+            return baseFolderFilteredVerses
+        }
+
+        return baseFolderFilteredVerses.filter(matchesSearch)
+    }
+
+    private var folderFilteredVerses: [Verse] {
+        switch selectedFilter {
+        case .all:
+            return baseFolderFilteredVerses
+        case .practicing:
+            return VerseQueries.practicingVerses(baseFolderFilteredVerses)
+        case .memorized:
+            return VerseQueries.memorizedVerses(baseFolderFilteredVerses)
         }
     }
 
@@ -184,7 +206,10 @@ struct LibraryView: View {
     }
 
     private var practicingReviewVerses: [Verse] {
-        reviewVerses.filter { $0.masteryStatus == .practicing }
+        let practicingPool = baseSearchFilteredVerses
+            .filter { $0.masteryStatus == .practicing }
+
+        return practicingPool.sorted { VerseStrengthService.reviewPriority($0, $1) }
     }
 
     private var floatingButtonClearance: CGFloat {
@@ -299,7 +324,7 @@ struct LibraryView: View {
                 .overlay(alignment: .bottom) {
                     bottomOverlay
                 }
-                .navigationBarHidden(true)
+//                .navigationBarHidden(true)
                 .navigationDestination(isPresented: detailVersePresented) {
                     if let verse = detailVerse {
                         VerseDetailView(
@@ -321,94 +346,111 @@ struct LibraryView: View {
                     }
                 }
             }
-        }
-        .sheet(isPresented: $showingFolderFilterSheet) {
-            FolderFilterSheet(
-                allFoldersTitle: Self.allFoldersOption,
-                folders: folderOptions,
-                initialSelection: selectedFolders
-            ) { selection in
-                selectedFolders = selection
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        addFocusTrigger += 1
+                        isShowingAddFlow = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Add")
+                }
             }
-        }
-        .sheet(item: $pendingMoveVerse) { presentation in
-            FolderDestinationSheet(
-                title: "Move to Folder",
-                currentFolderName: presentation.verse.folderName,
-                additionalFolders: []
-            ) { folderName in
-                moveVerse(id: presentation.verse.id, toFolder: folderName)
+            .sheet(isPresented: $showingFolderFilterSheet) {
+                FolderFilterSheet(
+                    allFoldersTitle: Self.allFoldersOption,
+                    folders: folderOptions,
+                    initialSelection: selectedFolders
+                ) { selection in
+                    selectedFolders = selection
+                }
             }
-        }
-        .sheet(item: $selectedVerseReview) { presentation in
-            switch presentation.method {
-            case .flashcard:
-                ReviewView(verse: presentation.verse) { _ in
-                    reloadVerses()
+            .sheet(item: $pendingMoveVerse) { presentation in
+                FolderDestinationSheet(
+                    title: "Move to Folder",
+                    currentFolderName: presentation.verse.folderName,
+                    additionalFolders: []
+                ) { folderName in
+                    moveVerse(id: presentation.verse.id, toFolder: folderName)
                 }
-            case .progressiveWordHiding:
-                ProgressiveWordHidingReviewView(verse: presentation.verse) { _ in
-                    reloadVerses()
-                }
-            case .firstLetterTyping:
-                FirstLetterTypingReviewView(verse: presentation.verse) { _ in
-                    reloadVerses()
-                }
-            case .voiceRecitation:
-                VoiceRecitationReviewSessionView(
-                    descriptor: ReviewSessionDescriptor(title: presentation.method.title, method: presentation.method),
-                    verses: [presentation.verse],
-                    onUpdate: { _ in
+            }
+            .sheet(item: $selectedVerseReview) { presentation in
+                switch presentation.method {
+                case .flashcard:
+                    ReviewView(verse: presentation.verse) { _ in
                         reloadVerses()
                     }
-                )
-            }
-        }
-        .sheet(item: $reviewStartConfiguration) { configuration in
-            ReviewStartSheet(configuration: configuration) { method in
-                activeBatchReview = BatchReviewPresentation(
-                    descriptor: ReviewSessionDescriptor(title: configuration.title, method: method),
-                    verses: configuration.verses
-                )
-            }
-        }
-        .sheet(item: $activeBatchReview) { presentation in
-            switch presentation.descriptor.method {
-            case .flashcard:
-                ReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
-                    reloadVerses()
-                }
-            case .progressiveWordHiding:
-                ProgressiveWordHidingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
-                    reloadVerses()
-                }
-            case .firstLetterTyping:
-                FirstLetterTypingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
-                    reloadVerses()
-                }
-            case .voiceRecitation:
-                VoiceRecitationReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
-                    reloadVerses()
+                case .progressiveWordHiding:
+                    ProgressiveWordHidingReviewView(verse: presentation.verse) { _ in
+                        reloadVerses()
+                    }
+                case .firstLetterTyping:
+                    FirstLetterTypingReviewView(verse: presentation.verse) { _ in
+                        reloadVerses()
+                    }
+                case .voiceRecitation:
+                    VoiceRecitationReviewSessionView(
+                        descriptor: ReviewSessionDescriptor(title: presentation.method.title, method: presentation.method),
+                        verses: [presentation.verse],
+                        onUpdate: { _ in
+                            reloadVerses()
+                        }
+                    )
                 }
             }
-        }
-        .task {
-            await loadInitialVersesIfNeeded()
-        }
-        .onAppear {
-            reloadVerses()
-        }
-        .confirmationDialog(batchDeleteDialogTitle, isPresented: batchDeleteDialogPresented, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
-                deleteVerses(ids: pendingBatchDeleteVerseIDs)
-                pendingBatchDeleteVerseIDs.removeAll()
+            .sheet(item: $reviewStartConfiguration) { configuration in
+                ReviewStartSheet(configuration: configuration) { method in
+                    activeBatchReview = BatchReviewPresentation(
+                        descriptor: ReviewSessionDescriptor(title: configuration.title, method: method),
+                        verses: configuration.verses
+                    )
+                }
             }
+            .sheet(item: $activeBatchReview) { presentation in
+                switch presentation.descriptor.method {
+                case .flashcard:
+                    ReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
+                        reloadVerses()
+                    }
+                case .progressiveWordHiding:
+                    ProgressiveWordHidingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
+                        reloadVerses()
+                    }
+                case .firstLetterTyping:
+                    FirstLetterTypingReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
+                        reloadVerses()
+                    }
+                case .voiceRecitation:
+                    VoiceRecitationReviewSessionView(descriptor: presentation.descriptor, verses: presentation.verses) { _ in
+                        reloadVerses()
+                    }
+                }
+            }
+            .sheet(isPresented: $isShowingAddFlow) {
+                AddHubView(showsCancelButton: true, focusTrigger: addFocusTrigger) { newVerse in
+                    VerseRepository.shared.addVerse(newVerse)
+                    reloadVerses()
+                }
+            }
+            .task {
+                await loadInitialVersesIfNeeded()
+            }
+            .onAppear {
+                reloadVerses()
+            }
+            .confirmationDialog(batchDeleteDialogTitle, isPresented: batchDeleteDialogPresented, titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    deleteVerses(ids: pendingBatchDeleteVerseIDs)
+                    pendingBatchDeleteVerseIDs.removeAll()
+                }
 
-            Button("Cancel", role: .cancel) {
-                pendingBatchDeleteVerseIDs.removeAll()
+                Button("Cancel", role: .cancel) {
+                    pendingBatchDeleteVerseIDs.removeAll()
+                }
+            } message: {
+                Text("This action cannot be undone.")
             }
-        } message: {
-            Text("This action cannot be undone.")
         }
     }
 
@@ -457,48 +499,48 @@ struct LibraryView: View {
 
     private var topSummarySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 16) {
+                    Color.clear
+                        .frame(width: ShellCircularIconLabel.diameter, height: ShellCircularIconLabel.diameter)
+
                     Text("Library")
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(AppColors.textPrimary)
+                        .frame(maxWidth: .infinity)
 
-                    Text("Your saved passages, organized and ready to review.")
-                        .font(.subheadline)
-                        .foregroundStyle(AppColors.textSecondary)
+                    Button {
+                        isShowingSearchField = true
+                        isSearchFieldFocused = true
+                    } label: {
+                        ShellCircularIconLabel(systemImage: "magnifyingglass")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Search library")
                 }
+                .frame(height: 44)
 
-                Spacer()
-
-                Button {
-                    isShowingSearchField = true
-                    isSearchFieldFocused = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .circle)
-                .accessibilityLabel("Search library")
+                Text("View and practice your library of saved passages.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
             }
 
-            HStack(spacing: 0) {
-                summaryFilterMetric(value: totalCount, title: "All", filter: .all)
-                SummaryDivider()
-                summaryFilterMetric(value: practicingCount, title: "Practicing", filter: .practicing)
-                SummaryDivider()
-                summaryFilterMetric(value: memorizedCount, title: "Memorized", filter: .memorized)
+            GlassEffectContainer(spacing: 12) {
+                HStack(spacing: 8) {
+                    summaryFilterMetric(value: totalCount, title: "All", filter: .all)
+                    summaryFilterMetric(value: practicingCount, title: "Practicing", filter: .practicing)
+                    summaryFilterMetric(value: memorizedCount, title: "Memorized", filter: .memorized)
+                }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 10)
+            .padding(8)
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AppColors.surface)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(AppColors.secondarySurface)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .stroke(AppColors.divider, lineWidth: 1)
             }
         }
@@ -569,13 +611,13 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: hasActiveFolderFilter ? "folder.fill" : "folder")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(hasActiveFolderFilter ? AppColors.gold : AppColors.textPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .glassEffect(
                     hasActiveFolderFilter
-                        ? .regular.tint(AppColors.gold).interactive()
+                        ? .regular.tint(AppColors.selectionFill).interactive()
                         : .regular.interactive(),
                     in: .circle
                 )
@@ -590,13 +632,13 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(hasNonDefaultSortMode ? AppColors.gold : AppColors.textPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .glassEffect(
                     hasNonDefaultSortMode
-                        ? .regular.tint(AppColors.gold).interactive()
+                        ? .regular.tint(AppColors.selectionFill).interactive()
                         : .regular.interactive(),
                     in: .circle
                 )
@@ -657,10 +699,12 @@ struct LibraryView: View {
             LibrarySummaryMetric(
                 value: value,
                 title: title,
-                isSelected: selectedFilter == filter
+                isSelected: selectedFilter == filter,
+                selectionNamespace: summarySelectionNamespace
             )
         }
         .buttonStyle(.plain)
+        .animation(.snappy(duration: 0.28), value: selectedFilter)
     }
 
     private var emptyVersesState: some View {
@@ -817,7 +861,7 @@ struct LibraryView: View {
                 title: "Review Practicing",
                 tint: AppColors.primaryButton,
                 textColor: AppColors.primaryButtonText,
-                isEnabled: !practicingReviewVerses.isEmpty
+                isEnabled: !practicingReviewVerses.isEmpty || selectedFilter == .memorized
             ) {
                 startLibraryReview(
                     title: "Review Practicing",
@@ -895,7 +939,9 @@ struct LibraryView: View {
         isEnabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             VStack(spacing: 5) {
                 Image(systemName: systemImage)
                     .font(.system(size: 16, weight: .semibold))
@@ -924,21 +970,23 @@ struct LibraryView: View {
         isEnabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             Text(title)
                 .fontWeight(.semibold)
-            .foregroundStyle(textColor)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(
-                Capsule()
-                    .fill(isEnabled ? tint : AppColors.surface)
-            )
-            .overlay {
-                Capsule()
-                    .stroke(isEnabled ? tint.opacity(0.18) : AppColors.divider, lineWidth: 1)
-            }
-            .shadow(color: AppColors.background.opacity(isEnabled ? 0.12 : 0), radius: 12, x: 0, y: 6)
+                .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    Capsule()
+                        .fill(isEnabled ? tint : AppColors.secondarySurface)
+                )
+                .overlay {
+                    Capsule()
+                        .stroke(isEnabled ? tint.opacity(0.18) : AppColors.divider.opacity(0.9), lineWidth: 1)
+                }
+                .shadow(color: AppColors.background.opacity(isEnabled ? 0.12 : 0), radius: 12, x: 0, y: 6)
         }
         .disabled(!isEnabled)
     }

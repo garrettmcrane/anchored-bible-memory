@@ -3,6 +3,8 @@ import SwiftUI
 struct GroupsView: View {
     @State private var groups: [Group] = []
     @State private var isShowingCreateGroupSheet = false
+    @State private var isShowingAddFlow = false
+    @State private var addFocusTrigger = 0
 
     var body: some View {
         NavigationStack {
@@ -20,7 +22,6 @@ struct GroupsView: View {
                     }
                 }
             }
-            .navigationBarHidden(true)
             .tint(AppColors.structuralAccent)
         }
         .sheet(isPresented: $isShowingCreateGroupSheet) {
@@ -29,8 +30,25 @@ struct GroupsView: View {
                 reloadGroups()
             }
         }
+        .sheet(isPresented: $isShowingAddFlow) {
+            AddHubView(showsCancelButton: true, focusTrigger: addFocusTrigger) { newVerse in
+                VerseRepository.shared.addVerse(newVerse)
+                reloadGroups()
+            }
+        }
         .onAppear {
             reloadGroups()
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    addFocusTrigger += 1
+                    isShowingAddFlow = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("Add")
+            }
         }
     }
 

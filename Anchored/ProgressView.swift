@@ -3,6 +3,8 @@ import SwiftUI
 struct ProgressTabView: View {
     @State private var isShowingNotifications = false
     @State private var isShowingSettings = false
+    @State private var isShowingAddFlow = false
+    @State private var addFocusTrigger = 0
     @State private var verses: [Verse] = []
     @State private var reviewRecords: [ReviewRecord] = []
 
@@ -132,7 +134,6 @@ struct ProgressTabView: View {
                     .padding(.bottom, BottomNavigationShellLayout.overlayClearance + 22)
                 }
             }
-            .navigationBarHidden(true)
             .navigationDestination(isPresented: $isShowingSettings) {
                 SettingsView()
             }
@@ -142,6 +143,23 @@ struct ProgressTabView: View {
         }
         .sheet(isPresented: $isShowingNotifications) {
             NotificationsPlaceholderView()
+        }
+        .sheet(isPresented: $isShowingAddFlow) {
+            AddHubView(showsCancelButton: true, focusTrigger: addFocusTrigger) { newVerse in
+                VerseRepository.shared.addVerse(newVerse)
+                Task { await loadInitialDataIfNeeded() }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    addFocusTrigger += 1
+                    isShowingAddFlow = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("Add")
+            }
         }
     }
 
@@ -158,7 +176,7 @@ struct ProgressTabView: View {
     }
 
     private var profileHeroSection: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Good to see you, \(firstName)")
                     .font(.system(size: 30, weight: .semibold))
@@ -174,33 +192,23 @@ struct ProgressTabView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10)
-                ],
-                spacing: 10
-            ) {
+            HStack(spacing: 10) {
                 ProfileHighlightPill(title: "Memorized", value: memorizedCount.formatted())
                 ProfileHighlightPill(title: "Practicing", value: practicingCount.formatted())
                 ProfileHighlightPill(title: "Library", value: verses.count.formatted())
             }
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
-                ],
-                spacing: 12
-            ) {
+            HStack(spacing: 10) {
                 profileDetail(label: "This week", value: "\(weeklyReviewCount) reviews")
 
                 if let strongestFolderName {
                     profileDetail(label: "Top folder", value: strongestFolderName)
+                } else {
+                    profileDetail(label: "Top folder", value: "None yet")
                 }
             }
         }
-        .padding(22)
+        .padding(20)
         .background(heroBackground)
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -332,8 +340,9 @@ struct ProgressTabView: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
-        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AppColors.surface.opacity(0.7))
@@ -385,14 +394,14 @@ private struct ProfileHighlightPill: View {
                 .textCase(.uppercase)
 
             Text(value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .frame(maxWidth: .infinity, minHeight: 86, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AppColors.surface.opacity(0.82))
