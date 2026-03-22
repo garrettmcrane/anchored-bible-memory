@@ -117,8 +117,11 @@ private enum CSVImportService {
         let data = try Data(contentsOf: url)
         let string = try decodeString(from: data)
         let records = try parseRecords(in: string)
+        let nonEmptyRecords = records.filter { record in
+            record.contains { !normalizedCell($0).isEmpty }
+        }
 
-        guard let headerRow = records.first else {
+        guard let headerRow = nonEmptyRecords.first else {
             throw CSVImportError.invalidCSV
         }
 
@@ -131,7 +134,7 @@ private enum CSVImportService {
         var seenImportReferenceKeys: Set<String> = []
         var rows: [CSVImportRow] = []
 
-        for (index, record) in records.dropFirst().enumerated() {
+        for (index, record) in nonEmptyRecords.dropFirst().enumerated() {
             if record.allSatisfy({ normalizedCell($0).isEmpty }) {
                 continue
             }
@@ -220,6 +223,7 @@ private enum CSVImportService {
     }
 
     private static func parseRecords(in string: String) throws -> [[String]] {
+        let delimiter = detectedDelimiter(in: string)
         var records: [[String]] = []
         var currentRecord: [String] = []
         var currentField = ""
@@ -256,14 +260,12 @@ private enum CSVImportService {
                 switch character {
                 case "\"":
                     isInsideQuotes = true
-                case ",":
+                case delimiter:
                     finishField()
-                case "\n":
-                    finishRecord()
-                case "\r":
+                case _ where character.isNewline:
                     finishRecord()
                     let nextIndex = string.index(after: index)
-                    if nextIndex < string.endIndex, string[nextIndex] == "\n" {
+                    if character == "\r", nextIndex < string.endIndex, string[nextIndex] == "\n" {
                         index = nextIndex
                     }
                 default:
@@ -283,6 +285,22 @@ private enum CSVImportService {
         }
 
         return records
+    }
+
+    private static func detectedDelimiter(in string: String) -> Character {
+        guard let firstContentLine = string
+            .split(whereSeparator: \.isNewline)
+            .map({ String($0) })
+            .first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
+            return ","
+        }
+
+        let candidates: [Character] = [",", ";", "\t"]
+        let counts = candidates.map { delimiter in
+            (delimiter, firstContentLine.filter { $0 == delimiter }.count)
+        }
+
+        return counts.max(by: { $0.1 < $1.1 })?.0 ?? ","
     }
 
     private static func headerMapping(for headerRow: [String]) -> [Column: Int] {
