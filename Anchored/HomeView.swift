@@ -1,10 +1,6 @@
 import SwiftUI
 
 struct HomeView: View {
-    private enum Destination: Hashable {
-        case settings
-    }
-
     private struct BatchReviewPresentation: Identifiable {
         let id = UUID()
         let descriptor: ReviewSessionDescriptor
@@ -28,6 +24,8 @@ struct HomeView: View {
         text: "Loading today's verse..."
     )
     @State private var verseOfTheDayDayKey = ""
+    @State private var isShowingSettings = false
+    @State private var isShowingNotifications = false
     @Environment(\.scenePhase) private var scenePhase
 
     private let reviewQueueBuilder = ReviewQueueBuilder()
@@ -71,6 +69,7 @@ struct HomeView: View {
 
                 VStack(alignment: .leading, spacing: 20) {
                     header
+                    greetingSection
                     verseCard
                     summarySection
                     reviewButtons
@@ -81,11 +80,8 @@ struct HomeView: View {
                 .padding(.bottom, 12)
             }
             .navigationBarHidden(true)
-            .navigationDestination(for: Destination.self) { destination in
-                switch destination {
-                case .settings:
-                    SettingsView()
-                }
+            .navigationDestination(isPresented: $isShowingSettings) {
+                SettingsView()
             }
         }
         .sheet(item: $reviewStartConfiguration) { configuration in
@@ -142,33 +138,32 @@ struct HomeView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: quickAddFeedback)
+        .sheet(isPresented: $isShowingNotifications) {
+            NotificationsPlaceholderView()
+        }
     }
 
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(greetingText)
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(AppColors.textPrimary)
+        MainScreenTopBar(
+            title: "Home",
+            onNotificationsTap: {
+                isShowingNotifications = true
+            },
+            onSettingsTap: {
+                isShowingSettings = true
             }
+        )
+    }
 
-            Spacer()
+    private var greetingSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(greetingText)
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(AppColors.textPrimary)
 
-            NavigationLink(value: Destination.settings) {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 28))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        Circle()
-                            .fill(AppColors.elevatedSurface)
-                    )
-                    .overlay {
-                        Circle()
-                            .stroke(AppColors.divider, lineWidth: 1)
-                    }
-            }
-            .buttonStyle(.plain)
+            Text("Keep your next review close and your library growing steadily.")
+                .font(.subheadline)
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 
@@ -403,6 +398,7 @@ struct HomeView: View {
             .joined(separator: " ")
             .lowercased()
     }
+
 }
 
 private struct HomeMetricColumn: View {

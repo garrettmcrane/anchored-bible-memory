@@ -6,29 +6,23 @@ struct GroupsView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                AppColors.background
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                header
 
-                if groups.isEmpty {
-                    emptyState
-                } else {
-                    groupsList
-                }
-            }
-            .navigationTitle("Groups")
-            .navigationBarTitleDisplayMode(.large)
-            .tint(AppColors.structuralAccent)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isShowingCreateGroupSheet = true
-                    } label: {
-                        Image(systemName: "plus")
+                ZStack {
+                    AppColors.background
+                        .ignoresSafeArea()
+
+                    if groups.isEmpty {
+                        emptyState
+                    } else {
+                        groupsList
                     }
-                    .accessibilityLabel("Create group")
                 }
             }
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationBarHidden(true)
+            .tint(AppColors.structuralAccent)
         }
         .sheet(isPresented: $isShowingCreateGroupSheet) {
             CreateGroupSheet { name in
@@ -39,6 +33,38 @@ struct GroupsView: View {
         .onAppear {
             reloadGroups()
         }
+    }
+
+    private var header: some View {
+        HStack {
+            Text("Groups")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(AppColors.textPrimary)
+
+            Spacer()
+
+            Button {
+                isShowingCreateGroupSheet = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        Circle()
+                            .fill(AppColors.elevatedSurface)
+                    )
+                    .overlay {
+                        Circle()
+                            .stroke(AppColors.divider, lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Create group")
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
     }
 
     private var emptyState: some View {

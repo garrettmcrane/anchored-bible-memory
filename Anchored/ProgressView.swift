@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ProgressTabView: View {
+    @State private var isShowingNotifications = false
+    @State private var isShowingSettings = false
     @State private var verses: [Verse] = []
     @State private var reviewRecords: [ReviewRecord] = []
 
@@ -90,6 +92,7 @@ struct ProgressTabView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 22) {
                         header
+                        introSection
                         summarySection
                         activitySection
                         folderBreakdownSection
@@ -105,19 +108,37 @@ struct ProgressTabView: View {
                 }
             }
             .navigationBarHidden(true)
+            .navigationDestination(isPresented: $isShowingSettings) {
+                SettingsView()
+            }
         }
         .task {
             await loadInitialDataIfNeeded()
         }
+        .sheet(isPresented: $isShowingNotifications) {
+            NotificationsPlaceholderView()
+        }
     }
 
     private var header: some View {
+        MainScreenTopBar(
+            title: "Me",
+            onNotificationsTap: {
+                isShowingNotifications = true
+            },
+            onSettingsTap: {
+                isShowingSettings = true
+            }
+        )
+    }
+
+    private var introSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Progress")
-                .font(.system(size: 34, weight: .bold))
+            Text("Your progress at a glance")
+                .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(AppColors.textPrimary)
 
-            Text("A simple view of your memorization activity")
+            Text("Review activity, library progress, and personal momentum all live here.")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
         }

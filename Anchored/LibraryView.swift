@@ -464,7 +464,8 @@ struct LibraryView: View {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Library")
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
 
                 }
 
