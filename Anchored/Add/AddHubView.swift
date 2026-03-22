@@ -58,13 +58,20 @@ struct AddHubView: View {
                         }
                         .buttonStyle(.plain)
 
-                        AddHubOptionCard(
-                            title: "Import",
-                            subtitle: "Bulk import is planned next. For now, use Type Verses to bring in references from copied notes.",
-                            systemImage: "square.and.arrow.down",
-                            tint: AppColors.textSecondary,
-                            isPlaceholder: true
-                        )
+                        NavigationLink {
+                            ImportReferencesView(
+                                onSaveVerse: onSaveVerse,
+                                onComplete: onComplete
+                            )
+                        } label: {
+                            AddHubOptionCard(
+                                title: "Import",
+                                subtitle: "Bring in a CSV from Files, review what will be saved, and import many verses at once.",
+                                systemImage: "square.and.arrow.down",
+                                tint: AppColors.structuralAccent
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(20)
@@ -92,7 +99,7 @@ struct AddHubView: View {
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(AppColors.textPrimary)
 
-            Text("Choose how you want to add verses. Paste references, search the bundled Bible, or come back soon for bulk import.")
+            Text("Choose how you want to add verses. Paste references, search the bundled Bible, or import a CSV from Files.")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
         }

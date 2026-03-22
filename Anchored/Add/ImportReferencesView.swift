@@ -1,91 +1,385 @@
 import SwiftUI
-import UIKit
+import UniformTypeIdentifiers
 
-struct ImportReferencesPreviewContext: Identifiable, Hashable {
+private struct CSVImportPreviewContext: Identifiable, Hashable {
     let id = UUID()
-    let importablePassages: [ScripturePassage]
-    let duplicatePassages: [ScripturePassage]
-    let unresolvedEntries: [String]
-    let duplicateReferenceCount: Int
+    let fileName: String
+    let totalRows: Int
+    let rows: [CSVImportRow]
+
+    var readyRows: [CSVImportRow] {
+        rows.filter { $0.disposition == .ready }
+    }
+
+    var existingDuplicateRows: [CSVImportRow] {
+        rows.filter { $0.disposition == .duplicateExisting }
+    }
+
+    var fileDuplicateRows: [CSVImportRow] {
+        rows.filter { $0.disposition == .duplicateInFile }
+    }
+
+    var invalidRows: [CSVImportRow] {
+        rows.filter { $0.disposition == .invalid }
+    }
+
+    var duplicateRows: [CSVImportRow] {
+        rows.filter { $0.disposition.isDuplicate }
+    }
+}
+
+private struct CSVImportRow: Identifiable, Hashable {
+    let id = UUID()
+    let rowNumber: Int
+    let reference: String
+    let text: String
+    let folderName: String
+    let masteryStatus: VerseMasteryStatus
+    let disposition: CSVImportDisposition
+    let message: String?
+
+    var displayReference: String {
+        reference.isEmpty ? "Row \(rowNumber)" : reference
+    }
+}
+
+private enum CSVImportDisposition: String, Hashable {
+    case ready
+    case duplicateExisting
+    case duplicateInFile
+    case invalid
+
+    var title: String {
+        switch self {
+        case .ready:
+            return "Ready"
+        case .duplicateExisting:
+            return "Already Saved"
+        case .duplicateInFile:
+            return "Duplicate in CSV"
+        case .invalid:
+            return "Needs Attention"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .ready:
+            return AppColors.structuralAccent
+        case .duplicateExisting, .duplicateInFile:
+            return AppColors.warning
+        case .invalid:
+            return AppColors.weakness
+        }
+    }
+
+    var isDuplicate: Bool {
+        self == .duplicateExisting || self == .duplicateInFile
+    }
+}
+
+private enum CSVImportError: LocalizedError {
+    case unreadableFile
+    case invalidCSV
+    case missingHeaders
+    case noRows
+
+    var errorDescription: String? {
+        switch self {
+        case .unreadableFile:
+            return "That file couldn't be read. Try a different CSV from Files."
+        case .invalidCSV:
+            return "That file doesn't look like a valid CSV."
+        case .missingHeaders:
+            return "Your CSV needs recognizable columns for both reference and text."
+        case .noRows:
+            return "No verse rows were found in that CSV."
+        }
+    }
+}
+
+private enum CSVImportService {
+    private enum Column {
+        case reference
+        case text
+        case folder
+        case status
+    }
+
+    static func parseCSV(from url: URL) throws -> CSVImportPreviewContext {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer {
+            if scoped {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let data = try Data(contentsOf: url)
+        let string = try decodeString(from: data)
+        let records = try parseRecords(in: string)
+
+        guard let headerRow = records.first else {
+            throw CSVImportError.invalidCSV
+        }
+
+        let headerMap = headerMapping(for: headerRow)
+        guard headerMap[.reference] != nil, headerMap[.text] != nil else {
+            throw CSVImportError.missingHeaders
+        }
+
+        let existingReferenceKeys = ScriptureAddPipeline.existingReferenceKeys()
+        var seenImportReferenceKeys: Set<String> = []
+        var rows: [CSVImportRow] = []
+
+        for (index, record) in records.dropFirst().enumerated() {
+            if record.allSatisfy({ normalizedCell($0).isEmpty }) {
+                continue
+            }
+
+            let rowNumber = index + 2
+            let reference = value(for: .reference, in: record, headerMap: headerMap)
+            let text = value(for: .text, in: record, headerMap: headerMap)
+            let folder = value(for: .folder, in: record, headerMap: headerMap)
+            let status = value(for: .status, in: record, headerMap: headerMap)
+
+            let normalizedReference = normalizeReference(reference)
+            let normalizedText = normalizeText(text)
+            let normalizedFolder = normalizeFolder(folder)
+
+            let disposition: CSVImportDisposition
+            let message: String?
+            let resolvedStatus: VerseMasteryStatus
+
+            if normalizedReference.isEmpty && normalizedText.isEmpty {
+                disposition = .invalid
+                resolvedStatus = .practicing
+                message = "Missing reference and text."
+            } else if normalizedReference.isEmpty {
+                disposition = .invalid
+                resolvedStatus = .practicing
+                message = "Missing reference."
+            } else if normalizedText.isEmpty {
+                disposition = .invalid
+                resolvedStatus = .practicing
+                message = "Missing verse text."
+            } else if let resolved = normalizeStatus(status) {
+                let referenceKey = ScriptureAddPipeline.normalizedReferenceKey(normalizedReference)
+                resolvedStatus = resolved
+
+                if existingReferenceKeys.contains(referenceKey) {
+                    disposition = .duplicateExisting
+                    message = "A verse with this reference is already in your library."
+                } else if seenImportReferenceKeys.contains(referenceKey) {
+                    disposition = .duplicateInFile
+                    message = "This reference appears more than once in the CSV."
+                } else {
+                    seenImportReferenceKeys.insert(referenceKey)
+                    disposition = .ready
+                    message = nil
+                }
+            } else {
+                disposition = .invalid
+                resolvedStatus = .practicing
+                message = "Status must be Practicing or Memorized."
+            }
+
+            rows.append(
+                CSVImportRow(
+                    rowNumber: rowNumber,
+                    reference: normalizedReference,
+                    text: normalizedText,
+                    folderName: normalizedFolder,
+                    masteryStatus: resolvedStatus,
+                    disposition: disposition,
+                    message: message
+                )
+            )
+        }
+
+        guard !rows.isEmpty else {
+            throw CSVImportError.noRows
+        }
+
+        return CSVImportPreviewContext(
+            fileName: url.lastPathComponent,
+            totalRows: rows.count,
+            rows: rows
+        )
+    }
+
+    private static func decodeString(from data: Data) throws -> String {
+        let encodings: [String.Encoding] = [.utf8, .utf16, .utf16LittleEndian, .utf16BigEndian]
+
+        for encoding in encodings {
+            if let string = String(data: data, encoding: encoding) {
+                return string.replacingOccurrences(of: "\u{FEFF}", with: "")
+            }
+        }
+
+        throw CSVImportError.unreadableFile
+    }
+
+    private static func parseRecords(in string: String) throws -> [[String]] {
+        var records: [[String]] = []
+        var currentRecord: [String] = []
+        var currentField = ""
+        var isInsideQuotes = false
+        var index = string.startIndex
+
+        func finishField() {
+            currentRecord.append(currentField)
+            currentField = ""
+        }
+
+        func finishRecord() {
+            finishField()
+            records.append(currentRecord)
+            currentRecord = []
+        }
+
+        while index < string.endIndex {
+            let character = string[index]
+
+            if isInsideQuotes {
+                if character == "\"" {
+                    let nextIndex = string.index(after: index)
+                    if nextIndex < string.endIndex, string[nextIndex] == "\"" {
+                        currentField.append("\"")
+                        index = nextIndex
+                    } else {
+                        isInsideQuotes = false
+                    }
+                } else {
+                    currentField.append(character)
+                }
+            } else {
+                switch character {
+                case "\"":
+                    isInsideQuotes = true
+                case ",":
+                    finishField()
+                case "\n":
+                    finishRecord()
+                case "\r":
+                    finishRecord()
+                    let nextIndex = string.index(after: index)
+                    if nextIndex < string.endIndex, string[nextIndex] == "\n" {
+                        index = nextIndex
+                    }
+                default:
+                    currentField.append(character)
+                }
+            }
+
+            index = string.index(after: index)
+        }
+
+        if isInsideQuotes {
+            throw CSVImportError.invalidCSV
+        }
+
+        if !currentField.isEmpty || !currentRecord.isEmpty {
+            finishRecord()
+        }
+
+        return records
+    }
+
+    private static func headerMapping(for headerRow: [String]) -> [Column: Int] {
+        var mapping: [Column: Int] = [:]
+
+        for (index, header) in headerRow.enumerated() {
+            switch normalizedHeader(header) {
+            case "reference", "verse", "versereference", "ref":
+                mapping[.reference] = mapping[.reference] ?? index
+            case "text", "versetext", "scripture", "content":
+                mapping[.text] = mapping[.text] ?? index
+            case "folder", "category":
+                mapping[.folder] = mapping[.folder] ?? index
+            case "status", "state":
+                mapping[.status] = mapping[.status] ?? index
+            default:
+                continue
+            }
+        }
+
+        return mapping
+    }
+
+    private static func normalizedHeader(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
+    }
+
+    private static func value(for column: Column, in record: [String], headerMap: [Column: Int]) -> String {
+        guard let index = headerMap[column], record.indices.contains(index) else {
+            return ""
+        }
+
+        return normalizedCell(record[index])
+    }
+
+    private static func normalizedCell(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func normalizeReference(_ value: String) -> String {
+        value
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    private static func normalizeText(_ value: String) -> String {
+        value
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    private static func normalizeFolder(_ value: String) -> String {
+        let normalized = ScriptureAddPipeline.normalizedFolderName(value)
+        return normalized.isEmpty ? "Uncategorized" : normalized
+    }
+
+    private static func normalizeStatus(_ value: String) -> VerseMasteryStatus? {
+        let normalized = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard !normalized.isEmpty else {
+            return .practicing
+        }
+
+        switch normalized {
+        case "practicing", "practice", "learning", "in progress", "inprogress":
+            return .practicing
+        case "memorized", "mastered", "memory", "done":
+            return .memorized
+        default:
+            return nil
+        }
+    }
 }
 
 struct ImportReferencesView: View {
+    let onSaveVerse: (Verse) -> Void
     let onComplete: (() -> Void)?
 
-    @State private var rawInput = ""
-    @State private var previewContext: ImportReferencesPreviewContext?
+    @State private var isShowingFileImporter = false
+    @State private var isParsing = false
+    @State private var selectedFileName: String?
+    @State private var previewContext: CSVImportPreviewContext?
     @State private var message: String?
-    @FocusState private var isEditorFocused: Bool
-
-    private let placeholderText = """
-    Paste references here.
-
-    One per line:
-    John 3:16
-    Romans 8:28
-
-    Comma-separated:
-    John 3:16, Romans 8:28, Psalm 119:11
-
-    Mixed block:
-    Memory list:
-    John 3:16
-    Romans 8:28, Psalm 119:11
-    Jude 3
-    """
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 introCard
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Pasted References")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppColors.textSecondary)
-
-                    ZStack(alignment: .topLeading) {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(AppColors.surface)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .stroke(
-                                        isEditorFocused ? AppColors.structuralAccent.opacity(0.28) : AppColors.background.opacity(0.05),
-                                        lineWidth: 1
-                                    )
-                            }
-
-                        TextEditor(text: $rawInput)
-                            .focused($isEditorFocused)
-                            .scrollContentBackground(.hidden)
-                            .font(.body)
-                            .frame(minHeight: 260)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-
-                        if rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Text(placeholderText)
-                                .font(.body)
-                                .foregroundStyle(AppColors.textSecondary)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 20)
-                                .allowsHitTesting(false)
-                        }
-                    }
-
-                    HStack {
-                        Text("We’ll extract recognized references, merge exact repeats, and show anything unresolved separately.")
-                            .font(.footnote)
-                            .foregroundStyle(AppColors.textSecondary)
-
-                        Spacer()
-
-                        Button("Paste") {
-                            rawInput = UIPasteboard.general.string ?? rawInput
-                        }
-                        .font(.subheadline.weight(.semibold))
-                    }
-                }
+                fileCard
+                helperCard
 
                 if let message {
                     AddFlowMessageCard(
@@ -94,33 +388,45 @@ struct ImportReferencesView: View {
                     )
                 }
 
-                Button("Preview Import") {
-                    buildPreview()
+                if isParsing {
+                    loadingCard
+                }
+
+                Button(selectedFileName == nil ? "Choose CSV File" : "Choose Another CSV") {
+                    isShowingFileImporter = true
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .disabled(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(isParsing)
             }
             .padding(20)
         }
         .background(AppColors.background)
-        .navigationTitle("Import References")
+        .navigationTitle("Import CSV")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $previewContext) { context in
-            ImportReferencesPreviewView(
+            CSVImportPreviewView(
                 context: context,
+                onSaveVerse: onSaveVerse,
                 onComplete: onComplete
             )
+        }
+        .fileImporter(
+            isPresented: $isShowingFileImporter,
+            allowedContentTypes: [.commaSeparatedText, .plainText, .text],
+            allowsMultipleSelection: false
+        ) { result in
+            handleFileSelection(result)
         }
     }
 
     private var introCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Paste a memory list and review everything before it touches your library.")
+            Text("Import many verses from one CSV file.")
                 .font(.title3.weight(.semibold))
 
-            Text("Import V1 supports pasted plain text references. File uploads, images, and OCR stay out of this flow.")
+            Text("Choose a CSV from Files, review every row before saving, and bring the valid verses straight into your personal library.")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
         }
@@ -132,262 +438,81 @@ struct ImportReferencesView: View {
         )
     }
 
-    private func buildPreview() {
-        do {
-            let parseResult = try ReferenceParser.parseImportBlock(rawInput)
-            guard !parseResult.references.isEmpty else {
-                message = parseResult.unresolvedEntries.isEmpty
-                    ? "No valid references found in that paste."
-                    : "No valid references found. Review the unresolved entries and try again."
-                return
-            }
-
-            let provider = try ScriptureProviderFactory.makeProvider(for: .kjv)
-            var resolvedPassages: [ScripturePassage] = []
-            var unresolvedEntries = parseResult.unresolvedEntries
-
-            for reference in parseResult.references {
-                do {
-                    resolvedPassages.append(try provider.fetchPassage(for: reference))
-                } catch {
-                    unresolvedEntries.append(reference.normalizedReference)
-                }
-            }
-
-            guard !resolvedPassages.isEmpty else {
-                message = "We couldn't resolve any passages from that paste."
-                return
-            }
-
-            let existingReferenceKeys = Set(
-                VerseRepository.shared.loadVerses().map { verse in
-                    ScriptureAddPipeline.normalizedReferenceKey(verse.reference)
-                }
-            )
-
-            var importablePassages: [ScripturePassage] = []
-            var duplicatePassages: [ScripturePassage] = []
-
-            for passage in resolvedPassages {
-                let referenceKey = ScriptureAddPipeline.normalizedReferenceKey(passage.normalizedReference)
-                if existingReferenceKeys.contains(referenceKey) {
-                    duplicatePassages.append(passage)
-                } else {
-                    importablePassages.append(passage)
-                }
-            }
-
-            previewContext = ImportReferencesPreviewContext(
-                importablePassages: importablePassages,
-                duplicatePassages: duplicatePassages,
-                unresolvedEntries: deduplicatedEntries(unresolvedEntries),
-                duplicateReferenceCount: parseResult.duplicateReferenceCount
-            )
-
-            let readyCount = importablePassages.count
-            let duplicateCount = duplicatePassages.count
-            let unresolvedCount = deduplicatedEntries(unresolvedEntries).count
-            message = summaryMessage(
-                readyCount: readyCount,
-                duplicateCount: duplicateCount,
-                unresolvedCount: unresolvedCount
-            )
-        } catch {
-            message = error.localizedDescription
-        }
-    }
-
-    private func deduplicatedEntries(_ entries: [String]) -> [String] {
-        var seen: Set<String> = []
-        var deduplicated: [String] = []
-
-        for entry in entries {
-            let normalizedEntry = ScriptureAddPipeline.normalizedReferenceKey(entry)
-            if seen.insert(normalizedEntry).inserted {
-                deduplicated.append(entry)
-            }
-        }
-
-        return deduplicated
-    }
-
-    private func summaryMessage(
-        readyCount: Int,
-        duplicateCount: Int,
-        unresolvedCount: Int
-    ) -> String {
-        var parts: [String] = []
-
-        if readyCount > 0 {
-            parts.append("\(readyCount) ready to import")
-        }
-
-        if duplicateCount > 0 {
-            parts.append("\(duplicateCount) already in library")
-        }
-
-        if unresolvedCount > 0 {
-            parts.append("\(unresolvedCount) unresolved")
-        }
-
-        return parts.isEmpty ? "No valid references found in that paste." : parts.joined(separator: " • ")
-    }
-}
-
-private struct ImportReferencesPreviewView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let context: ImportReferencesPreviewContext
-    let onComplete: (() -> Void)?
-
-    @State private var selectedFolder = "Uncategorized"
-    @State private var isAddingNewFolder = false
-    @State private var newFolderName = ""
-    @State private var masteryStatus: VerseMasteryStatus = .practicing
-    @State private var successMessage: String?
-    @State private var isSaving = false
-
-    private var existingFolders: [String] {
-        ScriptureAddPipeline.existingFolderNames(including: [selectedFolder])
-    }
-
-    private var resolvedCount: Int {
-        context.importablePassages.count + context.duplicatePassages.count
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                summaryCard
-                saveButton
-                defaultsCard
-
-                if context.importablePassages.isEmpty {
-                    AddFlowMessageCard(
-                        message: "Everything that resolved is already in your library. Nothing new will be imported.",
-                        tint: AppColors.gold
-                    )
-                } else {
-                    passageSection(
-                        title: context.importablePassages.count == 1 ? "Ready to Import" : "Ready to Import (\(context.importablePassages.count))",
-                        subtitle: "These passages will be saved with the defaults below.",
-                        passages: context.importablePassages
-                    )
-                }
-
-                if !context.duplicatePassages.isEmpty {
-                    passageSection(
-                        title: context.duplicatePassages.count == 1 ? "Already in Library" : "Already in Library (\(context.duplicatePassages.count))",
-                        subtitle: "These resolved correctly, but they will be skipped on save.",
-                        passages: context.duplicatePassages,
-                        badgeTitle: "Already Saved",
-                        badgeTint: AppColors.warning
-                    )
-                }
-
-                if !context.unresolvedEntries.isEmpty {
-                    unresolvedSection
-                }
-            }
-            .padding(20)
-        }
-        .background(AppColors.background)
-        .navigationTitle("Import Preview")
-        .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottom) {
-            if let successMessage {
-                FeedbackToast(message: successMessage, systemImage: "checkmark.circle.fill")
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: successMessage)
-    }
-
-    private var summaryCard: some View {
+    private var fileCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(summaryHeadline)
-                .font(.title3.weight(.semibold))
-
-            Text(summaryDetail)
-                .font(.subheadline)
+            Text("CSV File")
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppColors.textSecondary)
 
-            if context.duplicateReferenceCount > 0 {
-                Text("\(context.duplicateReferenceCount) repeated reference\(context.duplicateReferenceCount == 1 ? "" : "s") in the pasted text \(context.duplicateReferenceCount == 1 ? "was" : "were") merged automatically.")
-                    .font(.footnote)
-                    .foregroundStyle(AppColors.textSecondary)
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(AppColors.structuralAccent.opacity(0.12))
+                        .frame(width: 46, height: 46)
+
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(AppColors.structuralAccent)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(selectedFileName ?? "No file selected yet")
+                        .font(.headline)
+                        .foregroundStyle(AppColors.textPrimary)
+
+                    Text(selectedFileName == nil ? "Pick a CSV from Files to begin." : "You can review everything before anything is saved.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+
+                Spacer(minLength: 0)
             }
         }
         .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.structuralAccent.opacity(0.1))
+                .fill(AppColors.surface)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
     }
 
-    private var defaultsCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Default Status")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColors.textSecondary)
-
-                Picker("Status", selection: $masteryStatus) {
-                    ForEach(VerseMasteryStatus.allCases) { status in
-                        Text(status.rawValue).tag(status)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Default Folder")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColors.textSecondary)
-
-                folderMenu(
-                    selection: selectedFolder,
-                    title: selectedFolder,
-                    tint: AppColors.textPrimary
-                ) { folder in
-                    selectedFolder = folder
-                }
-
-                Button(isAddingNewFolder ? "Cancel New Folder" : "New Folder") {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isAddingNewFolder.toggle()
-                    }
-                }
+    private var helperCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Expected columns")
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColors.textSecondary)
 
-                if isAddingNewFolder {
-                    VStack(spacing: 8) {
-                        TextField("New folder name", text: $newFolderName)
-                            .textInputAutocapitalization(.words)
-                            .padding(.horizontal, 14)
-                            .frame(height: 44)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(AppColors.surface)
-                            )
+            Text("Required: reference, text")
+                .font(.subheadline)
+                .foregroundStyle(AppColors.textPrimary)
 
-                        Button("Save Folder") {
-                            saveNewFolder()
-                        }
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 42)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(AppColors.structuralAccent.opacity(0.12))
-                        )
-                        .disabled(normalizedCandidateFolderName == nil)
-                    }
-                }
-            }
+            Text("Optional: folder, status")
+                .font(.subheadline)
+                .foregroundStyle(AppColors.textPrimary)
+
+            Text("Example CSV")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
+
+            Text(
+                """
+                reference,text,folder,status
+                John 3:16,For God so loved the world...,Salvation,Memorized
+                Romans 8:28,And we know that all things...,Promises,Practicing
+                """
+            )
+            .font(.system(.footnote, design: .monospaced))
+            .foregroundStyle(AppColors.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(AppColors.secondarySurface)
+            )
         }
         .padding(18)
         .background(
@@ -396,82 +521,211 @@ private struct ImportReferencesPreviewView: View {
         )
     }
 
-    private var saveButton: some View {
-        Button {
-            saveImport()
-        } label: {
-            Text(isSaving ? "Importing..." : saveButtonTitle)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColors.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(
-                    Capsule()
-                        .fill(context.importablePassages.isEmpty ? AppColors.textSecondary : AppColors.structuralAccent)
-                )
-                .shadow(color: AppColors.background.opacity(0.12), radius: 12, x: 0, y: 6)
-        }
-        .buttonStyle(.plain)
-        .disabled(isSaving || context.importablePassages.isEmpty)
-    }
+    private var loadingCard: some View {
+        HStack(spacing: 12) {
+            SwiftUI.ProgressView()
+                .tint(AppColors.structuralAccent)
 
-    private var unresolvedSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(context.unresolvedEntries.count == 1 ? "Unresolved Entry" : "Unresolved Entries (\(context.unresolvedEntries.count))")
-                .font(.headline)
-
-            Text("These could not be parsed or resolved, and they will not be saved.")
+            Text("Reading your CSV and checking each row...")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.surface)
+        )
+    }
 
-            ForEach(context.unresolvedEntries, id: \.self) { entry in
-                Text(entry)
-                    .font(.body)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(AppColors.gold.opacity(0.1))
-                    )
+    private func handleFileSelection(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else {
+                return
             }
+
+            selectedFileName = url.lastPathComponent
+            message = nil
+
+            Task {
+                isParsing = true
+
+                do {
+                    let context = try CSVImportService.parseCSV(from: url)
+
+                    await MainActor.run {
+                        previewContext = context
+                        message = importSummaryMessage(for: context)
+                        isParsing = false
+                    }
+                } catch {
+                    await MainActor.run {
+                        previewContext = nil
+                        message = error.localizedDescription
+                        isParsing = false
+                    }
+                }
+            }
+        case .failure(let error):
+            let nsError = error as NSError
+            if nsError.code == NSUserCancelledError {
+                return
+            }
+
+            message = "We couldn't open that file. Try a different CSV."
         }
     }
 
-    private var summaryHeadline: String {
-        if context.importablePassages.isEmpty {
-            return resolvedCount == 1 ? "1 valid reference found" : "\(resolvedCount) valid references found"
+    private func importSummaryMessage(for context: CSVImportPreviewContext) -> String {
+        var parts = ["\(context.readyRows.count) ready"]
+
+        if !context.duplicateRows.isEmpty {
+            parts.append("\(context.duplicateRows.count) duplicates")
         }
 
-        return context.importablePassages.count == 1
-            ? "1 verse ready to import"
-            : "\(context.importablePassages.count) verses ready to import"
-    }
-
-    private var summaryDetail: String {
-        var parts: [String] = []
-        parts.append("\(resolvedCount) valid")
-
-        if !context.duplicatePassages.isEmpty {
-            parts.append("\(context.duplicatePassages.count) already in library")
-        }
-
-        if !context.unresolvedEntries.isEmpty {
-            parts.append("\(context.unresolvedEntries.count) unresolved")
+        if !context.invalidRows.isEmpty {
+            parts.append("\(context.invalidRows.count) invalid")
         }
 
         return parts.joined(separator: " • ")
     }
+}
 
-    private var saveButtonTitle: String {
-        context.importablePassages.count == 1 ? "Import Verse" : "Import Verses"
+private struct CSVImportPreviewView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let context: CSVImportPreviewContext
+    let onSaveVerse: (Verse) -> Void
+    let onComplete: (() -> Void)?
+
+    @State private var isSaving = false
+    @State private var successMessage: String?
+
+    private let gridColumns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                summaryCard
+
+                if context.readyRows.isEmpty {
+                    AddFlowMessageCard(
+                        message: "There are no new verses ready to import from this file.",
+                        tint: AppColors.warning
+                    )
+                }
+
+                if !context.readyRows.isEmpty {
+                    sectionCard(
+                        title: context.readyRows.count == 1 ? "Ready to Import" : "Ready to Import (\(context.readyRows.count))",
+                        subtitle: "These rows will be added to your personal library."
+                    ) {
+                        ForEach(context.readyRows) { row in
+                            rowCard(for: row)
+                        }
+                    }
+                }
+
+                if !context.duplicateRows.isEmpty {
+                    sectionCard(
+                        title: context.duplicateRows.count == 1 ? "Duplicates" : "Duplicates (\(context.duplicateRows.count))",
+                        subtitle: "These rows were recognized, but they will be skipped."
+                    ) {
+                        ForEach(context.duplicateRows) { row in
+                            rowCard(for: row)
+                        }
+                    }
+                }
+
+                if !context.invalidRows.isEmpty {
+                    sectionCard(
+                        title: context.invalidRows.count == 1 ? "Invalid Row" : "Invalid Rows (\(context.invalidRows.count))",
+                        subtitle: "These rows need attention and will not be imported."
+                    ) {
+                        ForEach(context.invalidRows) { row in
+                            rowCard(for: row)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 110)
+        }
+        .background(AppColors.background)
+        .navigationTitle("Import Preview")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            saveBar
+        }
+        .overlay(alignment: .bottom) {
+            if let successMessage {
+                FeedbackToast(message: successMessage, systemImage: "checkmark.circle.fill")
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 90)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: successMessage)
     }
 
-    private func passageSection(
+    private var summaryCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(summaryTitle)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColors.textPrimary)
+
+            Text(context.fileName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColors.textSecondary)
+
+            LazyVGrid(columns: gridColumns, spacing: 10) {
+                summaryMetric(title: "Rows", value: "\(context.totalRows)")
+                summaryMetric(title: "Ready", value: "\(context.readyRows.count)")
+                summaryMetric(title: "Duplicates", value: "\(context.duplicateRows.count)")
+                summaryMetric(title: "Invalid", value: "\(context.invalidRows.count)")
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(AppColors.elevatedSurface)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(AppColors.divider, lineWidth: 1)
+        }
+        .shadow(color: AppColors.shadow, radius: 18, y: 10)
+    }
+
+    private func summaryMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(AppColors.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.surface)
+        )
+    }
+
+    private func sectionCard<Content: View>(
         title: String,
         subtitle: String,
-        passages: [ScripturePassage],
-        badgeTitle: String? = nil,
-        badgeTint: Color = AppColors.textSecondary
+        @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
@@ -481,132 +735,157 @@ private struct ImportReferencesPreviewView: View {
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
 
-            ForEach(passages) { passage in
-                importPassageCard(
-                    for: passage,
-                    badgeTitle: badgeTitle,
-                    badgeTint: badgeTint
-                )
-            }
-        }
-    }
-
-    private func importPassageCard(
-        for passage: ScripturePassage,
-        badgeTitle: String?,
-        badgeTint: Color
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 10) {
-                Text(passage.normalizedReference)
-                    .font(.headline)
-
-                if let badgeTitle {
-                    Text(badgeTitle)
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(badgeTint.opacity(0.14)))
-                        .foregroundStyle(badgeTint)
-                }
-
-                Spacer(minLength: 0)
-            }
-
-            Text(passage.text)
-                .font(.system(.body, design: .serif))
-                .foregroundStyle(AppColors.textPrimary)
+            content()
         }
         .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColors.surface)
         )
     }
 
-    private func folderMenu(
-        selection: String,
-        title: String,
-        tint: Color,
-        onSelect: @escaping (String) -> Void
-    ) -> some View {
-        Menu {
-            Button("Uncategorized") {
-                onSelect("Uncategorized")
-            }
+    private func rowCard(for row: CSVImportRow) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(row.displayReference)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.textPrimary)
 
-            ForEach(existingFolders, id: \.self) { folder in
-                Button(folder) {
-                    onSelect(folder)
+                    Text("Row \(row.rowNumber)")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.textSecondary)
                 }
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Text(title)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
+
+                Spacer(minLength: 0)
+
+                Text(row.disposition.title)
                     .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(row.disposition.tint.opacity(0.14)))
+                    .foregroundStyle(row.disposition.tint)
             }
-            .font(.subheadline.weight(.semibold))
+
+            if !row.text.isEmpty {
+                Text(row.text)
+                    .font(.system(.body, design: .serif))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .lineLimit(3)
+            }
+
+            HStack(spacing: 8) {
+                metadataPill(title: row.folderName, tint: AppColors.textSecondary)
+                metadataPill(title: row.masteryStatus.rawValue, tint: row.masteryStatus.tintColor)
+            }
+
+            if let message = row.message {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(row.disposition.tint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(row.disposition.tint.opacity(0.09))
+                    )
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.secondarySurface)
+        )
+    }
+
+    private func metadataPill(title: String, tint: Color) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(tint.opacity(0.12)))
             .foregroundStyle(tint)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(AppColors.surface)
-            )
+    }
+
+    private var saveBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+
+            Button {
+                save()
+            } label: {
+                Text(isSaving ? "Importing..." : saveButtonTitle)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(
+                        Capsule()
+                            .fill(context.readyRows.isEmpty ? AppColors.textSecondary : AppColors.structuralAccent)
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(isSaving || context.readyRows.isEmpty)
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+            .background(.ultraThinMaterial)
         }
-        .buttonStyle(.plain)
     }
 
-    private var normalizedCandidateFolderName: String? {
-        let normalizedName = ScriptureAddPipeline.normalizedFolderName(newFolderName)
-        return normalizedName.isEmpty ? nil : normalizedName
-    }
-
-    private func saveNewFolder() {
-        guard let normalizedName = normalizedCandidateFolderName else {
-            return
+    private var summaryTitle: String {
+        if context.readyRows.isEmpty {
+            return context.duplicateRows.isEmpty ? "Nothing ready to import" : "Everything new was skipped"
         }
 
-        let savedFolder = existingFolders.first(where: {
-            $0.compare(normalizedName, options: .caseInsensitive) == .orderedSame
-        }) ?? normalizedName
-
-        selectedFolder = savedFolder
-        newFolderName = ""
-        isAddingNewFolder = false
+        return context.readyRows.count == 1
+            ? "1 verse ready to import"
+            : "\(context.readyRows.count) verses ready to import"
     }
 
-    private func saveImport() {
-        guard !isSaving, !context.importablePassages.isEmpty else {
+    private var saveButtonTitle: String {
+        context.readyRows.count == 1 ? "Import Verse" : "Import \(context.readyRows.count) Verses"
+    }
+
+    private func save() {
+        guard !isSaving, !context.readyRows.isEmpty else {
             return
         }
 
         isSaving = true
 
-        let verses = ScriptureAddPipeline.makeVerses(
-            from: context.importablePassages,
-            options: ScriptureSaveOptions(
-                folderName: selectedFolder,
-                masteryStatus: masteryStatus
+        for row in context.readyRows {
+            onSaveVerse(
+                Verse(
+                    reference: row.reference,
+                    text: row.text,
+                    folderName: row.folderName,
+                    isMastered: row.masteryStatus == .memorized
+                )
             )
-        )
-        VerseRepository.shared.addVerses(verses)
+        }
 
-        successMessage = context.importablePassages.count == 1
-            ? "1 verse imported"
-            : "\(context.importablePassages.count) verses imported"
+        let skippedCount = context.duplicateRows.count + context.invalidRows.count
+        successMessage = skippedCount > 0
+            ? "\(context.readyRows.count) imported • \(skippedCount) skipped"
+            : (context.readyRows.count == 1 ? "1 verse imported" : "\(context.readyRows.count) verses imported")
 
         Task {
             try? await Task.sleep(for: .seconds(1.1))
             await MainActor.run {
+                isSaving = false
                 onComplete?()
                 if onComplete == nil {
                     dismiss()
                 }
             }
         }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        ImportReferencesView(onSaveVerse: { _ in }, onComplete: nil)
     }
 }
