@@ -28,36 +28,31 @@ struct LibraryView: View {
         let selectionNamespace: Namespace.ID
 
         var body: some View {
-            ZStack {
+            HStack(spacing: 8) {
+                Text(value.formatted())
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary.opacity(0.92))
+                    .textCase(.uppercase)
+                    .tracking(0.55)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(AppColors.surface.opacity(0.82))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(AppColors.divider.opacity(0.9), lineWidth: 1)
-                        }
+                    Capsule(style: .continuous)
+                        .fill(.regularMaterial)
                         .matchedGeometryEffect(id: "library-summary-selection", in: selectionNamespace)
                 }
-
-                VStack(spacing: 6) {
-                    Text(value.formatted())
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-
-                    Text(title)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary.opacity(0.92))
-                        .textCase(.uppercase)
-                        .tracking(0.55)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 14)
             }
             .frame(maxWidth: .infinity)
-            .contentShape(.rect(cornerRadius: 20))
+            .contentShape(.rect(cornerRadius: 18))
         }
     }
 
@@ -67,16 +62,22 @@ struct LibraryView: View {
         case memorized = "Memorized"
     }
 
-    private enum SortMode: String, CaseIterable {
+    fileprivate enum SortMode: String, CaseIterable {
         case newest = "Default"
-        case review = "Review"
-        case aToZ = "A–Z"
+        case lastReviewedEarliestToLatest = "Last Reviewed (Earliest - Latest)"
+        case lastReviewedLatestToEarliest = "Last Reviewed (Latest - Earliest)"
+        case dateAddedEarliestToLatest = "Date Added (Earliest - Latest)"
+        case dateAddedLatestToEarliest = "Date Added (Latest - Earliest)"
+        case aToZ = "Alphabetical (A-Z)"
+        case zToA = "Alphabetical (Z-A)"
+        case canonicalOrder = "Canonical Order"
     }
 
     private static let allFoldersOption = "All Folders"
     private static let uncategorizedFolderName = "Uncategorized"
 
     @State private var showingFolderFilterSheet = false
+    @State private var showingSortSheet = false
     @State private var detailVerse: Verse? = nil
     @State private var selectedVerseReview: SingleVerseReviewPresentation? = nil
     @State private var pendingMoveVerse: MoveVersePresentation? = nil
@@ -90,6 +91,8 @@ struct LibraryView: View {
     @State private var isSelectionMode = false
     @State private var selectedVerseIDs: Set<String> = []
     @State private var pendingBatchDeleteVerseIDs: Set<String> = []
+    @State private var isShowingBatchActionsSheet = false
+    @State private var isShowingBatchFolderSheet = false
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = []
     @Namespace private var summarySelectionNamespace
@@ -165,28 +168,7 @@ struct LibraryView: View {
     }
 
     private var filteredVerses: [Verse] {
-        switch sortMode {
-        case .newest:
-            return searchFilteredVerses.sorted { lhs, rhs in
-                if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt > rhs.createdAt
-                }
-
-                return lhs.reference.localizedCaseInsensitiveCompare(rhs.reference) == .orderedAscending
-            }
-        case .review:
-            return searchFilteredVerses.sorted(by: reviewSort)
-        case .aToZ:
-            return searchFilteredVerses.sorted { lhs, rhs in
-                let comparison = lhs.reference.localizedCaseInsensitiveCompare(rhs.reference)
-
-                if comparison == .orderedSame {
-                    return lhs.createdAt > rhs.createdAt
-                }
-
-                return comparison == .orderedAscending
-            }
-        }
+        searchFilteredVerses.sorted(by: sortComparator(for: sortMode))
     }
 
     private var practicingCount: Int {
@@ -217,7 +199,7 @@ struct LibraryView: View {
     }
 
     private var batchActionBarClearance: CGFloat {
-        96 + bottomShellClearance
+        56
     }
 
     private var bottomOverlayClearance: CGFloat {
@@ -242,6 +224,10 @@ struct LibraryView: View {
 
     private var hasSelection: Bool {
         selectedVisibleCount > 0
+    }
+
+    private var selectedVerses: [Verse] {
+        filteredVerses.filter { selectedVerseIDs.contains($0.id) }
     }
 
     private var batchDeleteDialogTitle: String {
@@ -355,6 +341,11 @@ struct LibraryView: View {
                     selectedFolders = selection
                 }
             }
+            .sheet(isPresented: $showingSortSheet) {
+                SortModeSheet(initialSelection: sortMode) { selection in
+                    sortMode = selection
+                }
+            }
             .sheet(item: $pendingMoveVerse) { presentation in
                 FolderDestinationSheet(
                     title: "Move to Folder",
@@ -363,6 +354,37 @@ struct LibraryView: View {
                 ) { folderName in
                     moveVerse(id: presentation.verse.id, toFolder: folderName)
                 }
+            }
+            .sheet(isPresented: $isShowingBatchFolderSheet) {
+                FolderDestinationSheet(
+                    title: "Move Selected Verses",
+                    currentFolderName: "",
+                    additionalFolders: selectedVerses.compactMap(\.folderName)
+                ) { folderName in
+                    moveSelectedVerses(toFolder: folderName)
+                }
+            }
+            .sheet(isPresented: $isShowingBatchActionsSheet) {
+                BatchVerseActionsSheet(
+                    selectionCount: selectedVisibleCount,
+                    canApplyActions: hasSelection,
+                    onChooseFolder: {
+                        isShowingBatchActionsSheet = false
+                        isShowingBatchFolderSheet = true
+                    },
+                    onMarkMemorized: {
+                        isShowingBatchActionsSheet = false
+                        updateMasteryStatusForSelectedVerses(to: .memorized)
+                    },
+                    onMarkPracticing: {
+                        isShowingBatchActionsSheet = false
+                        updateMasteryStatusForSelectedVerses(to: .practicing)
+                    },
+                    onDelete: {
+                        isShowingBatchActionsSheet = false
+                        pendingBatchDeleteVerseIDs = selectedVerseIDs.intersection(Set(filteredVerses.map(\.id)))
+                    }
+                )
             }
             .sheet(item: $selectedVerseReview) { presentation in
                 switch presentation.method {
@@ -492,30 +514,18 @@ struct LibraryView: View {
     private var topSummarySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 16) {
+                CenteredScreenTitleBar(title: "Library") {
                     Color.clear
                         .frame(width: ShellCircularIconLabel.diameter, height: ShellCircularIconLabel.diameter)
-
-                    Text("Library")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
-                        .frame(maxWidth: .infinity)
-
-                    Button {
-                        withAnimation(.snappy(duration: 0.28, extraBounce: 0.06)) {
-                            isSearchPresented = true
+                } trailing: {
+                        ShellCircularIconButton(systemImage: "magnifyingglass") {
+                            withAnimation(.snappy(duration: 0.28, extraBounce: 0.06)) {
+                                isSearchPresented = true
+                            }
                         }
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: ShellCircularIconLabel.iconSize, weight: .semibold))
-                            .foregroundStyle(AppColors.textPrimary)
-                            .frame(width: ShellCircularIconLabel.diameter, height: ShellCircularIconLabel.diameter)
-                    }
-                    .buttonStyle(.glass)
-                    .matchedTransitionSource(id: "library-search", in: searchTransitionNamespace)
-                    .accessibilityLabel("Search library")
+                        .matchedTransitionSource(id: "library-search", in: searchTransitionNamespace)
+                        .accessibilityLabel("Search library")
                 }
-                .frame(height: 44)
 
                 if isSearchPresented || hasActiveSearch {
                     librarySearchField
@@ -529,25 +539,17 @@ struct LibraryView: View {
                     .lineLimit(2)
             }
 
-            GlassEffectContainer(spacing: 12) {
-                HStack(spacing: 8) {
+            HStack(spacing: 8) {
                     summaryFilterMetric(value: totalCount, title: "All", filter: .all)
                     summaryFilterMetric(value: practicingCount, title: "Practicing", filter: .practicing)
                     summaryFilterMetric(value: memorizedCount, title: "Memorized", filter: .memorized)
-                }
             }
-            .padding(8)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(AppColors.secondarySurface)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(AppColors.divider, lineWidth: 1)
-            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
+            .background(.regularMaterial, in: Capsule(style: .continuous))
         }
         .padding(.horizontal, 0)
-        .padding(.top, 8)
+        .padding(.top, 14)
         .padding(.bottom, 0)
     }
 
@@ -651,12 +653,8 @@ struct LibraryView: View {
                 )
                 .accessibilityLabel("Folders")
 
-                Menu {
-                    Picker("Sort", selection: $sortMode) {
-                        ForEach(SortMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
+                Button {
+                    showingSortSheet = true
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 15, weight: .semibold))
@@ -790,6 +788,7 @@ struct LibraryView: View {
                 } label: {
                     Image(systemName: "trash")
                 }
+                .tint(.red)
             }
             .containerShape(rowShape)
             .clipShape(rowShape)
@@ -809,7 +808,7 @@ struct LibraryView: View {
         )
         .contentShape(Rectangle())
         .padding(.horizontal, 18)
-        .padding(.vertical, 10)
+        .padding(.vertical, 5)
         .overlay(alignment: .bottom) {
             if index < totalCount - 1 {
                 Divider()
@@ -877,78 +876,29 @@ struct LibraryView: View {
     }
 
     private var batchActionBar: some View {
-        HStack(spacing: 10) {
-            batchActionButton(
-                title: "Mark Memorized",
-                systemImage: "checkmark.circle.fill",
-                tint: AppColors.statusMemorized,
-                isEnabled: hasSelection
-            ) {
-                updateMasteryStatusForSelectedVerses(to: .memorized)
-            }
+        HStack(spacing: 12) {
+            Text("\(selectedVisibleCount) Selected")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(AppColors.textPrimary)
 
-            batchActionButton(
-                title: "Mark Practicing",
-                systemImage: "flame.fill",
-                tint: AppColors.statusPracticing,
-                isEnabled: hasSelection
-            ) {
-                updateMasteryStatusForSelectedVerses(to: .practicing)
-            }
+            Spacer(minLength: 12)
 
-            batchActionButton(
-                title: "Delete",
-                systemImage: "trash",
-                tint: AppColors.gold,
-                isEnabled: hasSelection
-            ) {
-                pendingBatchDeleteVerseIDs = selectedVerseIDs.intersection(Set(filteredVerses.map(\.id)))
+            Button("Done") {
+                exitSelectionMode()
             }
+            .buttonStyle(.glass)
+
+            Button("Edit") {
+                isShowingBatchActionsSheet = true
+            }
+            .buttonStyle(.glass)
+            .disabled(!hasSelection)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
-        .shadow(color: AppColors.background.opacity(0.08), radius: 18, x: 0, y: 8)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: Capsule(style: .continuous))
         .padding(.horizontal, 20)
-        .padding(.bottom, 8 + bottomShellClearance)
-    }
-
-    private func batchActionButton(
-        title: String,
-        systemImage: String,
-        tint: Color,
-        isEnabled: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button {
-            action()
-        } label: {
-            VStack(spacing: 5) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .semibold))
-
-                Text(title)
-                    .font(.system(size: 11, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-            .foregroundStyle(isEnabled ? tint : AppColors.textSecondary)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isEnabled ? tint.opacity(0.12) : AppColors.surface.opacity(0.85))
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
+        .padding(.bottom, 8)
     }
 
     private func reviewButton(
@@ -965,14 +915,14 @@ struct LibraryView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
                 .frame(maxWidth: .infinity)
-                .frame(height: 44)
+                .frame(height: 40)
         }
         .buttonStyle(.glass(.regular.tint(isEnabled ? tint : AppColors.secondarySurface).interactive()))
         .disabled(!isEnabled)
     }
 
     private var floatingReviewButtonBottomInset: CGFloat {
-        14
+        8
     }
 
     private var isSearchActive: Bool {
@@ -1021,8 +971,141 @@ struct LibraryView: View {
         )
     }
 
-    private func reviewSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
-        VerseStrengthService.reviewPriority(lhs, rhs)
+    private func sortComparator(for mode: SortMode) -> (Verse, Verse) -> Bool {
+        switch mode {
+        case .newest, .dateAddedLatestToEarliest:
+            return { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt > rhs.createdAt
+                }
+
+                return referenceComparison(lhs, rhs) == .orderedAscending
+            }
+        case .dateAddedEarliestToLatest:
+            return { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt < rhs.createdAt
+                }
+
+                return referenceComparison(lhs, rhs) == .orderedAscending
+            }
+        case .lastReviewedEarliestToLatest:
+            return { lhs, rhs in
+                switch (lhs.lastReviewedAt, rhs.lastReviewedAt) {
+                case (nil, nil):
+                    break
+                case (nil, _?):
+                    return true
+                case (_?, nil):
+                    return false
+                case let (lhsDate?, rhsDate?) where lhsDate != rhsDate:
+                    return lhsDate < rhsDate
+                default:
+                    break
+                }
+
+                return sortComparator(for: .dateAddedEarliestToLatest)(lhs, rhs)
+            }
+        case .lastReviewedLatestToEarliest:
+            return { lhs, rhs in
+                switch (lhs.lastReviewedAt, rhs.lastReviewedAt) {
+                case (nil, nil):
+                    break
+                case (nil, _?):
+                    return false
+                case (_?, nil):
+                    return true
+                case let (lhsDate?, rhsDate?) where lhsDate != rhsDate:
+                    return lhsDate > rhsDate
+                default:
+                    break
+                }
+
+                return sortComparator(for: .newest)(lhs, rhs)
+            }
+        case .aToZ:
+            return { lhs, rhs in
+                let comparison = referenceComparison(lhs, rhs)
+
+                if comparison == .orderedSame {
+                    return lhs.createdAt > rhs.createdAt
+                }
+
+                return comparison == .orderedAscending
+            }
+        case .zToA:
+            return { lhs, rhs in
+                let comparison = referenceComparison(lhs, rhs)
+
+                if comparison == .orderedSame {
+                    return lhs.createdAt > rhs.createdAt
+                }
+
+                return comparison == .orderedDescending
+            }
+        case .canonicalOrder:
+            return canonicalSort
+        }
+    }
+
+    private func referenceComparison(_ lhs: Verse, _ rhs: Verse) -> ComparisonResult {
+        lhs.reference.localizedCaseInsensitiveCompare(rhs.reference)
+    }
+
+    private func canonicalSort(_ lhs: Verse, _ rhs: Verse) -> Bool {
+        let lhsReference = canonicalReferenceComponents(for: lhs)
+        let rhsReference = canonicalReferenceComponents(for: rhs)
+
+        switch (lhsReference, rhsReference) {
+        case let (lhsReference?, rhsReference?):
+            if lhsReference.bookOrder != rhsReference.bookOrder {
+                return lhsReference.bookOrder < rhsReference.bookOrder
+            }
+
+            if lhsReference.chapter != rhsReference.chapter {
+                return lhsReference.chapter < rhsReference.chapter
+            }
+
+            if lhsReference.verse != rhsReference.verse {
+                return lhsReference.verse < rhsReference.verse
+            }
+
+            if lhsReference.endChapter != rhsReference.endChapter {
+                return lhsReference.endChapter < rhsReference.endChapter
+            }
+
+            if lhsReference.endVerse != rhsReference.endVerse {
+                return lhsReference.endVerse < rhsReference.endVerse
+            }
+        case (.some, nil):
+            return true
+        case (nil, .some):
+            return false
+        case (nil, nil):
+            break
+        }
+
+        return sortComparator(for: .aToZ)(lhs, rhs)
+    }
+
+    private func canonicalReferenceComponents(for verse: Verse) -> (
+        bookOrder: Int,
+        chapter: Int,
+        verse: Int,
+        endChapter: Int,
+        endVerse: Int
+    )? {
+        guard let reference = try? ReferenceParser.parseSingle(verse.reference) else {
+            return nil
+        }
+
+        return (
+            bookOrder: reference.book.sortOrder,
+            chapter: reference.startChapter,
+            verse: reference.startVerse ?? 0,
+            endChapter: reference.endChapter ?? reference.startChapter,
+            endVerse: reference.endVerse ?? reference.startVerse ?? 0
+        )
     }
 
     private var emptyStateMessage: String {
@@ -1039,20 +1122,24 @@ struct LibraryView: View {
             return true
         }
 
+        let searchTokens = normalizedSearchText.split(separator: " ").map(String.init)
         let reference = normalizedSearchContent(verse.reference)
         if reference.contains(normalizedSearchText) {
             return true
         }
 
-        let searchableText = normalizedSearchContent("\(verse.reference) \(verse.text)")
-        let searchTokens = normalizedSearchText.split(separator: " ").map(String.init)
+        if searchTokens.allSatisfy({ reference.contains($0) }) {
+            return true
+        }
 
+        let searchableText = normalizedSearchContent("\(verse.reference) \(verse.text)")
         return searchTokens.allSatisfy { searchableText.contains($0) }
     }
 
     private func normalizedSearchContent(_ value: String) -> String {
         value
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .replacingOccurrences(of: "[^a-zA-Z0-9]+", with: " ", options: .regularExpression)
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
@@ -1140,6 +1227,20 @@ struct LibraryView: View {
 
         VerseRepository.shared.softDeleteVerses(ids: ids)
         selectedVerseIDs.subtract(ids)
+        reloadVerses()
+    }
+
+    private func moveSelectedVerses(toFolder folderName: String) {
+        let ids = selectedVerseIDs.intersection(Set(filteredVerses.map(\.id)))
+        guard !ids.isEmpty else {
+            return
+        }
+
+        let updatedVerses = ids.compactMap { verseID in
+            VerseRepository.shared.moveVerse(id: verseID, toFolder: folderName)
+        }
+
+        applyUpdatedVerses(updatedVerses)
         reloadVerses()
     }
 
@@ -1253,6 +1354,129 @@ private struct FolderFilterSheet: View {
         } else {
             draftSelection.insert(folder)
         }
+    }
+}
+
+private struct SortModeSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let initialSelection: LibraryView.SortMode
+    let onSelect: (LibraryView.SortMode) -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(LibraryView.SortMode.allCases, id: \.self) { mode in
+                    Button {
+                        onSelect(mode)
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text(mode.rawValue)
+                                .foregroundStyle(AppColors.textPrimary)
+
+                            Spacer()
+
+                            if mode == initialSelection {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(AppColors.structuralAccent)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle("Sort")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+private struct BatchVerseActionsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let selectionCount: Int
+    let canApplyActions: Bool
+    let onChooseFolder: () -> Void
+    let onMarkMemorized: () -> Void
+    let onMarkPracticing: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    actionRow(
+                        title: "Move to Folder",
+                        systemImage: "folder",
+                        tint: AppColors.structuralAccent
+                    ) {
+                        dismiss()
+                        onChooseFolder()
+                    }
+                }
+
+                Section("Mastery") {
+                    actionRow(
+                        title: "Mark Memorized",
+                        systemImage: "checkmark.circle.fill",
+                        tint: AppColors.statusMemorized
+                    ) {
+                        dismiss()
+                        onMarkMemorized()
+                    }
+
+                    actionRow(
+                        title: "Mark Practicing",
+                        systemImage: "flame.fill",
+                        tint: AppColors.statusPracticing
+                    ) {
+                        dismiss()
+                        onMarkPracticing()
+                    }
+                }
+
+                Section {
+                    actionRow(
+                        title: "Delete Verses",
+                        systemImage: "trash",
+                        tint: .red,
+                        role: .destructive
+                    ) {
+                        dismiss()
+                        onDelete()
+                    }
+                }
+            }
+            .navigationTitle("\(selectionCount) Selected")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .interactiveDismissDisabled(false)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func actionRow(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: role, action: action) {
+            Label(title, systemImage: systemImage)
+                .foregroundStyle(canApplyActions ? tint : AppColors.textSecondary)
+        }
+        .disabled(!canApplyActions)
     }
 }
 

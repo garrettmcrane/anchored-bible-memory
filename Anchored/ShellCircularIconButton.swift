@@ -24,6 +24,7 @@ struct ShellCircularIconButton: View {
         Button(action: action) {
             ShellCircularIconLabel(systemImage: systemImage, tint: tint)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
     }
 }

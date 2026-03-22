@@ -332,7 +332,7 @@ struct ProgressTabView: View {
     }
 
     private func profileDetail(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(AppColors.textSecondary)
@@ -344,9 +344,9 @@ struct ProgressTabView: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
-        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AppColors.surface.opacity(0.7))
@@ -391,21 +391,21 @@ private struct ProfileHighlightPill: View {
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(AppColors.textSecondary)
                 .textCase(.uppercase)
 
             Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AppColors.surface.opacity(0.82))
@@ -420,19 +420,19 @@ private struct MomentumCard: View {
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppColors.textSecondary)
 
             Text(value)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
             Text(detail)
-                .font(.subheadline)
+                .font(.footnote)
                 .foregroundStyle(AppColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -440,8 +440,8 @@ private struct MomentumCard: View {
                 .fill(accent.opacity(0.28))
                 .frame(width: 34, height: 5)
         }
-        .frame(maxWidth: .infinity, minHeight: 148, alignment: .leading)
-        .padding(18)
+        .frame(maxWidth: .infinity, minHeight: 126, alignment: .leading)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AppColors.surface)

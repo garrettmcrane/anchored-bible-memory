@@ -26,48 +26,41 @@ struct VerseRowView: View {
     }
 
     private var resolvedMetadataItems: [MetadataItem] {
-        metadataItems ?? [MetadataItem(text: folderName)]
+        metadataItems ?? []
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .center, spacing: 12) {
             if let selectionState {
                 selectionIndicator(isSelected: selectionState.isSelected)
-                    .padding(.top, 10)
             }
 
             RoundedRectangle(cornerRadius: 2, style: .continuous)
                 .fill(statusTint)
-                .frame(width: 3)
-                .padding(.vertical, 4)
+                .frame(width: 4)
+                .padding(.vertical, 2)
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(verse.reference)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(AppColors.textPrimary)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verse.reference)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
 
-                        if !resolvedMetadataItems.isEmpty {
-                            metadataRow
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(verse.text)
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .lineLimit(1)
 
-                    if showsChevron {
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(AppColors.textSecondary)
-                            .font(.system(size: 12, weight: .semibold))
-                            .padding(.top, 4)
+                    if showsMetadataRow {
+                        metadataRow
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack {
-                    Spacer(minLength: 0)
-
-                    Text(lastReviewedText)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(AppColors.textSecondary.opacity(0.82))
+                if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(AppColors.textSecondary)
+                        .font(.system(size: 12, weight: .semibold))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -75,13 +68,30 @@ struct VerseRowView: View {
         .padding(.vertical, 4)
     }
 
+    private var showsMetadataRow: Bool {
+        folderName != nil || lastReviewedText != nil || !resolvedMetadataItems.isEmpty
+    }
+
     private var metadataRow: some View {
         HStack(spacing: 8) {
+            if let folderName {
+                folderPill(folderName)
+            }
+
+            if let lastReviewedText {
+                if folderName != nil {
+                    metadataSeparator
+                }
+
+                Text(lastReviewedText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppColors.textSecondary.opacity(0.82))
+                    .lineLimit(1)
+            }
+
             ForEach(Array(resolvedMetadataItems.enumerated()), id: \.element.id) { index, item in
-                if index > 0 {
-                    Circle()
-                        .fill(AppColors.textSecondary.opacity(0.28))
-                        .frame(width: 3, height: 3)
+                if index > 0 || folderName != nil || lastReviewedText != nil {
+                    metadataSeparator
                 }
 
                 Text(item.text)
@@ -90,6 +100,29 @@ struct VerseRowView: View {
                     .lineLimit(1)
             }
         }
+    }
+
+    private var metadataSeparator: some View {
+        Circle()
+            .fill(AppColors.textSecondary.opacity(0.28))
+            .frame(width: 3, height: 3)
+    }
+
+    private func folderPill(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppColors.folderPillText)
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(AppColors.folderPillFill)
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(AppColors.divider.opacity(0.7), lineWidth: 1)
+            )
     }
 
     private func selectionIndicator(isSelected: Bool) -> some View {
@@ -114,7 +147,7 @@ struct VerseRowView: View {
         .animation(.snappy(duration: 0.18), value: isSelected)
     }
 
-    private var folderName: String {
+    private var folderName: String? {
         let trimmedFolderName = verse.folderName.trimmingCharacters(in: .whitespacesAndNewlines)
         let collapsedWhitespaceFolderName = trimmedFolderName
             .components(separatedBy: .whitespacesAndNewlines)
@@ -122,13 +155,18 @@ struct VerseRowView: View {
             .joined(separator: " ")
 
         guard !collapsedWhitespaceFolderName.isEmpty else {
-            return Self.uncategorizedFolderName
+            return nil
         }
 
-        return collapsedWhitespaceFolderName.lowercased().localizedCapitalized
+        let normalizedFolderName = collapsedWhitespaceFolderName.lowercased().localizedCapitalized
+        guard normalizedFolderName != Self.uncategorizedFolderName else {
+            return nil
+        }
+
+        return normalizedFolderName
     }
 
-    private var lastReviewedText: String {
+    private var lastReviewedText: String? {
         guard let lastReviewedAt = verse.lastReviewedAt else {
             return "Not reviewed yet"
         }
@@ -141,14 +179,14 @@ struct VerseRowView: View {
         ).day ?? 0
 
         if daysAgo <= 0 {
-            return "Last reviewed today"
+            return "Reviewed today"
         }
 
         if daysAgo == 1 {
-            return "Last reviewed 1 day ago"
+            return "Reviewed 1 day ago"
         }
 
-        return "Last reviewed \(daysAgo) days ago"
+        return "Reviewed \(daysAgo) days ago"
     }
 }
 

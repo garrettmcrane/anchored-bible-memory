@@ -85,7 +85,7 @@ struct GroupsView: View {
             if !groups.isEmpty {
                 HStack(spacing: 12) {
                     headerMetric(title: "Groups", value: groups.count)
-                    headerMetric(title: "Passages", value: totalAssignmentCount)
+                    headerMetric(title: "TOTAL PASSAGES", value: totalAssignmentCount)
                 }
             }
         }

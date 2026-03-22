@@ -12,6 +12,8 @@ struct GroupDetailView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    private let actionButtonHeight: CGFloat = 40
+    private let bottomReviewBarInset: CGFloat = 8
 
     private struct AssignedPassage: Identifiable {
         let assignment: Assignment
@@ -115,29 +117,25 @@ struct GroupDetailView: View {
             AppColors.background
                 .ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
-                    groupHeroSection
-                    reviewSection
-                    assignedPassagesSection
+            VStack(spacing: 0) {
+                header
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
+                    .padding(.bottom, 14)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        groupHeroSection
+                        reviewSection
+                        assignedPassagesSection
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, bottomActionBarClearance)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, bottomActionBarClearance)
             }
         }
-        .navigationTitle(group.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isShowingOptions = true
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .accessibilityLabel("Group options")
-            }
-        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
             bottomReviewBar
         }
@@ -289,7 +287,21 @@ struct GroupDetailView: View {
     }
 
     private var bottomActionBarClearance: CGFloat {
-        BottomNavigationShellLayout.overlayClearance + 84
+        BottomNavigationShellLayout.overlayClearance + 68
+    }
+
+    private var header: some View {
+        CenteredScreenTitleBar(title: group.name) {
+            ShellCircularIconButton(systemImage: "chevron.left") {
+                dismiss()
+            }
+            .accessibilityLabel("Back")
+        } trailing: {
+            ShellCircularIconButton(systemImage: "ellipsis") {
+                isShowingOptions = true
+            }
+            .accessibilityLabel("Group options")
+        }
     }
 
     private var detailVersePresented: Binding<Bool> {
@@ -513,7 +525,7 @@ struct GroupDetailView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, BottomNavigationShellLayout.overlayClearance - 2)
+        .padding(.bottom, bottomReviewBarInset)
     }
 
     private func reviewButton(
@@ -528,7 +540,7 @@ struct GroupDetailView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(height: actionButtonHeight)
         }
         .buttonStyle(.glass(.regular.tint(isEnabled ? tint : AppColors.secondarySurface).interactive()))
         .disabled(!isEnabled)

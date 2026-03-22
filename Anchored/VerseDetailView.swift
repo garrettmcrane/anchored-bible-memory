@@ -414,12 +414,7 @@ private struct VerseEditSheet: View {
     let currentFolderName: String
     let onSave: () -> Void
 
-    @FocusState private var focusedField: Field?
-
-    private enum Field {
-        case reference
-        case text
-    }
+    @State private var isShowingFolderSheet = false
 
     var body: some View {
         NavigationStack {
@@ -428,14 +423,12 @@ private struct VerseEditSheet: View {
                     TextField("John 3:16", text: $draft.reference, axis: .vertical)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
-                        .focused($focusedField, equals: .reference)
                 }
 
                 Section("Verse Text") {
                     TextField("Enter verse text", text: $draft.text, axis: .vertical)
                         .lineLimit(6...12)
                         .textInputAutocapitalization(.sentences)
-                        .focused($focusedField, equals: .text)
                 }
 
                 Section("Status") {
@@ -448,8 +441,24 @@ private struct VerseEditSheet: View {
                 }
 
                 Section("Folder") {
-                    TextField("Folder name", text: $draft.folderName)
-                        .textInputAutocapitalization(.words)
+                    Button {
+                        isShowingFolderSheet = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text("Folder")
+                                .foregroundStyle(AppColors.textPrimary)
+
+                            Spacer()
+
+                            Text(displayFolderName)
+                                .foregroundStyle(AppColors.textSecondary)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
 
                     if draft.folderName.trimmingCharacters(in: .whitespacesAndNewlines) != currentFolderName.trimmingCharacters(in: .whitespacesAndNewlines) {
                         Text("This verse will move to the updated folder when you save.")
@@ -475,11 +484,26 @@ private struct VerseEditSheet: View {
                     .disabled(!draft.isValid)
                 }
             }
-            .onAppear {
-                focusedField = .reference
+            .sheet(isPresented: $isShowingFolderSheet) {
+                FolderDestinationSheet(
+                    title: "Choose Folder",
+                    currentFolderName: draft.folderName,
+                    additionalFolders: []
+                ) { folderName in
+                    if ScriptureAddPipeline.normalizedFolderName(folderName) == "Uncategorized" {
+                        draft.folderName = ""
+                    } else {
+                        draft.folderName = folderName
+                    }
+                }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
+    }
+
+    private var displayFolderName: String {
+        let normalizedFolder = ScriptureAddPipeline.normalizedFolderName(draft.folderName)
+        return normalizedFolder.isEmpty ? "No Folder" : normalizedFolder
     }
 }
 

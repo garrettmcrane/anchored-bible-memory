@@ -197,7 +197,7 @@ struct HomeView: View {
                 .foregroundStyle(AppColors.textPrimary)
                 .padding(.top, 2)
 
-            Text("Keep your next review close and your library growing steadily.")
+            Text("This is placeholder text that will eventually be filled in!")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -286,7 +286,7 @@ struct HomeView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "flame.fill")
-                    Text("Review Practicing")
+                    Text("Review Practicing Verses")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
@@ -301,7 +301,7 @@ struct HomeView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "books.vertical.fill")
-                    Text("Review All")
+                    Text("Review All Verses")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
