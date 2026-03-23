@@ -12,7 +12,6 @@ struct GroupDetailView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
-    private let actionButtonHeight: CGFloat = 40
     private let bottomReviewBarInset: CGFloat = 8
 
     private struct AssignedPassage: Identifiable {
@@ -287,21 +286,15 @@ struct GroupDetailView: View {
     }
 
     private var bottomActionBarClearance: CGFloat {
-        BottomNavigationShellLayout.overlayClearance + 68
+        BottomOverlayLayout.overlayClearance + 68
     }
 
     private var header: some View {
-        CenteredScreenTitleBar(title: group.name) {
-            ShellCircularIconButton(systemImage: "chevron.left") {
-                dismiss()
-            }
-            .accessibilityLabel("Back")
-        } trailing: {
-            ShellCircularIconButton(systemImage: "ellipsis") {
-                isShowingOptions = true
-            }
-            .accessibilityLabel("Group options")
-        }
+        GroupDetailHeaderView(
+            title: group.name,
+            onBack: { dismiss() },
+            onShowOptions: { isShowingOptions = true }
+        )
     }
 
     private var detailVersePresented: Binding<Bool> {
@@ -316,56 +309,28 @@ struct GroupDetailView: View {
     }
 
     private var groupHeroSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(group.name)
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-
-                Text(groupSubtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            HStack(spacing: 12) {
-                heroAccentPill(
-                    title: progressSummary.totalAssignedCount == 1 ? "Assigned Passage" : "Assigned Passages",
-                    value: progressSummary.totalAssignedCount.formatted()
-                )
-
-                heroAccentPill(
-                    title: "Group Review",
-                    value: practicingReviewVerses.isEmpty ? "Up to Date" : "In Progress"
-                )
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(AppColors.elevatedSurface)
+        GroupDetailHeroSectionView(
+            groupName: group.name,
+            subtitle: groupSubtitle,
+            assignedCount: progressSummary.totalAssignedCount,
+            groupReviewStatus: practicingReviewVerses.isEmpty ? "Up to Date" : "In Progress"
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
     }
 
     private var reviewSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Review", subtitle: "Start from the verses this group is actively working on.")
-
-            HStack(spacing: 10) {
-                progressTag(value: practicingAssignedCount, title: "Practicing", tint: AppColors.statusPracticing)
-                progressTag(value: memorizedAssignedCount, title: "Memorized", tint: AppColors.statusMemorized)
-            }
-        }
+        GroupDetailReviewSectionView(
+            practicingAssignedCount: practicingAssignedCount,
+            memorizedAssignedCount: memorizedAssignedCount
+        )
     }
 
     private var assignedPassagesSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center) {
-                sectionHeader(title: "Assigned Passages", subtitle: assignedPassages.isEmpty ? "Nothing is assigned yet." : "\(assignedPassages.count) passage\(assignedPassages.count == 1 ? "" : "s") ready for the group")
+                GroupSectionHeader(
+                    title: "Assigned Passages",
+                    subtitle: assignedPassages.isEmpty ? "Nothing is assigned yet." : "\(assignedPassages.count) passage\(assignedPassages.count == 1 ? "" : "s") ready for the group"
+                )
 
                 Spacer(minLength: 12)
 
@@ -466,140 +431,26 @@ struct GroupDetailView: View {
             )
     }
 
-    private func sectionHeader(title: String, subtitle: String? = nil) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppColors.textPrimary)
-
-            if let subtitle {
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private func heroAccentPill(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppColors.textSecondary)
-                .textCase(.uppercase)
-
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.surface.opacity(0.86))
-        )
-    }
-
     @ViewBuilder
     private var bottomReviewBar: some View {
-        HStack(spacing: 10) {
-            reviewButton(
-                title: "Review Practicing",
-                tint: AppColors.reviewPracticingActionBackground,
-                textColor: AppColors.reviewPracticingActionText,
-                isEnabled: !practicingReviewVerses.isEmpty
-            ) {
-                startGroupPracticingReview()
-            }
-
-            reviewButton(
-                title: "Review All",
-                tint: AppColors.reviewAllActionBackground,
-                textColor: AppColors.reviewAllActionText,
-                isEnabled: !reviewVerses.isEmpty
-            ) {
-                startGroupAllReview()
-            }
-        }
-        .padding(.horizontal, 20)
+        GroupBottomReviewBarView(
+            practicingReviewEnabled: !practicingReviewVerses.isEmpty,
+            reviewAllEnabled: !reviewVerses.isEmpty,
+            onStartPracticingReview: startGroupPracticingReview,
+            onStartReviewAll: startGroupAllReview
+        )
         .padding(.bottom, bottomReviewBarInset)
     }
 
-    private func reviewButton(
-        title: String,
-        tint: Color,
-        textColor: Color,
-        isEnabled: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Text(title)
-                .fontWeight(.semibold)
-                .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
-                .frame(maxWidth: .infinity)
-                .frame(height: actionButtonHeight)
-        }
-        .buttonStyle(.glass(.regular.tint(isEnabled ? tint : AppColors.secondarySurface).interactive()))
-        .disabled(!isEnabled)
-    }
-
-    private func progressTag(value: Int, title: String, tint: Color) -> some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(tint)
-                .frame(width: 8, height: 8)
-
-            Text("\(value.formatted()) \(title)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppColors.textSecondary)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous)
-                .fill(AppColors.elevatedSurface)
-        )
-    }
-
     private func assignedPassageCard(for passage: AssignedPassage) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                detailVerse = passage.verse
-            } label: {
-                VerseRowView(
-                    verse: passage.verse,
-                    showsChevron: true,
-                    statusTintOverride: passage.verse.masteryStatus.tintColor
-                )
-            }
-            .buttonStyle(.plain)
-
-            Divider()
-                .padding(.leading, 17)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
-
-            Button("Remove", role: .destructive) {
-                removeAssignment(passage.assignment.id)
-            }
-            .font(.subheadline.weight(.semibold))
-            .padding(.leading, 17)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-            Button {
-                toggleAssignedVerseMastery(for: passage.verse)
-            } label: {
-                Image(systemName: toggleAssignedVerseSystemImage(for: passage.verse))
-            }
-            .tint(toggleAssignedVerseTint(for: passage.verse))
-        }
+        GroupAssignedPassageCardView(
+            verse: passage.verse,
+            onSelect: { detailVerse = passage.verse },
+            onRemove: { removeAssignment(passage.assignment.id) },
+            onToggleMastery: { toggleAssignedVerseMastery(for: passage.verse) },
+            toggleSystemImage: toggleAssignedVerseSystemImage(for: passage.verse),
+            toggleTint: toggleAssignedVerseTint(for: passage.verse)
+        )
     }
 
     private func memberDisplayName(for membership: GroupMembership) -> String {

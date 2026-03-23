@@ -50,10 +50,7 @@ struct VerseRepository {
 
         var updatedVerse = verse
         updatedVerse.updatedAt = Date()
-
-        if updatedVerse.syncStatus != .localOnly && updatedVerse.syncStatus != .pendingDelete {
-            updatedVerse.syncStatus = .pendingUpload
-        }
+        updatedVerse = markPendingUploadIfNeeded(updatedVerse)
 
         allVerses[index] = updatedVerse
         VerseStore.save(allVerses)
@@ -72,10 +69,7 @@ struct VerseRepository {
 
         allVerses[index].masteryStatus = status
         allVerses[index].updatedAt = Date()
-
-        if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
-            allVerses[index].syncStatus = .pendingUpload
-        }
+        allVerses[index] = markPendingUploadIfNeeded(allVerses[index])
 
         VerseStore.save(allVerses)
         return allVerses[index]
@@ -108,10 +102,7 @@ struct VerseRepository {
         allVerses[index].reference = normalizedReference
         allVerses[index].text = normalizedText
         allVerses[index].updatedAt = Date()
-
-        if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
-            allVerses[index].syncStatus = .pendingUpload
-        }
+        allVerses[index] = markPendingUploadIfNeeded(allVerses[index])
 
         VerseStore.save(allVerses)
         return allVerses[index]
@@ -134,10 +125,7 @@ struct VerseRepository {
 
             allVerses[index].masteryStatus = status
             allVerses[index].updatedAt = now
-
-            if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
-                allVerses[index].syncStatus = .pendingUpload
-            }
+            allVerses[index] = markPendingUploadIfNeeded(allVerses[index])
 
             updatedVerses.append(allVerses[index])
         }
@@ -168,10 +156,7 @@ struct VerseRepository {
 
             allVerses[index].folderName = normalizedFolderName
             allVerses[index].updatedAt = now
-
-            if allVerses[index].syncStatus != .localOnly && allVerses[index].syncStatus != .pendingDelete {
-                allVerses[index].syncStatus = .pendingUpload
-            }
+            allVerses[index] = markPendingUploadIfNeeded(allVerses[index])
 
             updatedVerses.append(allVerses[index])
         }
@@ -225,5 +210,15 @@ struct VerseRepository {
     private func normalizedFolderName(_ folderName: String) -> String {
         let normalizedFolderName = ScriptureAddPipeline.normalizedFolderName(folderName)
         return normalizedFolderName.isEmpty ? "Uncategorized" : normalizedFolderName
+    }
+
+    private func markPendingUploadIfNeeded(_ verse: Verse) -> Verse {
+        guard verse.syncStatus != .localOnly, verse.syncStatus != .pendingDelete else {
+            return verse
+        }
+
+        var updatedVerse = verse
+        updatedVerse.syncStatus = .pendingUpload
+        return updatedVerse
     }
 }

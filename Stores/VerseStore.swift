@@ -9,6 +9,10 @@ enum VerseStore {
     nonisolated private static let cacheLock = NSLock()
     nonisolated(unsafe) private static var cachedVerses: [Verse]?
 
+    nonisolated static var changePublisher: NotificationCenter.Publisher {
+        NotificationCenter.default.publisher(for: .versesDidChange)
+    }
+
     nonisolated static func load() -> [Verse] {
         cacheLock.lock()
         if let cachedVerses {

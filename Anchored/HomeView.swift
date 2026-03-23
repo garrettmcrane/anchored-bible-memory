@@ -151,7 +151,7 @@ struct HomeView: View {
                 await refreshVerseOfTheDayIfNeeded()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .versesDidChange)) { _ in
+        .onReceive(VerseStore.changePublisher) { _ in
             reloadVerses()
         }
         .overlay(alignment: .bottom) {

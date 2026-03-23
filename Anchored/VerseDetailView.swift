@@ -144,7 +144,7 @@ struct VerseDetailView: View {
                 .tint(isLightMode ? AppColors.weakness : AppColors.warning)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, BottomNavigationShellLayout.overlayClearance + 28)
+            .padding(.bottom, BottomOverlayLayout.overlayClearance + 28)
         }
         .navigationTitle("Verse")
         .navigationBarTitleDisplayMode(.inline)

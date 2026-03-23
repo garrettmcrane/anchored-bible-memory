@@ -16,11 +16,11 @@ struct ProgressTabView: View {
     }
 
     private var memorizedCount: Int {
-        verses.filter(\.isMastered).count
+        VerseQueries.memorizedVerses(verses).count
     }
 
     private var practicingCount: Int {
-        verses.filter { !$0.isMastered }.count
+        VerseQueries.practicingVerses(verses).count
     }
 
     private var timesReviewedCount: Int {
@@ -130,7 +130,7 @@ struct ProgressTabView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
-                    .padding(.bottom, BottomNavigationShellLayout.overlayClearance + 22)
+                    .padding(.bottom, BottomOverlayLayout.overlayClearance + 22)
                 }
             }
             .navigationDestination(isPresented: $isShowingSettings) {
@@ -143,13 +143,12 @@ struct ProgressTabView: View {
         .sheet(isPresented: $isShowingNotifications) {
             NotificationsPlaceholderView()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .versesDidChange)) { _ in
+        .onReceive(VerseStore.changePublisher) { _ in
             reloadData()
         }
         .sheet(isPresented: $isShowingAddFlow) {
             AddHubView(showsCancelButton: true, focusTrigger: addFocusTrigger) { newVerse in
                 VerseRepository.shared.addVerse(newVerse)
-                Task { await loadInitialDataIfNeeded() }
             }
         }
         .toolbar {
@@ -178,52 +177,20 @@ struct ProgressTabView: View {
     }
 
     private var profileHeroSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(displayName)
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
-
-                Text(leadingInsightTitle)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(AppColors.scriptureAccent)
-
-                Text(leadingInsightMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            HStack(spacing: 10) {
-                ProfileHighlightPill(title: "Memorized", value: memorizedCount.formatted())
-                ProfileHighlightPill(title: "Practicing", value: practicingCount.formatted())
-                ProfileHighlightPill(title: "Library", value: verses.count.formatted())
-            }
-
-            HStack(spacing: 10) {
-                profileDetail(label: "This week", value: "\(weeklyReviewCount) reviews")
-
-                if let strongestFolderName {
-                    profileDetail(label: "Top folder", value: strongestFolderName)
-                } else {
-                    profileDetail(label: "Top folder", value: "None yet")
-                }
-            }
-        }
-        .padding(20)
-        .background(heroBackground)
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        ProgressProfileHeroSectionView(
+            displayName: displayName,
+            leadingInsightTitle: leadingInsightTitle,
+            leadingInsightMessage: leadingInsightMessage,
+            memorizedCount: memorizedCount,
+            practicingCount: practicingCount,
+            libraryCount: verses.count,
+            weeklyReviewCount: weeklyReviewCount,
+            strongestFolderName: strongestFolderName
+        )
     }
 
     private var momentumSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Momentum", subtitle: "Your recent pace and lifetime repetition")
-
+        ProgressSectionView(title: "Momentum", subtitle: "Your recent pace and lifetime repetition") {
             LazyVGrid(
                 columns: [
                     GridItem(.flexible(), spacing: 12),
@@ -249,9 +216,7 @@ struct ProgressTabView: View {
     }
 
     private var activitySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Recent Activity", subtitle: "Reviews from the last 7 days")
-
+        ProgressSectionView(title: "Recent Activity", subtitle: "Reviews from the last 7 days") {
             if hasActivityHistory {
                 ReviewActivityCard(days: recentActivity)
             } else {
@@ -261,9 +226,7 @@ struct ProgressTabView: View {
     }
 
     private var librarySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(title: "Library Snapshot", subtitle: "How your verses are distributed right now")
-
+        ProgressSectionView(title: "Library Snapshot", subtitle: "How your verses are distributed right now") {
             if folderBreakdown.isEmpty {
                 ProgressEmptyStateCard(message: "Your verse folders will appear here as you build your library.")
             } else {
@@ -294,20 +257,6 @@ struct ProgressTabView: View {
         }
     }
 
-    private var heroBackground: some View {
-        RoundedRectangle(cornerRadius: 28, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        AppColors.elevatedSurface,
-                        AppColors.secondarySurface
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-    }
-
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(AppColors.surface)
@@ -317,41 +266,6 @@ struct ProgressTabView: View {
             )
     }
 
-    private func sectionHeader(title: String, subtitle: String? = nil) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppColors.textPrimary)
-
-            if let subtitle {
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.textSecondary)
-                }
-        }
-    }
-
-    private func profileDetail(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppColors.textSecondary)
-                .textCase(.uppercase)
-
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColors.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
-        .padding(.horizontal, 11)
-        .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.surface.opacity(0.7))
-        )
-    }
 
     private func reloadData() {
         verses = VerseRepository.shared.loadVerses()
@@ -386,7 +300,7 @@ struct ProgressTabView: View {
     }
 }
 
-private struct ProfileHighlightPill: View {
+struct ProfileHighlightPill: View {
     let title: String
     let value: String
 

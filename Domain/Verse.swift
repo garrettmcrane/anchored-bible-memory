@@ -42,8 +42,8 @@ enum VerseStrengthService {
     }
 
     static func reviewPriority(_ lhs: Verse, _ rhs: Verse, now: Date = Date()) -> Bool {
-        if lhs.isMastered != rhs.isMastered {
-            return !lhs.isMastered
+        if lhs.masteryStatus != rhs.masteryStatus {
+            return lhs.masteryStatus == .practicing
         }
 
         switch (lhs.lastReviewedAt, rhs.lastReviewedAt) {
@@ -76,8 +76,8 @@ struct Verse: Identifiable, Codable, Equatable {
     var reference: String
     var text: String
     var folderName: String
+    var masteryStatus: VerseMasteryStatus
     var strength: Double
-    var isMastered: Bool
     var correctCount: Int
     var reviewCount: Int
     var createdAt: Date
@@ -93,6 +93,7 @@ struct Verse: Identifiable, Codable, Equatable {
         reference: String,
         text: String,
         folderName: String = "General",
+        masteryStatus: VerseMasteryStatus? = nil,
         strength: Double? = nil,
         isMastered: Bool = false,
         correctCount: Int = 0,
@@ -109,8 +110,8 @@ struct Verse: Identifiable, Codable, Equatable {
         self.reference = reference
         self.text = text
         self.folderName = folderName
+        self.masteryStatus = masteryStatus ?? (isMastered ? .memorized : .practicing)
         self.strength = strength.map { VerseStrengthService.clampedStrength($0) } ?? Self.defaultStrength(lastReviewedAt: lastReviewedAt)
-        self.isMastered = isMastered
         self.correctCount = correctCount
         self.reviewCount = reviewCount
         self.createdAt = createdAt
@@ -122,9 +123,8 @@ struct Verse: Identifiable, Codable, Equatable {
         self.deletedAt = deletedAt
     }
 
-    var masteryStatus: VerseMasteryStatus {
-        get { isMastered ? .memorized : .practicing }
-        set { isMastered = newValue == .memorized }
+    var isMastered: Bool {
+        masteryStatus == .memorized
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -132,6 +132,7 @@ struct Verse: Identifiable, Codable, Equatable {
         case reference
         case text
         case folderName
+        case masteryStatus
         case strength
         case isMastered
         case correctCount
@@ -160,10 +161,11 @@ struct Verse: Identifiable, Codable, Equatable {
         text = try container.decode(String.self, forKey: .text)
         folderName = try container.decodeIfPresent(String.self, forKey: .folderName) ?? "General"
         let decodedLastReviewedAt = try container.decodeIfPresent(Date.self, forKey: .lastReviewedAt)
+        masteryStatus = try container.decodeIfPresent(VerseMasteryStatus.self, forKey: .masteryStatus)
+            ?? ((try container.decodeIfPresent(Bool.self, forKey: .isMastered) ?? false) ? .memorized : .practicing)
         strength = VerseStrengthService.clampedStrength(
             try container.decodeIfPresent(Double.self, forKey: .strength) ?? Self.defaultStrength(lastReviewedAt: decodedLastReviewedAt)
         )
-        isMastered = try container.decodeIfPresent(Bool.self, forKey: .isMastered) ?? false
         correctCount = try container.decodeIfPresent(Int.self, forKey: .correctCount) ?? 0
         reviewCount = try container.decodeIfPresent(Int.self, forKey: .reviewCount) ?? 0
         self.createdAt = createdAt
@@ -173,6 +175,26 @@ struct Verse: Identifiable, Codable, Equatable {
         sourceType = try container.decodeIfPresent(VerseSourceType.self, forKey: .sourceType) ?? .personal
         syncStatus = try container.decodeIfPresent(SyncStatus.self, forKey: .syncStatus) ?? .localOnly
         deletedAt = try container.decodeIfPresent(Date.self, forKey: .deletedAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(reference, forKey: .reference)
+        try container.encode(text, forKey: .text)
+        try container.encode(folderName, forKey: .folderName)
+        try container.encode(masteryStatus, forKey: .masteryStatus)
+        try container.encode(isMastered, forKey: .isMastered)
+        try container.encode(strength, forKey: .strength)
+        try container.encode(correctCount, forKey: .correctCount)
+        try container.encode(reviewCount, forKey: .reviewCount)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encodeIfPresent(lastReviewedAt, forKey: .lastReviewedAt)
+        try container.encode(ownerUserID, forKey: .ownerUserID)
+        try container.encode(sourceType, forKey: .sourceType)
+        try container.encode(syncStatus, forKey: .syncStatus)
+        try container.encodeIfPresent(deletedAt, forKey: .deletedAt)
     }
 
     private static func defaultStrength(lastReviewedAt: Date?) -> Double {

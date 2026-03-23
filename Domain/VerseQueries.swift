@@ -10,11 +10,11 @@ enum VerseQueries {
     }
 
     nonisolated static func practicingVerses(_ verses: [Verse]) -> [Verse] {
-        excludingSoftDeleted(verses).filter { !$0.isMastered }
+        excludingSoftDeleted(verses).filter { $0.masteryStatus == .practicing }
     }
 
     nonisolated static func memorizedVerses(_ verses: [Verse]) -> [Verse] {
-        excludingSoftDeleted(verses).filter(\.isMastered)
+        excludingSoftDeleted(verses).filter { $0.masteryStatus == .memorized }
     }
 
     nonisolated static func verses(_ verses: [Verse], inFolder folderName: String) -> [Verse] {

@@ -88,11 +88,11 @@ struct RootTabView: View {
     }
 }
 
-struct BottomNavigationShellLayout {
-    static let shellHeight: CGFloat = 58
+struct BottomOverlayLayout {
+    static let tabBarHeight: CGFloat = 58
     static let bottomPadding: CGFloat = 0
     static let verticalOffset: CGFloat = 8
-    static let overlayClearance: CGFloat = shellHeight + bottomPadding + verticalOffset + 12
+    static let overlayClearance: CGFloat = tabBarHeight + bottomPadding + verticalOffset + 12
 }
 
 #Preview("Light") {
