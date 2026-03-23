@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var settingsController: UserSettingsController
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var isShowingTutorial = false
 
     private var appearanceSelection: Binding<AppAppearancePreference> {
         Binding(
@@ -71,6 +73,22 @@ struct SettingsView: View {
             }
 
             Section {
+                Button {
+                    isShowingTutorial = true
+                } label: {
+                    HStack {
+                        Text("View App Tutorial")
+                        Spacer()
+                        Image(systemName: "play.rectangle")
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                }
+                .foregroundStyle(AppColors.textPrimary)
+            } header: {
+                Text("Help")
+            }
+
+            Section {
                 LabeledContent("App") {
                     Text("Anchored")
                 }
@@ -88,6 +106,12 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .tint(AppColors.structuralAccent)
+        .fullScreenCover(isPresented: $isShowingTutorial) {
+            OnboardingView {
+                hasCompletedOnboarding = true
+                isShowingTutorial = false
+            }
+        }
     }
 
     private var appVersionText: String {
