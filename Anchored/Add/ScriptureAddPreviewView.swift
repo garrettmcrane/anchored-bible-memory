@@ -25,7 +25,6 @@ struct ScriptureAddPreviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 summaryCard
-                saveButton
                 defaultsCard
 
                 VStack(alignment: .leading, spacing: 14) {
@@ -35,15 +34,19 @@ struct ScriptureAddPreviewView: View {
                 }
             }
             .padding(20)
+            .padding(.bottom, 68)
         }
         .background(AppColors.background)
         .navigationTitle("Preview")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) {
+            saveBar
+        }
+        .overlay(alignment: .bottom) {
             if let successMessage {
                 FeedbackToast(message: successMessage, systemImage: "checkmark.circle.fill")
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 76)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -146,20 +149,6 @@ struct ScriptureAddPreviewView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AppColors.divider, lineWidth: 1)
         }
-    }
-
-    private var saveButton: some View {
-        Button {
-            savePassages()
-        } label: {
-            Text(isSaving ? "Saving..." : "Save Verses")
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColors.reviewPracticingActionText)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-        }
-        .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
-        .disabled(isSaving)
     }
 
     private func previewCard(for passage: ScripturePassage) -> some View {
@@ -308,5 +297,23 @@ struct ScriptureAddPreviewView: View {
                 }
             }
         }
+    }
+
+    private var saveBar: some View {
+        Button {
+            savePassages()
+        } label: {
+            Text(isSaving ? "Saving..." : "Save Verses")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppColors.reviewPracticingActionText)
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+        }
+        .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
+        .disabled(isSaving)
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, -14)
+        .background(Color.clear)
     }
 }

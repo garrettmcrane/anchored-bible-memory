@@ -21,41 +21,6 @@ struct LibraryView: View {
         let verse: Verse
     }
 
-    private struct LibrarySummaryMetric: View {
-        let value: Int
-        let title: String
-        let isSelected: Bool
-        let selectionNamespace: Namespace.ID
-
-        var body: some View {
-            HStack(spacing: 8) {
-                Text(value.formatted())
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-
-                Text(title)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary.opacity(0.92))
-                    .textCase(.uppercase)
-                    .tracking(0.55)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background {
-                if isSelected {
-                    Capsule(style: .continuous)
-                        .fill(.regularMaterial)
-                        .matchedGeometryEffect(id: "library-summary-selection", in: selectionNamespace)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(.rect(cornerRadius: 18))
-        }
-    }
-
     enum FilterType: String, CaseIterable {
         case all = "All"
         case practicing = "Practicing"
@@ -95,7 +60,6 @@ struct LibraryView: View {
     @State private var isShowingBatchFolderSheet = false
     @State private var scrollOffset: CGFloat = 0
     @State private var verses: [Verse] = []
-    @Namespace private var summarySelectionNamespace
     @FocusState private var isSearchFieldFocused: Bool
 
     @State private var isShowingAddFlow = false
@@ -539,14 +503,12 @@ struct LibraryView: View {
                     .lineLimit(2)
             }
 
-            HStack(spacing: 8) {
-                    summaryFilterMetric(value: totalCount, title: "All", filter: .all)
-                    summaryFilterMetric(value: practicingCount, title: "Practicing", filter: .practicing)
-                    summaryFilterMetric(value: memorizedCount, title: "Memorized", filter: .memorized)
+            Picker("Library Filter", selection: $selectedFilter) {
+                Text("All (\(totalCount))").tag(FilterType.all)
+                Text("Practicing (\(practicingCount))").tag(FilterType.practicing)
+                Text("Memorized (\(memorizedCount))").tag(FilterType.memorized)
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 5)
-            .background(.regularMaterial, in: Capsule(style: .continuous))
+            .pickerStyle(.segmented)
         }
         .padding(.horizontal, 0)
         .padding(.top, 14)
@@ -684,21 +646,6 @@ struct LibraryView: View {
                 .glassEffect(.regular.interactive(), in: .capsule)
             }
         }
-    }
-
-    private func summaryFilterMetric(value: Int, title: String, filter: FilterType) -> some View {
-        Button {
-            selectedFilter = filter
-        } label: {
-            LibrarySummaryMetric(
-                value: value,
-                title: title,
-                isSelected: selectedFilter == filter,
-                selectionNamespace: summarySelectionNamespace
-            )
-        }
-        .buttonStyle(.plain)
-        .animation(.snappy(duration: 0.28), value: selectedFilter)
     }
 
     private var emptyVersesState: some View {
