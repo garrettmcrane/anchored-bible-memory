@@ -157,7 +157,7 @@ struct ProgressTabView: View {
                     addFocusTrigger += 1
                     isShowingAddFlow = true
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "plus.circle.fill")
                 }
                 .accessibilityLabel("Add")
             }
@@ -260,10 +260,6 @@ struct ProgressTabView: View {
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(AppColors.surface)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(AppColors.divider, lineWidth: 1)
-            )
     }
 
 
@@ -360,10 +356,6 @@ private struct MomentumCard: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AppColors.surface)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
     }
 }
 

@@ -195,7 +195,8 @@ struct ReviewSessionView: View {
         VStack(spacing: 24) {
             if showingAnswer {
                 Text(currentVerse.text)
-                    .font(.title3)
+                    .font(AnchoredFont.scripture(26))
+                    .lineSpacing(8)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             } else {
@@ -219,13 +220,8 @@ struct ReviewSessionView: View {
                     showingAnswer = true
                 } label: {
                     Text("Reveal Verse")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(AppColors.primaryButton)
-                        .foregroundStyle(AppColors.primaryButtonText)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
+                .buttonStyle(AnchoredPrimaryButtonStyle())
                 .padding(.horizontal)
             }
         }

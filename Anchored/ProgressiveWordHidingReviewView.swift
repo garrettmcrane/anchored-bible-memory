@@ -19,12 +19,12 @@ struct ProgressiveWordHidingReviewView: View {
             VStack(spacing: 24) {
                 VStack(spacing: 10) {
                     Text(verse.reference)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(AnchoredFont.editorial(30))
                         .multilineTextAlignment(.center)
+                        .foregroundStyle(AppColors.scriptureAccent)
 
                     Text("Hide more words as you recite, then score your recall.")
-                        .font(.subheadline)
+                        .font(AnchoredFont.uiSubheadline)
                         .foregroundStyle(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
@@ -32,7 +32,7 @@ struct ProgressiveWordHidingReviewView: View {
 
                 ScrollView {
                     Text(hidingState.displayedText)
-                        .font(.system(.title3, design: .serif))
+                        .font(AnchoredFont.scripture(24))
                         .lineSpacing(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(24)
@@ -44,27 +44,21 @@ struct ProgressiveWordHidingReviewView: View {
                 .padding(.horizontal)
 
                 HStack(spacing: 12) {
-                    Button {
-                        hidingState.hideMoreWords()
-                    } label: {
-                        Text("Hide More Words")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!hidingState.canHideMoreWords)
+                Button {
+                    hidingState.hideMoreWords()
+                } label: {
+                    Text("Hide More Words")
+                }
+                .buttonStyle(AnchoredPrimaryButtonStyle())
+                .disabled(!hidingState.canHideMoreWords)
 
-                    Button {
-                        hidingState.reset()
-                    } label: {
-                        Text("Reset")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(!hidingState.hasHiddenWords)
+                Button {
+                    hidingState.reset()
+                } label: {
+                    Text("Reset")
+                }
+                .buttonStyle(.glass)
+                .disabled(!hidingState.hasHiddenWords)
                 }
                 .padding(.horizontal)
 
@@ -73,25 +67,15 @@ struct ProgressiveWordHidingReviewView: View {
                         recordReview(result: .missed)
                     } label: {
                         Text("Missed")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(AppColors.gold.opacity(0.15))
-                            .foregroundStyle(AppColors.gold)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
+                    .buttonStyle(AnchoredMissedButtonStyle())
 
                     Button {
                         recordReview(result: .correct)
                     } label: {
                         Text("Got It")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(AppColors.gold.opacity(0.15))
-                            .foregroundStyle(AppColors.success)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
+                    .buttonStyle(AnchoredSuccessButtonStyle())
                 }
                 .padding(.horizontal)
             }

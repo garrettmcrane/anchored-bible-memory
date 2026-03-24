@@ -25,6 +25,8 @@
 		5F7EEAFB2F6CFF6900B56661 /* VerseRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAF52F6CFECC00B56661 /* VerseRepository.swift */; };
 		5F7EEAFD2F6CFF6900B56661 /* ReviewRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAF62F6CFECC00B56661 /* ReviewRepository.swift */; };
 		5F7EEAFF2F6CFF6900B56661 /* GroupRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F7EEAF72F6CFECC00B56661 /* GroupRepository.swift */; };
+		5FD854D12F71FA910043E9BF /* AnchoredDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FD854D02F71FA910043E9BF /* AnchoredDesignSystem.swift */; };
+		A1B2C3D52F72000100AA0001 /* Fonts/Newsreader-Variable.ttf in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F72000100AA0001 /* Fonts/Newsreader-Variable.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +49,8 @@
 		5F7EEAF52F6CFECC00B56661 /* VerseRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerseRepository.swift; sourceTree = "<group>"; };
 		5F7EEAF62F6CFECC00B56661 /* ReviewRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewRepository.swift; sourceTree = "<group>"; };
 		5F7EEAF72F6CFECC00B56661 /* GroupRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupRepository.swift; sourceTree = "<group>"; };
+		5FD854D02F71FA910043E9BF /* AnchoredDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchoredDesignSystem.swift; sourceTree = "<group>"; };
+		A1B2C3D42F72000100AA0001 /* Fonts/Newsreader-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fonts/Newsreader-Variable.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -62,6 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D52F72000100AA0001 /* Fonts/Newsreader-Variable.ttf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +82,8 @@
 				5F7EEADF2F6CFD1700B56661 /* Repositories */,
 				5F7EEAE02F6CFD1800B56661 /* Stores */,
 				5F7EEAE12F6CFD1800B56661 /* Support */,
+				5FD854D02F71FA910043E9BF /* AnchoredDesignSystem.swift */,
+				5FD8555C2F7200EF0043E9BF /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -132,6 +139,14 @@
 				5F7EEAF22F6CFECC00B56661 /* LocalSession.swift */,
 			);
 			path = Support;
+			sourceTree = "<group>";
+		};
+		5FD8555C2F7200EF0043E9BF /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D42F72000100AA0001 /* Fonts/Newsreader-Variable.ttf */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -223,6 +238,7 @@
 				5F7EEAEB2F6CFECB00B56661 /* ReviewRecord.swift in Sources */,
 				5F7EEAFF2F6CFF6900B56661 /* GroupRepository.swift in Sources */,
 				5F31BDA22F6F28E90081496F /* GroupProgressRepository.swift in Sources */,
+				5FD854D12F71FA910043E9BF /* AnchoredDesignSystem.swift in Sources */,
 				5F31BD9B2F6F22650081496F /* GroupStore.swift in Sources */,
 				5F31BDA02F6F28E90081496F /* GroupProgress.swift in Sources */,
 				5F7EEAF92F6CFF1F00B56661 /* LocalSession.swift in Sources */,
@@ -363,6 +379,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Anchored uses the microphone so you can recite verses aloud during Voice Recitation review.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Anchored uses speech recognition to transcribe your verse recitation for manual review.";
+				INFOPLIST_KEY_UIAppFonts = "Fonts/Newsreader-Variable.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
@@ -398,6 +415,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Anchored uses the microphone so you can recite verses aloud during Voice Recitation review.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Anchored uses speech recognition to transcribe your verse recitation for manual review.";
+				INFOPLIST_KEY_UIAppFonts = "Fonts/Newsreader-Variable.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = NO;

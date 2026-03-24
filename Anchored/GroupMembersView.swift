@@ -39,11 +39,11 @@ struct GroupMembersView: View {
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(group.name)
-                .font(.title2.weight(.semibold))
+                .font(AnchoredFont.editorial(28))
                 .foregroundStyle(AppColors.textPrimary)
 
             Text("\(activeMemberships.count) member\(activeMemberships.count == 1 ? "" : "s") in this group.")
-                .font(.subheadline)
+                .font(AnchoredFont.uiSubheadline)
                 .foregroundStyle(AppColors.textSecondary)
         }
         .padding(18)
@@ -59,17 +59,17 @@ struct GroupMembersView: View {
                     .frame(width: 42, height: 42)
 
                 Image(systemName: membership.role == .owner ? "crown.fill" : "person.fill")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(AnchoredFont.ui(15, weight: .semibold))
                     .foregroundStyle(membership.role == .owner ? AppColors.gold : AppColors.textSecondary)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayName(for: membership))
-                    .font(.headline)
+                    .font(AnchoredFont.ui(17, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
 
                 Text(subtitle(for: membership))
-                    .font(.subheadline)
+                    .font(AnchoredFont.uiSubheadline)
                     .foregroundStyle(AppColors.textSecondary)
             }
 
@@ -77,7 +77,7 @@ struct GroupMembersView: View {
 
             if membership.id == ownerMembership?.id {
                 Text("Owner")
-                    .font(.caption.weight(.semibold))
+                    .font(AnchoredFont.uiCaption)
                     .foregroundStyle(AppColors.textPrimary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
@@ -95,10 +95,6 @@ struct GroupMembersView: View {
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(AppColors.surface)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(AppColors.divider, lineWidth: 1)
-            )
     }
 
     private func displayName(for membership: GroupMembership) -> String {

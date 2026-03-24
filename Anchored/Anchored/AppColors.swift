@@ -49,18 +49,19 @@ struct AppColors {
 
     static let background = dynamic(light: Light.background, dark: Dark.background)
     static let surface = dynamic(light: Light.surface, dark: Dark.surface)
-    static let elevatedSurface = dynamic(light: Color(hex: "#FCFCFB"), dark: Dark.elevated)
-    static let secondarySurface = dynamic(light: Color(hex: "#EFEDE8"), dark: Dark.elevated)
+    static let elevatedSurface = dynamic(light: Light.surface, dark: Dark.elevated)
+    static let secondarySurface = dynamic(light: Color(hex: "#EEEAE1"), dark: Dark.elevated)
     static let textPrimary = dynamic(light: Light.textPrimary, dark: Dark.textPrimary)
     static let textSecondary = dynamic(light: Light.textSecondary, dark: Dark.textSecondary)
     static let divider = dynamic(light: Light.divider, dark: Dark.divider)
-    static let structuralAccent = dynamic(light: Light.primary, dark: Brand.gold)
+    static let structuralAccent = dynamic(light: Light.primary, dark: Dark.textPrimary)
     static let scriptureAccent = dynamic(light: Brand.gold, dark: Brand.gold)
     static let subtleAccent = dynamic(light: Brand.gold.opacity(0.16), dark: Brand.gold.opacity(0.12))
-    static let primaryButton = dynamic(light: Light.primary, dark: Brand.gold)
-    static let primaryButtonText = dynamic(light: Dark.textPrimary, dark: Dark.background)
-    static let secondaryButton = dynamic(light: Light.surface, dark: Dark.surface)
-    static let secondaryButtonText = dynamic(light: Light.textPrimary, dark: Dark.textPrimary)
+    static let primaryButton = dynamic(light: Brand.blue, dark: Brand.blue)
+    static let primaryButtonText = dynamic(light: Light.surface, dark: Dark.textPrimary)
+    static let secondaryButton = dynamic(light: Brand.gold, dark: Brand.gold)
+    static let secondaryButtonText = dynamic(light: Light.textPrimary, dark: Light.textPrimary)
+    static let tertiaryButtonText = dynamic(light: Brand.blue, dark: Brand.gold)
     static let tabBarBackground = dynamic(light: Color(hex: "#FBFBF9"), dark: Dark.surface)
     static let selectionFill = dynamic(light: Brand.gold.opacity(0.18), dark: Brand.gold.opacity(0.20))
     static let fieldBackground = dynamic(light: Light.surface, dark: Dark.elevated)
@@ -68,15 +69,19 @@ struct AppColors {
     static let success = dynamic(light: Color(hex: "#466C57"), dark: Color(hex: "#7FA287"))
     static let warning = dynamic(light: Color(hex: "#9C7840"), dark: Color(hex: "#D0AF72"))
     static let weakness = dynamic(light: Color(hex: "#A45F5B"), dark: Color(hex: "#C78882"))
-    static let statusPracticing = dynamic(light: Color(hex: "#B5524E"), dark: Color(hex: "#D68B86"))
+    static let reviewCorrectButton = dynamic(light: Color(hex: "#466C57"), dark: Color(hex: "#6E9278"))
+    static let reviewMissedButton = dynamic(light: Color(hex: "#A45F5B"), dark: Color(hex: "#C78882"))
+    static let reviewResultButtonText = dynamic(light: Light.surface, dark: Dark.textPrimary)
+    static let subtleMissed = dynamic(light: Color(hex: "#E8D4D2"), dark: Color(hex: "#5A4340"))
+    static let statusPracticing = dynamic(light: Color(hex: "#8A8A8A"), dark: Color(hex: "#B0B0B0"))
     static let statusMemorized = dynamic(light: Color(hex: "#4D7A5A"), dark: Color(hex: "#88AF92"))
     static let folderPillFill = dynamic(light: Color(hex: "#EEE5D2"), dark: Brand.gold.opacity(0.14))
     static let folderPillText = dynamic(light: Color(hex: "#253141"), dark: Brand.gold)
     static let shadow = dynamic(light: Color(hex: "#000000").opacity(0.08), dark: Color(hex: "#000000").opacity(0.24))
-    static let reviewPracticingActionBackground = dynamic(light: Color(hex: "#253141"), dark: Brand.gold)
-    static let reviewPracticingActionText = dynamic(light: Dark.textPrimary, dark: Dark.background)
-    static let reviewAllActionBackground = dynamic(light: Color(hex: "#DFC27A"), dark: Brand.gold)
-    static let reviewAllActionText = dynamic(light: Color(hex: "#253141"), dark: Dark.background)
+    static let reviewPracticingActionBackground = primaryButton
+    static let reviewPracticingActionText = primaryButtonText
+    static let reviewAllActionBackground = secondaryButton
+    static let reviewAllActionText = secondaryButtonText
     static let verseOfTheDayBadgeFill = dynamic(light: Color(hex: "#F1E7C8"), dark: Brand.gold.opacity(0.16))
     static let verseOfTheDayReference = dynamic(light: Color(hex: "#253141"), dark: Brand.gold)
     static let addComposerBackground = dynamic(light: Color(hex: "#F8F6F1"), dark: Color(hex: "#30343A"))
@@ -162,7 +167,7 @@ extension VerseMasteryStatus {
     var actionTitle: String {
         switch self {
         case .practicing:
-            return "Mark Practicing"
+            return "Mark Learning"
         case .memorized:
             return "Mark Memorized"
         }
@@ -171,7 +176,7 @@ extension VerseMasteryStatus {
     var iconName: String {
         switch self {
         case .practicing:
-            return "flame.fill"
+            return "circle.dashed"
         case .memorized:
             return "checkmark.circle.fill"
         }

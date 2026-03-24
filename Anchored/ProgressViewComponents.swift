@@ -14,24 +14,24 @@ struct ProgressProfileHeroSectionView: View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(displayName)
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(AnchoredFont.editorial(32))
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .multilineTextAlignment(.center)
 
                 Text(leadingInsightTitle)
-                    .font(.title3.weight(.semibold))
+                    .font(AnchoredFont.editorial(26))
                     .foregroundStyle(AppColors.scriptureAccent)
 
                 Text(leadingInsightMessage)
-                    .font(.subheadline)
+                    .font(AnchoredFont.uiSubheadline)
                     .foregroundStyle(AppColors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: 10) {
                 ProfileHighlightPill(title: "Memorized", value: memorizedCount.formatted())
-                ProfileHighlightPill(title: "Practicing", value: practicingCount.formatted())
+                ProfileHighlightPill(title: "Learning", value: practicingCount.formatted())
                 ProfileHighlightPill(title: "Library", value: libraryCount.formatted())
             }
 
@@ -41,23 +41,7 @@ struct ProgressProfileHeroSectionView: View {
             }
         }
         .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            AppColors.elevatedSurface,
-                            AppColors.secondarySurface
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(AnchoredCardBackground(elevated: true, cornerRadius: AnchoredSpacing.heroCornerRadius))
     }
 }
 
@@ -70,12 +54,12 @@ struct ProgressSectionView<Content: View>: View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.title3.weight(.semibold))
+                    .font(AnchoredFont.uiSectionTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
                 if let subtitle {
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(AnchoredFont.uiSubheadline)
                         .foregroundStyle(AppColors.textSecondary)
                 }
             }
@@ -92,12 +76,12 @@ private struct ProgressProfileDetailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
-                .font(.caption.weight(.medium))
+                .font(AnchoredFont.uiCaption)
                 .foregroundStyle(AppColors.textSecondary)
                 .textCase(.uppercase)
 
             Text(value)
-                .font(.subheadline.weight(.semibold))
+                .font(AnchoredFont.uiLabel)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)

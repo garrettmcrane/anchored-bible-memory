@@ -75,12 +75,20 @@ struct FirstLetterTypingVersePerformance: Identifiable, Equatable {
         case .successful:
             return AppColors.success
         case .missed:
-            return AppColors.statusPracticing
+            return isNearThresholdMiss ? AppColors.weakness.opacity(0.82) : AppColors.weakness
         }
     }
 
     var backgroundTint: Color {
-        tintColor.opacity(0.12)
+        if resultTier == .missed, isNearThresholdMiss {
+            return AppColors.subtleMissed
+        }
+
+        return tintColor.opacity(0.12)
+    }
+
+    private var isNearThresholdMiss: Bool {
+        scorePercent >= 90
     }
 }
 
@@ -135,7 +143,7 @@ struct FirstLetterTypingState {
             return false
         }
 
-        guard typedLetter == expectedLetter else {
+        guard FirstLetterTypingSupport.matchesExpectedLetter(typedLetter, expected: expectedLetter) else {
             incorrectAttempts += 1
             return false
         }
@@ -189,6 +197,39 @@ enum FirstLetterTypingSupport {
     static func normalizedLeadingLetter(from text: String) -> Character? {
         text.lowercased().first(where: { $0.isLetter || $0.isNumber })
     }
+
+    static func matchesExpectedLetter(_ typed: Character, expected: Character) -> Bool {
+        typed == expected || adjacentKeyboardMap[expected, default: []].contains(typed)
+    }
+
+    private static let adjacentKeyboardMap: [Character: Set<Character>] = [
+        "q": ["w", "a"],
+        "w": ["q", "e", "a", "s"],
+        "e": ["w", "r", "s", "d"],
+        "r": ["e", "t", "d", "f"],
+        "t": ["r", "y", "f", "g"],
+        "y": ["t", "u", "g", "h"],
+        "u": ["y", "i", "h", "j"],
+        "i": ["u", "o", "j", "k"],
+        "o": ["i", "p", "k", "l"],
+        "p": ["o", "l"],
+        "a": ["q", "w", "s", "z"],
+        "s": ["a", "w", "e", "d", "x", "z"],
+        "d": ["s", "e", "r", "f", "c", "x"],
+        "f": ["d", "r", "t", "g", "v", "c"],
+        "g": ["f", "t", "y", "h", "b", "v"],
+        "h": ["g", "y", "u", "j", "n", "b"],
+        "j": ["h", "u", "i", "k", "m", "n"],
+        "k": ["j", "i", "o", "l", "m"],
+        "l": ["k", "o", "p"],
+        "z": ["a", "s", "x"],
+        "x": ["z", "s", "d", "c"],
+        "c": ["x", "d", "f", "v"],
+        "v": ["c", "f", "g", "b"],
+        "b": ["v", "g", "h", "n"],
+        "n": ["b", "h", "j", "m"],
+        "m": ["n", "j", "k"]
+    ]
 }
 
 enum FirstLetterTypingFeedback {
@@ -220,12 +261,12 @@ struct FirstLetterTypingVerseCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("Verse Reconstruction")
-                    .font(.headline)
+                    .font(AnchoredFont.ui(17, weight: .semibold))
 
                 Spacer()
 
                 Text(state.progressText)
-                    .font(.caption.weight(.medium))
+                    .font(AnchoredFont.uiCaption)
                     .foregroundStyle(AppColors.textSecondary)
             }
 
@@ -250,7 +291,7 @@ struct FirstLetterTypingFlowingText: View {
                 skeletonText
                     .allowsHitTesting(false)
             }
-            .font(.system(.title3, design: .serif))
+            .font(AnchoredFont.scripture(24))
             .lineSpacing(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(minHeight: 120, alignment: .topLeading)
@@ -394,18 +435,18 @@ struct ReviewStartSheet: View {
 
     private var sessionOverview: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(configuration.title)
-                .font(.title2.weight(.semibold))
+                Text(configuration.title)
+                    .font(AnchoredFont.editorial(28))
 
             if let description = configuration.description {
                 Text(description)
-                    .font(.subheadline)
+                    .font(AnchoredFont.uiSubheadline)
                     .foregroundStyle(AppColors.textSecondary)
                     .lineLimit(2)
             }
 
             Text("\(configuration.verses.count) verse\(configuration.verses.count == 1 ? "" : "s")")
-                .font(.caption.weight(.medium))
+                .font(AnchoredFont.uiCaption)
                 .foregroundStyle(AppColors.textSecondary)
         }
     }
@@ -413,7 +454,7 @@ struct ReviewStartSheet: View {
     private var methodOptionsSection: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text("Review Method")
-                .font(.subheadline.weight(.semibold))
+                .font(AnchoredFont.uiLabel)
 
             ForEach(ReviewMethod.allCases) { method in
                 methodOption(for: method)
@@ -426,12 +467,7 @@ struct ReviewStartSheet: View {
             onStart(selectedMethod)
             dismiss()
         }
-        .fontWeight(.semibold)
-        .frame(maxWidth: .infinity)
-        .frame(height: 52)
-        .background(AppColors.primaryButton)
-        .foregroundStyle(AppColors.primaryButtonText)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .buttonStyle(AnchoredPrimaryButtonStyle())
     }
 
     private func methodOption(for method: ReviewMethod) -> some View {
@@ -448,11 +484,11 @@ struct ReviewStartSheet: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(method.title)
-                        .font(.body.weight(.semibold))
+                        .font(AnchoredFont.ui(17, weight: .semibold))
                         .foregroundStyle(AppColors.textPrimary)
 
                     Text(description)
-                        .font(.caption)
+                        .font(AnchoredFont.uiCaption)
                         .foregroundStyle(AppColors.textSecondary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(1)
@@ -461,7 +497,7 @@ struct ReviewStartSheet: View {
                 Spacer(minLength: 8)
 
                 Image(systemName: iconName)
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(AnchoredFont.ui(19, weight: .semibold))
                     .foregroundStyle(iconColor)
             }
             .padding(.horizontal, 14)
@@ -664,23 +700,13 @@ struct ReviewResultButtons: View {
         HStack(spacing: 16) {
             Button(action: onMissed) {
                 Text("Missed")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(AppColors.secondaryButton)
-                    .foregroundStyle(AppColors.secondaryButtonText)
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
             }
+            .buttonStyle(AnchoredMissedButtonStyle())
 
             Button(action: onCorrect) {
                 Text("Got It")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(AppColors.primaryButton)
-                    .foregroundStyle(AppColors.primaryButtonText)
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
             }
+            .buttonStyle(AnchoredSuccessButtonStyle())
         }
     }
 }
@@ -845,23 +871,13 @@ private struct ReviewSessionActionBar: View {
             Button("Done") {
                 onDone()
             }
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(AppColors.primaryButton)
-            .foregroundStyle(AppColors.primaryButtonText)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .buttonStyle(AnchoredPrimaryButtonStyle())
 
             if let onReviewAgain {
                 Button("Review Again") {
                     onReviewAgain()
                 }
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(AppColors.secondaryButton)
-                .foregroundStyle(AppColors.secondaryButtonText)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .buttonStyle(AnchoredSecondaryButtonStyle())
             }
         }
     }

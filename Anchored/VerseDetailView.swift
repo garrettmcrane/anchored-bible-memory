@@ -80,15 +80,9 @@ struct VerseDetailView: View {
                         Image(systemName: "play.fill")
                             .font(.system(size: 14, weight: .semibold))
                         Text("Start Review")
-                            .fontWeight(.semibold)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
                 }
-                .background(primaryCTAColor)
-                .foregroundStyle(primaryCTATextColor)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: isLightMode ? AppColors.structuralAccent.opacity(0.14) : .clear, radius: 12, y: 6)
+                .buttonStyle(AnchoredPrimaryButtonStyle())
 
                 VStack(alignment: .leading, spacing: 16) {
                     sectionLabel("Status")
@@ -112,25 +106,17 @@ struct VerseDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     sectionLabel("Details")
 
-                    VStack(spacing: 0) {
+                    VStack(spacing: 12) {
                         detailRow(title: "Added", value: addedDateText)
-                        detailDivider
                         detailRow(title: "Folder", value: folderName)
-                        detailDivider
                         detailRow(title: "Status", value: currentVerse.masteryStatus.rawValue)
-                        detailDivider
                         detailRow(title: "Times Reviewed", value: "\(currentVerse.reviewCount)")
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
+                    .padding(18)
                     .background(
                         RoundedRectangle(cornerRadius: 22)
                             .fill(AppColors.surface)
                     )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 22)
-                            .stroke(AppColors.divider, lineWidth: 1)
-                    }
                 }
 
                 Button(role: .destructive) {
@@ -139,9 +125,7 @@ struct VerseDetailView: View {
                     Text("Delete Verse")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .tint(isLightMode ? AppColors.weakness : AppColors.warning)
+                .buttonStyle(AnchoredDestructiveButtonStyle())
             }
             .padding(.horizontal, 20)
             .padding(.bottom, BottomOverlayLayout.overlayClearance + 28)
@@ -232,11 +216,6 @@ struct VerseDetailView: View {
         currentVerse.createdAt.formatted(.dateTime.month(.wide).day().year())
     }
 
-    private var detailDivider: some View {
-        Divider()
-            .overlay(AppColors.divider)
-    }
-
     private func signalCard(title: String, value: String, valueColor: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
@@ -257,10 +236,6 @@ struct VerseDetailView: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(controlSurfaceColor)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
     }
 
     private var statusCard: some View {
@@ -280,10 +255,6 @@ struct VerseDetailView: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(currentVerse.masteryStatus.subtleFillColor)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(currentVerse.masteryStatus.tintColor.opacity(0.18), lineWidth: 1)
-        }
     }
 
     private func detailRow(title: String, value: String) -> some View {
@@ -296,7 +267,7 @@ struct VerseDetailView: View {
             Text(value)
                 .multilineTextAlignment(.trailing)
         }
-        .font(.subheadline)
+        .font(AnchoredFont.uiSubheadline)
         .padding(.vertical, 12)
     }
 
@@ -306,13 +277,13 @@ struct VerseDetailView: View {
                 sectionLabel("Scripture")
 
                 Text(currentVerse.reference)
-                    .font(.system(size: 31, weight: .bold, design: .serif))
+                    .font(AnchoredFont.editorial(32))
                     .foregroundStyle(referenceColor)
             }
 
             Text(currentVerse.text)
-                .font(.system(size: 19, weight: .regular, design: .serif))
-                .lineSpacing(6)
+                .font(AnchoredFont.scripture(25))
+                .lineSpacing(8)
                 .foregroundStyle(AppColors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -322,15 +293,11 @@ struct VerseDetailView: View {
             RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .fill(scriptureSurfaceColor)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .stroke(scriptureBorderColor, lineWidth: 1)
-        }
     }
 
     private func sectionLabel(_ title: String) -> some View {
         Text(title)
-            .font(.caption.weight(.semibold))
+            .font(AnchoredFont.uiCaption)
             .foregroundStyle(AppColors.textSecondary)
             .tracking(0.8)
             .textCase(.uppercase)
@@ -344,10 +311,6 @@ struct VerseDetailView: View {
         isLightMode ? AppColors.surface : AppColors.elevatedSurface
     }
 
-    private var scriptureBorderColor: Color {
-        isLightMode ? AppColors.divider.opacity(0.9) : AppColors.divider
-    }
-
     private var controlSurfaceColor: Color {
         isLightMode ? AppColors.surface : AppColors.elevatedSurface
     }
@@ -356,20 +319,12 @@ struct VerseDetailView: View {
         isLightMode ? AppColors.structuralAccent : AppColors.scriptureAccent
     }
 
-    private var primaryCTAColor: Color {
-        isLightMode ? AppColors.structuralAccent : AppColors.primaryButton
-    }
-
-    private var primaryCTATextColor: Color {
-        isLightMode ? AppColors.surface : AppColors.primaryButtonText
-    }
-
     private var statusSummary: String {
         switch currentVerse.masteryStatus {
         case .practicing:
             return "Still working on this verse. A successful review will move it to Memorized."
         case .memorized:
-            return "You currently know this verse well. A missed review will move it back to Practicing."
+            return "You currently know this verse well. A missed review will move it back to Learning."
         }
     }
 

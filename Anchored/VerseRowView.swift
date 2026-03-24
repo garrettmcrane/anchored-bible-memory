@@ -43,11 +43,11 @@ struct VerseRowView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(verse.reference)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(AnchoredFont.ui(17, weight: .semibold))
                         .foregroundStyle(AppColors.textPrimary)
 
                     Text(verse.text)
-                        .font(.subheadline)
+                        .font(AnchoredFont.uiSubheadline)
                         .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(1)
 
@@ -60,12 +60,12 @@ struct VerseRowView: View {
                 if showsChevron {
                     Image(systemName: "chevron.right")
                         .foregroundStyle(AppColors.textSecondary)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AnchoredFont.ui(12, weight: .semibold))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 
     private var showsMetadataRow: Bool {
@@ -84,7 +84,7 @@ struct VerseRowView: View {
                 }
 
                 Text(lastReviewedText)
-                    .font(.caption.weight(.medium))
+                    .font(AnchoredFont.uiCaption)
                     .foregroundStyle(AppColors.textSecondary.opacity(0.82))
                     .lineLimit(1)
             }
@@ -95,7 +95,7 @@ struct VerseRowView: View {
                 }
 
                 Text(item.text)
-                    .font(.caption.weight(.medium))
+                    .font(AnchoredFont.uiCaption)
                     .foregroundStyle(AppColors.textSecondary.opacity(0.82))
                     .lineLimit(1)
             }
@@ -110,7 +110,7 @@ struct VerseRowView: View {
 
     private func folderPill(_ title: String) -> some View {
         Text(title)
-            .font(.caption.weight(.semibold))
+            .font(AnchoredFont.uiCaption.weight(.semibold))
             .foregroundStyle(AppColors.folderPillText)
             .lineLimit(1)
             .padding(.horizontal, 9)
@@ -118,10 +118,6 @@ struct VerseRowView: View {
             .background(
                 Capsule(style: .continuous)
                     .fill(AppColors.folderPillFill)
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(AppColors.divider.opacity(0.7), lineWidth: 1)
             )
     }
 
@@ -139,7 +135,7 @@ struct VerseRowView: View {
 
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AnchoredFont.ui(11, weight: .bold))
                     .foregroundStyle(AppColors.textPrimary)
             }
         }

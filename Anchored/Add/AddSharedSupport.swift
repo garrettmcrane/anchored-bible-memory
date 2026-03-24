@@ -135,24 +135,7 @@ struct TranslationPickerSection: View {
                     }
                 }
             } label: {
-                HStack(spacing: 8) {
-                    Text(selection.title)
-                        .font(.subheadline.weight(.semibold))
-                    if !selection.subtitle.isEmpty {
-                        Text(selection.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
-                    }
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppColors.textSecondary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(AppColors.surface)
-                )
+                AnchoredCapsuleMenuLabel(title: selection.title)
             }
             .buttonStyle(.plain)
         }
@@ -171,7 +154,7 @@ struct AddFlowMessageCard: View {
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(tint.opacity(0.09))
+                    .fill(AppColors.surface)
             )
     }
 }
@@ -194,7 +177,6 @@ struct FeedbackToast: View {
         .background(
             Capsule(style: .continuous)
                 .fill(AppColors.elevatedSurface)
-                .shadow(color: AppColors.shadow, radius: 10, y: 3)
         )
     }
 }

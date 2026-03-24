@@ -62,7 +62,7 @@ struct OnboardingView: View {
 
             OnboardingPageContainer(
                 title: "Practice what needs work",
-                message: "Use Review Practicing to focus on active verses, or Review All when you want to revisit everything together."
+                message: "Use Review Learning to focus on active verses, or Review All when you want to revisit everything together."
             ) {
                 reviewVisual
             }
@@ -91,7 +91,7 @@ struct OnboardingView: View {
                     }
                 }
             }
-            .buttonStyle(OnboardingPrimaryButtonStyle())
+            .buttonStyle(AnchoredPrimaryButtonStyle())
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
@@ -151,9 +151,9 @@ struct OnboardingView: View {
                 VStack(spacing: 12) {
                     HStack(spacing: 12) {
                         reviewModeCard(
-                            title: "Review Practicing",
+                            title: "Review Learning",
                             subtitle: "Focus on verses that still need repetition",
-                            systemImage: "flame.fill",
+                            systemImage: "circle.dashed",
                             tint: AppColors.statusPracticing
                         )
                         reviewModeCard(
@@ -262,12 +262,12 @@ private struct OnboardingPageContainer<Content: View>: View {
 
             VStack(spacing: 14) {
                 Text(title)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(AnchoredFont.editorial(32, weight: .bold))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(AppColors.textPrimary)
 
                 Text(message)
-                    .font(.body)
+                    .font(AnchoredFont.uiBody)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(AppColors.textSecondary)
                     .lineSpacing(3)
@@ -290,11 +290,11 @@ private struct OnboardingShowcaseCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.headline)
+                    .font(AnchoredFont.ui(17, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
 
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(AnchoredFont.uiSubheadline)
                     .foregroundStyle(AppColors.textSecondary)
             }
 
@@ -303,11 +303,6 @@ private struct OnboardingShowcaseCard<Content: View>: View {
         .padding(20)
         .background(AppColors.surface.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.divider.opacity(0.7), lineWidth: 1)
-        }
-        .shadow(color: AppColors.shadow, radius: 18, y: 8)
     }
 }
 
@@ -319,7 +314,7 @@ private struct OnboardingFeatureRow: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: systemImage)
-                .font(.headline)
+                .font(AnchoredFont.ui(17, weight: .semibold))
                 .foregroundStyle(AppColors.structuralAccent)
                 .frame(width: 42, height: 42)
                 .background(AppColors.subtleAccent)
@@ -327,11 +322,11 @@ private struct OnboardingFeatureRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.headline)
+                    .font(AnchoredFont.ui(17, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
 
                 Text(subtitle)
-                    .font(.footnote)
+                    .font(AnchoredFont.uiSubheadline)
                     .foregroundStyle(AppColors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -341,20 +336,6 @@ private struct OnboardingFeatureRow: View {
         .padding(14)
         .background(AppColors.secondarySurface.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-}
-
-private struct OnboardingPrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline)
-            .foregroundStyle(AppColors.primaryButtonText)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(AppColors.primaryButton.opacity(configuration.isPressed ? 0.88 : 1))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .shadow(color: AppColors.shadow.opacity(configuration.isPressed ? 0.12 : 0.28), radius: 14, y: 8)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1)
     }
 }
 

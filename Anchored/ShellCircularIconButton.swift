@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ShellCircularIconLabel: View {
-    static let diameter: CGFloat = 42
+    static let diameter: CGFloat = 40
     static let iconSize: CGFloat = 16
 
     let systemImage: String
@@ -9,7 +9,7 @@ struct ShellCircularIconLabel: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: Self.iconSize, weight: .semibold))
+            .font(AnchoredFont.ui(CGFloat(Self.iconSize), weight: .semibold))
             .foregroundStyle(tint)
             .frame(width: Self.diameter, height: Self.diameter)
     }

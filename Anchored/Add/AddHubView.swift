@@ -74,7 +74,7 @@ struct AddHubView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(20)
+                .padding(AnchoredSpacing.screenHorizontal)
                 .padding(.bottom, 24)
             }
             .background(AppColors.background)
@@ -96,23 +96,16 @@ struct AddHubView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Build your Scripture library")
-                .font(.system(size: 28, weight: .semibold))
+                .font(AnchoredFont.editorial(32))
                 .foregroundStyle(AppColors.textPrimary)
 
             Text("Choose how you want to add verses. Paste references, search the bundled Bible, or import a CSV from Files.")
-                .font(.subheadline)
+                .font(AnchoredFont.uiSubheadline)
                 .foregroundStyle(AppColors.textSecondary)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.elevatedSurface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(AnchoredCardBackground(elevated: true))
     }
 }
 
@@ -138,12 +131,12 @@ private struct AddHubOptionCard: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
                     Text(title)
-                        .font(.headline)
+                        .font(AnchoredFont.ui(17, weight: .semibold))
                         .foregroundStyle(AppColors.textPrimary)
 
                     if isPlaceholder {
                         Text("Soon")
-                            .font(.caption.weight(.semibold))
+                            .font(AnchoredFont.uiCaption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Capsule().fill(AppColors.secondarySurface))
@@ -152,7 +145,7 @@ private struct AddHubOptionCard: View {
                 }
 
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(AnchoredFont.uiSubheadline)
                     .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.leading)
             }
@@ -161,20 +154,13 @@ private struct AddHubOptionCard: View {
 
             if !isPlaceholder {
                 Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
+                    .font(AnchoredFont.uiLabel)
                     .foregroundStyle(AppColors.textSecondary)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(AppColors.surface))
         .opacity(isPlaceholder ? 0.84 : 1)
     }
 }

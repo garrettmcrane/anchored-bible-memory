@@ -1,11 +1,8 @@
-import AVFoundation
-import Combine
-import Speech
 import SwiftUI
 import UIKit
 
 struct VoiceRecitationReviewSessionView: View {
-    @StateObject private var transcriber = VoiceRecitationTranscriber()
+    @StateObject private var speechService = VoiceRecitationSpeechService()
 
     let descriptor: ReviewSessionDescriptor
     let verses: [Verse]
@@ -18,6 +15,14 @@ struct VoiceRecitationReviewSessionView: View {
     @State private var endedEarly = false
     @State private var showingEndEarlyConfirmation = false
     @State private var sessionStartDate = Date()
+    @State private var selectedMode: VoiceRecitationMode?
+    @State private var isModeConfirmed = false
+    @State private var verseGrade: VoiceRecitationGrade?
+    @State private var currentResultRecorded = false
+    @State private var statusText = "Preparing voice review"
+    @State private var supportingText = "Anchored will listen, transcribe, and grade automatically."
+    @State private var handsFreeRetryCount = 0
+    @State private var flowTask: Task<Void, Never>?
 
     init(
         descriptor: ReviewSessionDescriptor,
@@ -35,19 +40,20 @@ struct VoiceRecitationReviewSessionView: View {
         verses[currentIndex]
     }
 
-    private var comparison: VoiceRecitationComparison {
-        VoiceRecitationComparison(spokenText: transcriber.transcript, actualText: currentVerse.text)
+    private var currentMode: VoiceRecitationMode? {
+        isModeConfirmed ? selectedMode : nil
     }
 
     var body: some View {
         NavigationStack {
-            sessionContent
+            content
                 .navigationTitle(descriptor.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar(content: toolbarContent)
                 .confirmationDialog("End session early?", isPresented: $showingEndEarlyConfirmation, titleVisibility: .visible) {
                     Button("End Review") {
-                        transcriber.stopImmediately()
+                        flowTask?.cancel()
+                        speechService.cancelAll()
                         endedEarly = true
                         isSessionComplete = true
                     }
@@ -57,23 +63,23 @@ struct VoiceRecitationReviewSessionView: View {
                     Text("You’ll still see results for the verses you’ve already reviewed.")
                 }
                 .task {
-                    await transcriber.preparePermissionsIfNeeded()
-                }
-                .task(id: currentVerse.id) {
-                    transcriber.prepareForVerse(reference: currentVerse.reference)
+                    await speechService.preparePermissionsIfNeeded()
                 }
                 .onDisappear {
-                    transcriber.stopImmediately()
+                    flowTask?.cancel()
+                    speechService.cancelAll()
                 }
-                .animation(.easeInOut(duration: 0.2), value: currentIndex)
-                .animation(.easeInOut(duration: 0.2), value: isSessionComplete)
+                .animation(.easeInOut(duration: 0.22), value: currentIndex)
+                .animation(.easeInOut(duration: 0.22), value: isSessionComplete)
         }
     }
 
     @ViewBuilder
-    private var sessionContent: some View {
+    private var content: some View {
         if verses.isEmpty {
             emptyState
+        } else if !isModeConfirmed {
+            modeSelectionContent
         } else if isSessionComplete {
             completionContent
         } else {
@@ -107,6 +113,116 @@ struct VoiceRecitationReviewSessionView: View {
         )
     }
 
+    private var modeSelectionContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                modeSelectionHeader
+
+                VStack(spacing: 14) {
+                    ForEach(VoiceRecitationMode.allCases) { mode in
+                        modeCard(for: mode)
+                    }
+                }
+
+                Button("Continue") {
+                    guard selectedMode != nil else {
+                        return
+                    }
+
+                    isModeConfirmed = true
+                    startCurrentVerseFlow()
+                }
+                .buttonStyle(AnchoredPrimaryButtonStyle())
+                .disabled(selectedMode == nil)
+                .opacity(selectedMode == nil ? 0.45 : 1)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 28)
+        }
+        .background(AppColors.background.ignoresSafeArea())
+    }
+
+    private var modeSelectionHeader: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Choose Voice Recitation")
+                .font(AnchoredFont.editorial(34))
+                .foregroundStyle(AppColors.textPrimary)
+
+            Text("Pick the listening style that fits where you are right now. Both modes grade automatically and feed the same review system.")
+                .font(AnchoredFont.uiBody)
+                .foregroundStyle(AppColors.textSecondary)
+        }
+    }
+
+    private func modeCard(for mode: VoiceRecitationMode) -> some View {
+        let isSelected = selectedMode == mode
+
+        return Button {
+            selectedMode = mode
+        } label: {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(isSelected ? AppColors.structuralAccent : AppColors.selectionFill)
+                            .frame(width: 46, height: 46)
+
+                        Image(systemName: mode.systemImage)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(isSelected ? Color.white : AppColors.structuralAccent)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(mode.accentTitle)
+                            .font(AnchoredFont.uiCaption)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .textCase(.uppercase)
+
+                        Text(mode.title)
+                            .font(AnchoredFont.ui(20, weight: .semibold))
+                            .foregroundStyle(AppColors.textPrimary)
+
+                        Text(mode.subtitle)
+                            .font(AnchoredFont.uiSubheadline)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 12)
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(isSelected ? AppColors.structuralAccent : AppColors.textSecondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(mode.detailPoints, id: \.self) { point in
+                        HStack(spacing: 10) {
+                            Image(systemName: "sparkle")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(AppColors.scriptureAccent)
+
+                            Text(point)
+                                .font(AnchoredFont.uiSubheadline)
+                                .foregroundStyle(AppColors.textSecondary)
+                                .multilineTextAlignment(.leading)
+                        }
+                    }
+                }
+            }
+            .padding(22)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(isSelected ? AppColors.elevatedSurface : AppColors.surface)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(isSelected ? AppColors.structuralAccent.opacity(0.34) : AppColors.textPrimary.opacity(0.06), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
     private var reviewContent: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -117,135 +233,205 @@ struct VoiceRecitationReviewSessionView: View {
                     reference: currentVerse.reference
                 )
 
-                VStack(spacing: 18) {
-                    referenceHeader
+                currentModeHero
+                transcriptCard
 
-                    if transcriber.showsTranscriptCard {
-                        transcriptCard
-                    }
-
-                    if transcriber.hasComparisonReady {
-                        comparisonCard
-                        resultButtons
-                    } else if case .denied = transcriber.permissionState {
-                        permissionCard
-                    } else {
-                        recordControls
-                    }
+                if let grade = verseGrade {
+                    gradingCard(for: grade)
+                    comparisonCard(for: grade)
+                } else {
+                    listeningGuidanceCard
                 }
-                .id(currentVerse.id)
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
+
+                if case .failed(let failure) = speechService.phase {
+                    errorCard(for: failure)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 24)
         }
+        .safeAreaInset(edge: .bottom) {
+            if let grade = verseGrade {
+                bottomActionBar(for: grade)
+            } else if speechService.isListening {
+                listeningFallbackBar
+            }
+        }
+        .background(AppColors.background.ignoresSafeArea())
     }
 
-    private var referenceHeader: some View {
-        VStack(spacing: 14) {
-            Text(currentVerse.reference)
-                .font(.system(size: 34, weight: .semibold, design: .serif))
-                .multilineTextAlignment(.center)
+    private var currentModeHero: some View {
+        AnchoredCard(elevated: true, cornerRadius: 28, padding: 24) {
+            VStack(alignment: .center, spacing: 18) {
+                Text(currentVerse.reference)
+                    .font(AnchoredFont.editorial(36))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(AppColors.scriptureAccent)
 
-            Button {
-                transcriber.speakReference(currentVerse.reference)
-            } label: {
-                Label("Hear Reference", systemImage: "speaker.wave.2.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(height: 44)
-                    .padding(.horizontal, 16)
+                statusBadge
+
+                VStack(spacing: 6) {
+                    Text(statusText)
+                        .font(AnchoredFont.ui(20, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    Text(supportingText)
+                        .font(AnchoredFont.uiSubheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                if currentMode == .standard, verseGrade == nil {
+                    Button {
+                        flowTask?.cancel()
+                        flowTask = Task {
+                            await speechService.speakReference(currentVerse.reference)
+                            updateStatusForCurrentState()
+                        }
+                    } label: {
+                        Label("Hear Reference", systemImage: "speaker.wave.2.fill")
+                            .frame(height: 44)
+                            .padding(.horizontal, 16)
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(speechService.isProcessing || speechService.isListening)
+                }
             }
-            .buttonStyle(.bordered)
-            .disabled(transcriber.isRecording || transcriber.isProcessing)
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+    }
+
+    private var statusBadge: some View {
+        HStack(spacing: 10) {
+            Image(systemName: stateIconName)
+                .font(.system(size: 13, weight: .semibold))
+
+            Text(stateBadgeText)
+                .font(AnchoredFont.uiCaption)
+                .textCase(.uppercase)
+
+            if speechService.isListening {
+                Capsule(style: .continuous)
+                    .fill(AppColors.scriptureAccent)
+                    .frame(width: max(18, CGFloat(18 + speechService.liveLevel * 34)), height: 8)
+                    .animation(.easeInOut(duration: 0.16), value: speechService.liveLevel)
+            }
+        }
+        .foregroundStyle(stateTintColor)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            Capsule(style: .continuous)
+                .fill(stateTintColor.opacity(0.12))
+        )
     }
 
     private var transcriptCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(transcriber.stateTitle)
+        AnchoredCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Transcript")
+                        .font(.headline)
+
+                    Spacer()
+
+                    if speechService.isListening {
+                        Text("Live")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppColors.scriptureAccent)
+                    }
+                }
+
+                if verseGrade != nil {
+                    Text(transcriptContent)
+                        .font(AnchoredFont.uiBody)
+                        .foregroundStyle(speechService.transcript.isEmpty ? AppColors.textSecondary : AppColors.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: 96, alignment: .topLeading)
+                        .textSelection(.enabled)
+                } else {
+                    Text(transcriptContent)
+                        .font(AnchoredFont.uiBody)
+                        .foregroundStyle(speechService.transcript.isEmpty ? AppColors.textSecondary : AppColors.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: 96, alignment: .topLeading)
+                }
+            }
+        }
+    }
+
+    private var listeningGuidanceCard: some View {
+        AnchoredCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("How It Works")
                     .font(.headline)
 
-                Spacer()
-
-                if transcriber.isRecording {
-                    Text("Live")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppColors.gold)
-                }
-            }
-
-            if let message = transcriber.stateMessage {
-                Text(message)
-                    .font(.subheadline)
+                Text(currentMode == .handsFree
+                     ? "Anchored speaks the reference, listens for your recitation, detects the stop automatically, then grades and stores the result before moving on."
+                     : "Anchored begins listening automatically, stops when your speech trails off, then shows a graded comparison before you move to the next verse.")
+                    .font(AnchoredFont.uiBody)
                     .foregroundStyle(AppColors.textSecondary)
             }
-
-            transcriptText
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(cardBackground)
-    }
-
-    @ViewBuilder
-    private var transcriptText: some View {
-        if transcriber.transcript.isEmpty {
-            Text(transcriber.transcriptPlaceholder)
-                .font(.body)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: 92, alignment: .topLeading)
-        } else {
-            Text(transcriber.transcriptPlaceholder)
-                .font(.body)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: 92, alignment: .topLeading)
-                .textSelection(.enabled)
         }
     }
 
-    private var permissionCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Permissions Required")
-                .font(.headline)
+    private func gradingCard(for grade: VoiceRecitationGrade) -> some View {
+        AnchoredCard(elevated: true) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(grade.summaryTitle)
+                            .font(AnchoredFont.ui(22, weight: .semibold))
+                            .foregroundStyle(grade.tintColor)
 
-            Text("Microphone and speech recognition access are both required.")
-                .font(.subheadline)
-                .foregroundStyle(AppColors.textSecondary)
-
-            HStack(spacing: 12) {
-                Button("Try Again") {
-                    Task {
-                        await transcriber.preparePermissions(forceRefresh: true)
-                    }
-                }
-                .buttonStyle(.bordered)
-
-                Button("Open Settings") {
-                    guard let url = URL(string: UIApplication.openSettingsURLString) else {
-                        return
+                        Text(grade.summaryDetail)
+                            .font(AnchoredFont.uiSubheadline)
+                            .foregroundStyle(AppColors.textSecondary)
                     }
 
-                    UIApplication.shared.open(url)
+                    Spacer()
+
+                    Text("\(grade.accuracyPercent)%")
+                        .font(AnchoredFont.ui(28, weight: .bold))
+                        .foregroundStyle(grade.tintColor)
                 }
-                .buttonStyle(.bordered)
+
+                HStack(spacing: 12) {
+                    metricPill(title: "Matched", value: "\(grade.matchedWordCount)")
+                    metricPill(title: "Mismatches", value: "\(grade.mismatchCount)")
+                    metricPill(title: "Result", value: grade.isPassing ? "Correct" : "Miss")
+                }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(cardBackground)
     }
 
-    private var comparisonCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            comparisonSection(title: "Transcript", content: comparison.spokenAttributedText)
-            comparisonSection(title: "Verse", content: comparison.actualAttributedText)
+    private func metricPill(title: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(AnchoredFont.ui(17, weight: .semibold))
+                .foregroundStyle(AppColors.textPrimary)
+
+            Text(title)
+                .font(AnchoredFont.uiCaption)
+                .foregroundStyle(AppColors.textSecondary)
+                .textCase(.uppercase)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(cardBackground)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColors.surface)
+        )
+    }
+
+    private func comparisonCard(for grade: VoiceRecitationGrade) -> some View {
+        AnchoredCard {
+            VStack(alignment: .leading, spacing: 18) {
+                comparisonSection(title: "Verse", content: grade.targetAttributedText)
+                comparisonSection(title: "Your Recitation", content: grade.transcriptAttributedText)
+            }
+        }
     }
 
     private func comparisonSection(title: String, content: AttributedString) -> some View {
@@ -255,119 +441,256 @@ struct VoiceRecitationReviewSessionView: View {
                 .foregroundStyle(AppColors.textSecondary)
                 .textCase(.uppercase)
 
-            Text(content.characters.isEmpty ? AttributedString(" ") : content)
-                .font(.body)
+            Text(content)
+                .font(AnchoredFont.scripture(24))
+                .lineSpacing(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
         }
     }
 
-    private var recordControls: some View {
-        VStack(spacing: 12) {
-            Button {
-                switch transcriber.captureState {
-                case .ready, .failed, .noSpeechDetected, .completed:
-                    Task {
-                        await transcriber.startTranscribing()
+    private func errorCard(for failure: VoiceRecitationSpeechService.VoiceRecitationSpeechFailure) -> some View {
+        AnchoredCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Recovery")
+                    .font(.headline)
+
+                Text(failure.errorDescription ?? "Voice Recitation needs attention before continuing.")
+                    .font(AnchoredFont.uiBody)
+                    .foregroundStyle(AppColors.textSecondary)
+
+                if failure == .permissionsDenied {
+                    HStack(spacing: 12) {
+                        Button("Try Again") {
+                            flowTask?.cancel()
+                            flowTask = Task {
+                                await speechService.preparePermissions(forceRefresh: true)
+                                if speechService.permissionState == .ready {
+                                    startCurrentVerseFlow()
+                                } else {
+                                    updateStatusForCurrentState()
+                                }
+                            }
+                        }
+                        .buttonStyle(.glass)
+
+                        Button("Open Settings") {
+                            guard let url = URL(string: UIApplication.openSettingsURLString) else {
+                                return
+                            }
+
+                            UIApplication.shared.open(url)
+                        }
+                        .buttonStyle(.glass)
                     }
-                case .recording:
-                    transcriber.finishCurrentCapture()
-                case .requestingPermissions, .processing:
-                    break
-                }
-            } label: {
-                Label(primaryButtonTitle, systemImage: primaryButtonSystemImage)
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(primaryButtonTint)
-            .disabled(transcriber.isPrimaryButtonDisabled)
+                } else {
+                    HStack(spacing: 12) {
+                        Button("Retry Verse") {
+                            startCurrentVerseFlow()
+                        }
+                        .buttonStyle(.glass)
 
-            if transcriber.canRetryCurrentVerse {
-                Button("Retry Verse") {
-                    transcriber.retryCurrentVerse(reference: currentVerse.reference)
+                        if currentMode == .handsFree {
+                            Button("Skip Verse") {
+                                moveToNextVerseOrFinish()
+                            }
+                            .buttonStyle(.glass)
+                        }
+                    }
                 }
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .buttonStyle(.bordered)
             }
         }
     }
 
-    private var resultButtons: some View {
-        VStack(spacing: 12) {
-            Button("Correct") {
-                recordReview(result: .correct)
+    private func bottomActionBar(for grade: VoiceRecitationGrade) -> some View {
+        AnchoredBottomActionDock {
+            VStack(spacing: 10) {
+                if currentMode == .standard {
+                    Button("Next Verse") {
+                        moveToNextVerseOrFinish()
+                    }
+                    .modifier(VoiceRecitationNextButtonStyleModifier(isPassing: grade.isPassing))
+                } else {
+                    Text("Saved automatically. Moving to the next verse…")
+                        .font(AnchoredFont.uiSubheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
             }
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(AppColors.gold)
-            .foregroundStyle(AppColors.textPrimary)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-            Button("Incorrect") {
-                recordReview(result: .missed)
-            }
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(AppColors.gold)
-            .foregroundStyle(AppColors.textPrimary)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-            Button("Retry Verse") {
-                transcriber.retryCurrentVerse(reference: currentVerse.reference)
-            }
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .buttonStyle(.bordered)
         }
+        .background(.ultraThinMaterial)
     }
 
-    private var primaryButtonTitle: String {
-        switch transcriber.captureState {
-        case .ready, .failed, .noSpeechDetected, .completed:
-            return "Start Recording"
-        case .recording:
-            return "Stop Recording"
-        case .requestingPermissions:
-            return "Requesting Access"
+    private var listeningFallbackBar: some View {
+        AnchoredBottomActionDock {
+            Button("Finish Listening") {
+                speechService.stopListeningEarly()
+            }
+            .buttonStyle(AnchoredSecondaryButtonStyle())
+        }
+        .background(.ultraThinMaterial)
+    }
+
+    private var transcriptContent: String {
+        if speechService.transcript.isEmpty {
+            switch speechService.phase {
+            case .speakingReference:
+                return "Speaking the reference aloud…"
+            case .listening:
+                return "Listening for your recitation…"
+            case .processing:
+                return "Finishing the transcript and grading…"
+            case .failed(let failure):
+                return failure.errorDescription ?? "Unable to capture a usable transcript."
+            case .idle:
+                return verseGrade == nil ? "Your words will appear here automatically." : "No transcript captured."
+            }
+        }
+
+        return speechService.transcript
+    }
+
+    private var stateBadgeText: String {
+        if let currentMode, currentMode == .handsFree, verseGrade != nil {
+            return "Auto-Advancing"
+        }
+
+        switch speechService.phase {
+        case .speakingReference:
+            return "Speaking"
+        case .listening:
+            return "Listening"
         case .processing:
-            return "Processing"
+            return "Grading"
+        case .failed:
+            return "Attention Needed"
+        case .idle:
+            return verseGrade == nil ? "Ready" : "Graded"
         }
     }
 
-    private var primaryButtonSystemImage: String {
-        switch transcriber.captureState {
-        case .ready, .failed, .noSpeechDetected, .completed:
-            return "mic.fill"
-        case .recording:
-            return "stop.circle.fill"
-        case .requestingPermissions, .processing:
-            return "ellipsis.circle"
+    private var stateIconName: String {
+        switch speechService.phase {
+        case .speakingReference:
+            return "speaker.wave.2.fill"
+        case .listening:
+            return "waveform"
+        case .processing:
+            return "ellipsis.circle.fill"
+        case .failed:
+            return "exclamationmark.triangle.fill"
+        case .idle:
+            return verseGrade == nil ? "circle.badge.checkmark" : "checkmark.circle.fill"
         }
     }
 
-    private var primaryButtonTint: Color {
-        switch transcriber.captureState {
-        case .recording:
-            return AppColors.gold
-        default:
+    private var stateTintColor: Color {
+        if let grade = verseGrade {
+            return grade.tintColor
+        }
+
+        switch speechService.phase {
+        case .failed:
+            return AppColors.weakness
+        case .speakingReference:
+            return AppColors.warning
+        case .processing:
+            return AppColors.structuralAccent
+        case .listening:
+            return AppColors.scriptureAccent
+        case .idle:
             return AppColors.structuralAccent
         }
     }
 
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(AppColors.surface)
+    private func startCurrentVerseFlow() {
+        guard isModeConfirmed, !isSessionComplete else {
+            return
+        }
+
+        flowTask?.cancel()
+        speechService.cancelAll()
+        verseGrade = nil
+        currentResultRecorded = false
+        statusText = currentMode == .handsFree ? "Preparing the next prompt" : "Get ready to recite"
+        supportingText = currentMode == .handsFree
+            ? "Anchored will announce the reference, listen, and move on automatically."
+            : "Anchored will begin listening automatically in a moment."
+
+        flowTask = Task {
+            guard let currentMode else {
+                return
+            }
+
+            if currentMode == .handsFree {
+                await MainActor.run {
+                    statusText = "Speaking the reference"
+                    supportingText = "Listen for the prompt, then begin reciting."
+                }
+                await speechService.speakReference(currentVerse.reference)
+            }
+
+            await MainActor.run {
+                statusText = "Listening"
+                supportingText = currentMode == .handsFree
+                    ? "Recite the verse. Anchored will stop automatically when you finish."
+                    : "Begin speaking whenever you’re ready. Anchored will detect the stop automatically."
+            }
+
+            let captureResult = await speechService.captureVerse()
+            guard !Task.isCancelled else {
+                return
+            }
+
+            await handleCaptureResult(captureResult, mode: currentMode)
+        }
     }
 
-    private func recordReview(result: ReviewResult) {
+    private func handleCaptureResult(
+        _ captureResult: Result<VoiceRecitationSpeechService.CaptureResult, VoiceRecitationSpeechService.VoiceRecitationSpeechFailure>,
+        mode: VoiceRecitationMode
+    ) async {
+        switch captureResult {
+        case .success(let result):
+            let grade = VoiceRecitationGrader.grade(transcript: result.transcript, targetText: currentVerse.text)
+            verseGrade = grade
+            recordReviewIfNeeded(result: grade.reviewResult)
+            statusText = grade.summaryTitle
+            supportingText = mode == .handsFree
+                ? "Result stored. Anchored will continue automatically."
+                : "Review the highlighted differences, then continue when you’re ready."
+            handsFreeRetryCount = 0
+
+            if mode == .handsFree {
+                try? await Task.sleep(for: .seconds(1.35))
+                guard !Task.isCancelled else {
+                    return
+                }
+                moveToNextVerseOrFinish()
+            }
+        case .failure(let failure):
+            if mode == .handsFree, handsFreeRetryCount == 0, failure != .permissionsDenied {
+                handsFreeRetryCount = 1
+                statusText = "Let’s try that again"
+                supportingText = "Anchored did not get a usable take, so it is restarting this verse once."
+                try? await Task.sleep(for: .seconds(1.1))
+                guard !Task.isCancelled else {
+                    return
+                }
+                startCurrentVerseFlow()
+                return
+            }
+
+            statusText = failure == .permissionsDenied ? "Permissions needed" : "Voice capture needs attention"
+            supportingText = failure.errorDescription ?? "Try the verse again."
+        }
+    }
+
+    private func recordReviewIfNeeded(result: ReviewResult) {
+        guard !currentResultRecorded else {
+            return
+        }
+
         let updatedVerse: Verse
 
         if let groupID {
@@ -388,18 +711,49 @@ struct VoiceRecitationReviewSessionView: View {
 
         onUpdate(updatedVerse)
         summary.record(result, reference: currentVerse.reference)
-        moveToNextVerseOrFinish()
+        currentResultRecorded = true
     }
 
     private func moveToNextVerseOrFinish() {
-        transcriber.stopImmediately()
+        flowTask?.cancel()
+        speechService.cancelAll()
+        verseGrade = nil
+        currentResultRecorded = false
+        handsFreeRetryCount = 0
 
         if currentIndex + 1 < verses.count {
             withAnimation(.easeInOut(duration: 0.22)) {
                 currentIndex += 1
             }
+            startCurrentVerseFlow()
         } else {
             isSessionComplete = true
+        }
+    }
+
+    private func updateStatusForCurrentState() {
+        if let grade = verseGrade {
+            statusText = grade.summaryTitle
+            supportingText = grade.summaryDetail
+            return
+        }
+
+        switch speechService.phase {
+        case .idle:
+            statusText = currentMode == .handsFree ? "Preparing the next prompt" : "Get ready to recite"
+            supportingText = "Anchored will begin listening automatically."
+        case .speakingReference:
+            statusText = "Speaking the reference"
+            supportingText = "Listen for the prompt, then begin reciting."
+        case .listening:
+            statusText = "Listening"
+            supportingText = "Speak naturally. Anchored will stop automatically when you finish."
+        case .processing:
+            statusText = "Grading your recitation"
+            supportingText = "Comparing your words against the verse."
+        case .failed(let failure):
+            statusText = failure == .permissionsDenied ? "Permissions needed" : "Voice capture needs attention"
+            supportingText = failure.errorDescription ?? "Try the verse again."
         }
     }
 
@@ -408,18 +762,24 @@ struct VoiceRecitationReviewSessionView: View {
     }
 
     private func resetSession() {
-        transcriber.stopImmediately()
+        flowTask?.cancel()
+        speechService.cancelAll()
         currentIndex = 0
         summary = ReviewSessionSummary()
         isSessionComplete = false
         endedEarly = false
         sessionStartDate = Date()
-        transcriber.prepareForVerse(reference: verses.first?.reference ?? "")
+        verseGrade = nil
+        currentResultRecorded = false
+        handsFreeRetryCount = 0
+        if isModeConfirmed {
+            startCurrentVerseFlow()
+        }
     }
 
     @ToolbarContentBuilder
     private func toolbarContent() -> some ToolbarContent {
-        if !isSessionComplete {
+        if isModeConfirmed, !isSessionComplete {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("End") {
                     showingEndEarlyConfirmation = true
@@ -429,542 +789,16 @@ struct VoiceRecitationReviewSessionView: View {
     }
 }
 
-@MainActor
-final class VoiceRecitationTranscriber: NSObject, ObservableObject {
-    enum PermissionState: Equatable {
-        case unknown
-        case requesting
-        case denied
-        case ready
-    }
+private struct VoiceRecitationNextButtonStyleModifier: ViewModifier {
+    let isPassing: Bool
 
-    enum CaptureState: Equatable {
-        case ready
-        case requestingPermissions
-        case recording
-        case processing
-        case completed
-        case failed(String)
-        case noSpeechDetected
-    }
-
-    @Published private(set) var permissionState: PermissionState = .unknown
-    @Published private(set) var captureState: CaptureState = .requestingPermissions
-    @Published private(set) var transcript = ""
-
-    var isRecording: Bool {
-        captureState == .recording
-    }
-
-    var isProcessing: Bool {
-        captureState == .processing
-    }
-
-    var hasComparisonReady: Bool {
-        captureState == .completed
-    }
-
-    var showsTranscriptCard: Bool {
-        switch captureState {
-        case .recording, .processing, .completed, .failed, .noSpeechDetected:
-            return true
-        case .ready, .requestingPermissions:
-            return false
-        }
-    }
-
-    var transcriptPlaceholder: String {
-        transcript.isEmpty ? transcriptPlaceholderText : transcript
-    }
-
-    var transcriptPlaceholderText: String {
-        switch captureState {
-        case .recording:
-            return "Listening…"
-        case .processing:
-            return transcript.isEmpty ? "Finishing capture…" : transcript
-        case .failed:
-            return "No usable transcript."
-        case .noSpeechDetected:
-            return "No speech detected."
-        case .completed:
-            return transcript
-        case .ready, .requestingPermissions:
-            return ""
-        }
-    }
-
-    var stateTitle: String {
-        switch captureState {
-        case .ready:
-            return "Ready"
-        case .requestingPermissions:
-            return "Requesting Permissions"
-        case .recording:
-            return "Recording"
-        case .processing:
-            return "Processing"
-        case .completed:
-            return "Completed"
-        case .failed:
-            return "Transcription Failed"
-        case .noSpeechDetected:
-            return "No Speech Detected"
-        }
-    }
-
-    var stateMessage: String? {
-        switch captureState {
-        case .ready:
-            return nil
-        case .requestingPermissions:
-            return "Waiting for microphone and speech access."
-        case .recording:
-            return nil
-        case .processing:
-            return "Finalizing your transcript."
-        case .completed:
-            return nil
-        case .failed(let message):
-            return message
-        case .noSpeechDetected:
-            return "Try again and start speaking after recording begins."
-        }
-    }
-
-    var canRetryCurrentVerse: Bool {
-        switch captureState {
-        case .completed, .failed, .noSpeechDetected:
-            return true
-        case .ready, .requestingPermissions, .recording, .processing:
-            return false
-        }
-    }
-
-    var isPrimaryButtonDisabled: Bool {
-        switch captureState {
-        case .requestingPermissions, .processing:
-            return true
-        default:
-            return false
-        }
-    }
-
-    private let audioEngine = AVAudioEngine()
-    private let speechSynthesizer = AVSpeechSynthesizer()
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale.autoupdatingCurrent)
-
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var recognitionTask: SFSpeechRecognitionTask?
-    private var silenceTask: Task<Void, Never>?
-    private var processingTimeoutTask: Task<Void, Never>?
-    private var isFinishingCapture = false
-    private var shouldIgnoreRecognizerErrors = false
-    private var hasReceivedRecognitionResult = false
-
-    override init() {
-        super.init()
-        speechSynthesizer.usesApplicationAudioSession = true
-    }
-
-    func preparePermissionsIfNeeded() async {
-        guard permissionState == .unknown else {
-            if permissionState == .ready, captureState == .requestingPermissions {
-                captureState = .ready
-            }
-            return
-        }
-
-        await preparePermissions(forceRefresh: false)
-    }
-
-    func preparePermissions(forceRefresh: Bool) async {
-        guard forceRefresh || permissionState != .ready else {
-            captureState = .ready
-            return
-        }
-
-        permissionState = .requesting
-        captureState = .requestingPermissions
-
-        let speechAuthorized = await requestSpeechAuthorization()
-        let microphoneAuthorized = await requestMicrophoneAuthorization()
-
-        permissionState = speechAuthorized && microphoneAuthorized ? .ready : .denied
-        captureState = permissionState == .ready ? .ready : .failed("Voice Recitation needs microphone and speech recognition access.")
-    }
-
-    func prepareForVerse(reference: String) {
-        stopImmediately()
-        transcript = ""
-        hasReceivedRecognitionResult = false
-
-        captureState = permissionState == .ready ? .ready : .requestingPermissions
-
-        guard !reference.isEmpty else {
-            return
-        }
-
-        speakReference(reference)
-    }
-
-    func retryCurrentVerse(reference: String) {
-        prepareForVerse(reference: reference)
-    }
-
-    func speakReference(_ reference: String) {
-        guard !reference.isEmpty else {
-            return
-        }
-
-        stopSpeaking()
-        configureReferencePlayback()
-
-        let utterance = AVSpeechUtterance(string: reference)
-        utterance.rate = 0.48
-        utterance.voice = AVSpeechSynthesisVoice(language: Locale.autoupdatingCurrent.identifier)
-        speechSynthesizer.speak(utterance)
-    }
-
-    func startTranscribing() async {
-        await preparePermissionsIfNeeded()
-
-        guard permissionState == .ready else {
-            return
-        }
-
-        guard let speechRecognizer, speechRecognizer.isAvailable else {
-            captureState = .failed("Speech recognition is not available right now.")
-            return
-        }
-
-        stopSpeaking()
-        stopImmediately()
-
-        transcript = ""
-        hasReceivedRecognitionResult = false
-        shouldIgnoreRecognizerErrors = false
-        isFinishingCapture = false
-
-        do {
-            try startAudioSession()
-            try startRecognition(with: speechRecognizer)
-            captureState = .recording
-            scheduleSilenceTimeout(after: 5)
-        } catch {
-            stopImmediately()
-            captureState = .failed("Unable to start recording. Try the verse again.")
-        }
-    }
-
-    func finishCurrentCapture() {
-        guard captureState == .recording else {
-            return
-        }
-
-        finishCapture(userInitiated: true)
-    }
-
-    func stopImmediately() {
-        cancelTimers()
-        stopAudioEngine()
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        recognitionRequest = nil
-        recognitionTask = nil
-        isFinishingCapture = false
-        shouldIgnoreRecognizerErrors = false
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-    }
-
-    private func startAudioSession() throws {
-        let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.record, mode: .measurement, options: [.duckOthers])
-        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-    }
-
-    private func configureReferencePlayback() {
-        let audioSession = AVAudioSession.sharedInstance()
-
-        do {
-            try audioSession.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers])
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            // If speaker routing fails, fall back to the system-managed route.
-        }
-    }
-
-    private func startRecognition(with speechRecognizer: SFSpeechRecognizer) throws {
-        let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        recognitionRequest.shouldReportPartialResults = true
-        recognitionRequest.requiresOnDeviceRecognition = false
-        self.recognitionRequest = recognitionRequest
-
-        let inputNode = audioEngine.inputNode
-        inputNode.removeTap(onBus: 0)
-
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
-        }
-
-        audioEngine.prepare()
-        try audioEngine.start()
-
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            Task { @MainActor in
-                self?.handleRecognition(result: result, error: error)
-            }
-        }
-    }
-
-    private func handleRecognition(result: SFSpeechRecognitionResult?, error: Error?) {
-        if let result {
-            let newTranscript = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !newTranscript.isEmpty {
-                transcript = newTranscript
-                hasReceivedRecognitionResult = true
-            }
-
-            if captureState == .recording {
-                scheduleSilenceTimeout(after: transcript.isEmpty ? 5 : 1.6)
-            }
-
-            if result.isFinal {
-                finalizeCapture(successFromRecognizer: true)
-                return
-            }
-        }
-
-        guard let error else {
-            return
-        }
-
-        if shouldIgnoreRecognizerErrors, !transcript.isEmpty {
-            finalizeCapture(successFromRecognizer: false)
-            return
-        }
-
-        if isBenignStopError(error), !transcript.isEmpty {
-            finalizeCapture(successFromRecognizer: false)
-            return
-        }
-
-        if isFinishingCapture, !transcript.isEmpty {
-            finalizeCapture(successFromRecognizer: false)
-            return
-        }
-
-        stopImmediately()
-        captureState = transcript.isEmpty ? .failed("Transcription failed. Try again.") : .completed
-    }
-
-    private func finishCapture(userInitiated: Bool) {
-        guard !isFinishingCapture else {
-            return
-        }
-
-        isFinishingCapture = true
-        shouldIgnoreRecognizerErrors = userInitiated
-        cancelTimers()
-        stopAudioEngine()
-        recognitionRequest?.endAudio()
-
-        if !transcript.isEmpty || hasReceivedRecognitionResult {
-            captureState = .processing
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isPassing {
+            content.buttonStyle(AnchoredSuccessButtonStyle())
         } else {
-            captureState = .processing
+            content.buttonStyle(AnchoredMissedButtonStyle())
         }
-
-        processingTimeoutTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(900))
-            guard !Task.isCancelled else {
-                return
-            }
-
-            self?.finalizeCapture(successFromRecognizer: false)
-        }
-    }
-
-    private func finalizeCapture(successFromRecognizer: Bool) {
-        processingTimeoutTask?.cancel()
-        processingTimeoutTask = nil
-
-        stopAudioEngine()
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        recognitionRequest = nil
-        isFinishingCapture = false
-        shouldIgnoreRecognizerErrors = false
-
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-
-        if !transcript.isEmpty {
-            captureState = .completed
-        } else if successFromRecognizer {
-            captureState = .noSpeechDetected
-        } else if hasReceivedRecognitionResult {
-            captureState = .completed
-        } else {
-            captureState = .noSpeechDetected
-        }
-    }
-
-    private func stopAudioEngine() {
-        silenceTask?.cancel()
-        silenceTask = nil
-
-        if audioEngine.isRunning {
-            audioEngine.stop()
-        }
-
-        audioEngine.inputNode.removeTap(onBus: 0)
-    }
-
-    private func cancelTimers() {
-        silenceTask?.cancel()
-        silenceTask = nil
-        processingTimeoutTask?.cancel()
-        processingTimeoutTask = nil
-    }
-
-    private func stopSpeaking() {
-        if speechSynthesizer.isSpeaking {
-            speechSynthesizer.stopSpeaking(at: .immediate)
-        }
-    }
-
-    private func scheduleSilenceTimeout(after seconds: Double) {
-        silenceTask?.cancel()
-        silenceTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(seconds))
-            guard !Task.isCancelled else {
-                return
-            }
-
-            self?.finishCapture(userInitiated: false)
-        }
-    }
-
-    private func isBenignStopError(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        return nsError.domain == "kAFAssistantErrorDomain" || nsError.code == 301
-    }
-
-    private func requestSpeechAuthorization() async -> Bool {
-        await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                continuation.resume(returning: status == .authorized)
-            }
-        }
-    }
-
-    private func requestMicrophoneAuthorization() async -> Bool {
-        await AVAudioApplication.requestRecordPermission()
-    }
-}
-
-private struct VoiceRecitationComparison {
-    let spokenAttributedText: AttributedString
-    let actualAttributedText: AttributedString
-
-    init(spokenText: String, actualText: String) {
-        let spokenTokens = Self.tokens(from: spokenText)
-        let actualTokens = Self.tokens(from: actualText)
-        let matchedPairs = Self.longestCommonSubsequence(spokenTokens: spokenTokens, actualTokens: actualTokens)
-        let spokenMatches = Set(matchedPairs.map(\.spokenIndex))
-        let actualMatches = Set(matchedPairs.map(\.actualIndex))
-
-        spokenAttributedText = Self.attributedText(for: spokenTokens, matchedIndexes: spokenMatches, mismatchColor: AppColors.gold)
-        actualAttributedText = Self.attributedText(for: actualTokens, matchedIndexes: actualMatches, mismatchColor: AppColors.gold)
-    }
-
-    private struct Token {
-        let raw: String
-        let normalized: String
-    }
-
-    private struct MatchPair {
-        let spokenIndex: Int
-        let actualIndex: Int
-    }
-
-    private static func tokens(from text: String) -> [Token] {
-        text
-            .split(whereSeparator: \.isWhitespace)
-            .map { rawToken in
-                let raw = String(rawToken)
-                let normalized = raw
-                    .lowercased()
-                    .filter { $0.isLetter || $0.isNumber }
-
-                return Token(raw: raw, normalized: normalized)
-            }
-    }
-
-    private static func longestCommonSubsequence(spokenTokens: [Token], actualTokens: [Token]) -> [MatchPair] {
-        guard !spokenTokens.isEmpty, !actualTokens.isEmpty else {
-            return []
-        }
-
-        var table = Array(
-            repeating: Array(repeating: 0, count: actualTokens.count + 1),
-            count: spokenTokens.count + 1
-        )
-
-        for spokenIndex in 0..<spokenTokens.count {
-            for actualIndex in 0..<actualTokens.count {
-                if spokenTokens[spokenIndex].normalized == actualTokens[actualIndex].normalized,
-                   !spokenTokens[spokenIndex].normalized.isEmpty {
-                    table[spokenIndex + 1][actualIndex + 1] = table[spokenIndex][actualIndex] + 1
-                } else {
-                    table[spokenIndex + 1][actualIndex + 1] = max(
-                        table[spokenIndex][actualIndex + 1],
-                        table[spokenIndex + 1][actualIndex]
-                    )
-                }
-            }
-        }
-
-        var matches: [MatchPair] = []
-        var spokenIndex = spokenTokens.count
-        var actualIndex = actualTokens.count
-
-        while spokenIndex > 0, actualIndex > 0 {
-            if spokenTokens[spokenIndex - 1].normalized == actualTokens[actualIndex - 1].normalized,
-               !spokenTokens[spokenIndex - 1].normalized.isEmpty {
-                matches.append(MatchPair(spokenIndex: spokenIndex - 1, actualIndex: actualIndex - 1))
-                spokenIndex -= 1
-                actualIndex -= 1
-            } else if table[spokenIndex - 1][actualIndex] >= table[spokenIndex][actualIndex - 1] {
-                spokenIndex -= 1
-            } else {
-                actualIndex -= 1
-            }
-        }
-
-        return matches.reversed()
-    }
-
-    private static func attributedText(for tokens: [Token], matchedIndexes: Set<Int>, mismatchColor: Color) -> AttributedString {
-        var attributedText = AttributedString()
-
-        for (index, token) in tokens.enumerated() {
-            var tokenText = AttributedString(token.raw)
-
-            if !matchedIndexes.contains(index) {
-                tokenText.foregroundColor = mismatchColor
-                tokenText.backgroundColor = mismatchColor.opacity(0.12)
-            }
-
-            attributedText.append(tokenText)
-
-            if index < tokens.count - 1 {
-                attributedText.append(AttributedString(" "))
-            }
-        }
-
-        return attributedText
     }
 }
 

@@ -133,7 +133,6 @@ struct GroupDetailView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
             bottomReviewBar
@@ -326,25 +325,20 @@ struct GroupDetailView: View {
 
     private var assignedPassagesSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center) {
+            HStack(alignment: .top, spacing: 10) {
                 GroupSectionHeader(
                     title: "Assigned Passages",
                     subtitle: assignedPassages.isEmpty ? "Nothing is assigned yet." : "\(assignedPassages.count) passage\(assignedPassages.count == 1 ? "" : "s") ready for the group"
                 )
 
-                Spacer(minLength: 12)
+                Spacer(minLength: 8)
 
                 Button {
                     isShowingAssignSheet = true
                 } label: {
                     Text("Assign")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppColors.textPrimary)
-                        .padding(.horizontal, 14)
-                        .frame(height: 38)
                 }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .capsule)
+                .buttonStyle(AnchoredCompactPrimaryButtonStyle())
             }
 
             if assignedPassages.isEmpty {
@@ -357,23 +351,21 @@ struct GroupDetailView: View {
                         Button("Assign from Library") {
                             isShowingAssignSheet = true
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColors.primaryButton)
+                        .buttonStyle(AnchoredPrimaryButtonStyle())
 
                         Button("Add New Verse") {
                             isShowingAddVerseSheet = true
                         }
-                        .buttonStyle(.bordered)
-                        .tint(AppColors.structuralAccent)
+                        .buttonStyle(AnchoredSecondaryButtonStyle())
                     }
                 }
                 .padding(18)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(cardBackground)
             } else {
-                VStack(spacing: 12) {
-                    ForEach(assignedPassages) { passage in
-                        assignedPassageCard(for: passage)
+                VStack(spacing: 0) {
+                    ForEach(Array(assignedPassages.enumerated()), id: \.element.id) { index, passage in
+                        assignedPassageCard(for: passage, index: index, totalCount: assignedPassages.count)
                     }
                 }
             }
@@ -425,10 +417,6 @@ struct GroupDetailView: View {
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(AppColors.surface)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(AppColors.divider, lineWidth: 1)
-            )
     }
 
     @ViewBuilder
@@ -442,9 +430,11 @@ struct GroupDetailView: View {
         .padding(.bottom, bottomReviewBarInset)
     }
 
-    private func assignedPassageCard(for passage: AssignedPassage) -> some View {
+    private func assignedPassageCard(for passage: AssignedPassage, index: Int, totalCount: Int) -> some View {
         GroupAssignedPassageCardView(
             verse: passage.verse,
+            isFirstInStack: index == 0,
+            isLastInStack: index == totalCount - 1,
             onSelect: { detailVerse = passage.verse },
             onRemove: { removeAssignment(passage.assignment.id) },
             onToggleMastery: { toggleAssignedVerseMastery(for: passage.verse) },
@@ -531,7 +521,7 @@ struct GroupDetailView: View {
         }
 
         reviewStartConfiguration = ReviewStartConfiguration(
-            title: "Review Practicing",
+            title: "Review Learning",
             description: "Review only the group verses you are still working on. Group progress stays separate from your personal library.",
             verses: practicingReviewVerses
         )
@@ -565,7 +555,7 @@ struct GroupDetailView: View {
     }
 
     private func toggleAssignedVerseSystemImage(for verse: Verse) -> String {
-        verse.masteryStatus == .practicing ? "checkmark.circle.fill" : "flame.fill"
+        verse.masteryStatus == .practicing ? "checkmark.circle.fill" : "circle.dashed"
     }
 
     private func toggleAssignedVerseTint(for verse: Verse) -> Color {
@@ -612,7 +602,7 @@ private struct GroupOptionsView: View {
                 NavigationLink {
                     GroupMembersView(group: group, memberships: memberships)
                 } label: {
-                    Label("View Members", systemImage: "person.2")
+                    Label("View Members", systemImage: "person.2.fill")
                 }
             }
 

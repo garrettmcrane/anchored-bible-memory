@@ -21,7 +21,7 @@ struct CenteredScreenTitleBar<Leading: View, Trailing: View>: View {
     var body: some View {
         ZStack {
             Text(title)
-                .font(.system(size: 17, weight: .semibold))
+                .font(AnchoredFont.uiTitleBar)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
@@ -47,13 +47,14 @@ struct MainScreenTopBar: View {
 
     var body: some View {
         CenteredScreenTitleBar(title: title) {
-                ShellCircularIconButton(systemImage: "bell.badge") {
-                    onNotificationsTap()
-                }
+            ShellCircularIconButton(systemImage: "bell.badge.fill") {
+                onNotificationsTap()
+            }
         } trailing: {
-                ShellCircularIconButton(systemImage: "gearshape") {
-                    onSettingsTap()
-                }
+            ShellCircularIconButton(systemImage: "gearshape.fill") {
+                onSettingsTap()
+            }
         }
+        .padding(.vertical, 2)
     }
 }

@@ -89,8 +89,8 @@ struct HomeView: View {
                     reviewButtons
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.horizontal, AnchoredSpacing.screenHorizontal)
+                .padding(.top, 14)
                 .padding(.bottom, 12)
             }
             .navigationDestination(isPresented: $isShowingSettings) {
@@ -105,7 +105,7 @@ struct HomeView: View {
                     // Present Add flow
                     addVerse()
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "plus.circle.fill")
                 }
                 .accessibilityLabel("Add")
             }
@@ -193,23 +193,24 @@ struct HomeView: View {
     private var greetingSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(personalizedGreetingText)
-                .font(.system(size: 28, weight: .semibold))
+                .font(AnchoredFont.editorial(34))
                 .foregroundStyle(AppColors.textPrimary)
                 .padding(.top, 2)
 
-            Text("This is placeholder text that will eventually be filled in!")
-                .font(.subheadline)
+            Text("Return to what needs your attention, then let Scripture stay at the center.")
+                .font(AnchoredFont.uiSubheadline)
                 .foregroundStyle(AppColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var verseCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        AnchoredCard(elevated: true, cornerRadius: AnchoredSpacing.heroCornerRadius, padding: 20) {
+            VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 Text("Verse of the Day")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppColors.structuralAccent)
+                    .font(AnchoredFont.uiCaption)
+                    .foregroundStyle(AppColors.textPrimary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
@@ -223,17 +224,10 @@ struct HomeView: View {
                     quickAddVerseOfTheDay()
                 } label: {
                     Image(systemName: verseOfTheDayIsInLibrary ? "checkmark" : "plus")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AnchoredFont.ui(13, weight: .semibold))
                         .foregroundStyle(AppColors.textPrimary.opacity(0.96))
-                        .frame(width: 28, height: 28)
-                        .background(
-                            Circle()
-                                .fill(AppColors.textPrimary.opacity(verseOfTheDayIsInLibrary ? 0.22 : 0.16))
-                        )
-                        .overlay {
-                            Circle()
-                                .stroke(AppColors.textPrimary.opacity(0.14), lineWidth: 1)
-                        }
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(AppColors.secondarySurface))
                 }
                 .buttonStyle(.plain)
                 .disabled(verseOfTheDayIsInLibrary)
@@ -241,42 +235,26 @@ struct HomeView: View {
             }
 
             Text(verseOfTheDay.reference)
-                .font(.title3.weight(.semibold))
+                .font(AnchoredFont.editorial(28))
                 .foregroundStyle(verseOfTheDayReferenceColor)
 
             Text(verseOfTheDay.text)
-                .font(.system(.body, design: .serif))
-                .lineSpacing(5)
+                .font(AnchoredFont.scripture(24))
+                .lineSpacing(7)
                 .foregroundStyle(AppColors.textPrimary)
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(AppColors.elevatedSurface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
         }
         .foregroundStyle(AppColors.textPrimary)
     }
 
     private var summarySection: some View {
-        HStack(spacing: 0) {
-            HomeMetricColumn(title: "Memorized", value: memorizedCount)
-            HomeMetricColumn(title: "Practicing", value: practicingCount)
-            HomeMetricColumn(title: "All", value: verses.count)
+        AnchoredCard {
+            HStack(spacing: 0) {
+                HomeMetricColumn(title: "Memorized", value: memorizedCount)
+                HomeMetricColumn(title: "Learning", value: practicingCount)
+                HomeMetricColumn(title: "All", value: verses.count)
+            }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        )
     }
 
     private var reviewButtons: some View {
@@ -284,31 +262,17 @@ struct HomeView: View {
             Button {
                 startPracticingReview()
             } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "flame.fill")
-                    Text("Review Practicing Verses")
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
+                Label("Review Learning Verses", systemImage: "circle.dashed")
             }
-            .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
-            .foregroundStyle(AppColors.reviewPracticingActionText)
+            .buttonStyle(AnchoredPrimaryButtonStyle())
             .disabled(practicingVerses.isEmpty)
 
             Button {
                 startAllReview()
             } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "books.vertical.fill")
-                    Text("Review All Verses")
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
+                Label("Review All Verses", systemImage: "books.vertical.fill")
             }
-            .buttonStyle(.glass(.regular.tint(AppColors.reviewAllActionBackground).interactive()))
-            .foregroundStyle(AppColors.reviewAllActionText)
+            .buttonStyle(AnchoredSecondaryButtonStyle())
             .disabled(verses.isEmpty)
         }
     }
@@ -338,7 +302,7 @@ struct HomeView: View {
         }
 
         reviewStartConfiguration = ReviewStartConfiguration(
-            title: "Review Practicing",
+            title: "Review Learning",
             description: "Review only the verses you are still working on.",
             verses: queue
         )
@@ -456,13 +420,13 @@ private struct HomeMetricColumn: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(title)
-                .font(.caption)
+                .font(AnchoredFont.uiCaption)
                 .foregroundStyle(AppColors.textSecondary.opacity(0.8))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
 
             Text("\(value)")
-                .font(.title2.weight(.bold))
+                .font(AnchoredFont.ui(28, weight: .bold))
                 .foregroundStyle(AppColors.textPrimary)
         }
         .frame(maxWidth: .infinity)

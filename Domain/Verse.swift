@@ -1,7 +1,7 @@
 import Foundation
 
 enum VerseMasteryStatus: String, CaseIterable, Codable, Identifiable {
-    case practicing = "Practicing"
+    case practicing = "Learning"
     case memorized = "Memorized"
 
     var id: String {

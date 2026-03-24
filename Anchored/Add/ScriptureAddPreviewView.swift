@@ -33,7 +33,7 @@ struct ScriptureAddPreviewView: View {
                     }
                 }
             }
-            .padding(20)
+            .padding(AnchoredSpacing.screenHorizontal)
             .padding(.bottom, 68)
         }
         .background(AppColors.background)
@@ -56,7 +56,7 @@ struct ScriptureAddPreviewView: View {
     private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(passages.count == 1 ? "1 memorization item ready" : "\(passages.count) memorization items ready")
-                .font(.title3.weight(.semibold))
+                .font(AnchoredFont.editorial(26))
                 .foregroundStyle(AppColors.textPrimary)
 
             Text("Single verses and ranges save as one unit. Separate references save separately.")
@@ -65,14 +65,7 @@ struct ScriptureAddPreviewView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.secondarySurface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(AppColors.secondarySurface))
     }
 
     private var defaultsCard: some View {
@@ -124,31 +117,14 @@ struct ScriptureAddPreviewView: View {
                         Button("Save Folder") {
                             saveNewFolder()
                         }
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 42)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(AppColors.selectionFill)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(AppColors.divider, lineWidth: 1)
-                        }
+                        .buttonStyle(AnchoredSecondaryButtonStyle())
                         .disabled(normalizedCandidateFolderName == nil)
                     }
                 }
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(AppColors.surface))
     }
 
     private func previewCard(for passage: ScripturePassage) -> some View {
@@ -156,10 +132,10 @@ struct ScriptureAddPreviewView: View {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(passage.normalizedReference)
-                        .font(.headline)
+                        .font(AnchoredFont.editorial(24))
 
                     Text(passage.text)
-                        .font(.system(.body, design: .serif))
+                        .font(AnchoredFont.scripture(21))
                         .foregroundStyle(AppColors.textPrimary)
                 }
 
@@ -191,14 +167,7 @@ struct ScriptureAddPreviewView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(AppColors.surface))
     }
 
     private func folderMenu(
@@ -225,24 +194,7 @@ struct ScriptureAddPreviewView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Text(title)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
-            }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(AppColors.elevatedSurface)
-            )
-            .overlay {
-                Capsule(style: .continuous)
-                    .stroke(AppColors.divider, lineWidth: 1)
-            }
+            AnchoredCapsuleMenuLabel(title: title, tint: tint)
         }
         .buttonStyle(.plain)
     }
@@ -300,20 +252,12 @@ struct ScriptureAddPreviewView: View {
     }
 
     private var saveBar: some View {
-        Button {
-            savePassages()
-        } label: {
-            Text(isSaving ? "Saving..." : "Save Verses")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(AppColors.reviewPracticingActionText)
-                .frame(maxWidth: .infinity)
-                .frame(height: 42)
+        AnchoredBottomActionDock {
+            Button(isSaving ? "Saving..." : "Save Verses") {
+                savePassages()
+            }
+            .buttonStyle(AnchoredPrimaryButtonStyle())
+            .disabled(isSaving)
         }
-        .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
-        .disabled(isSaving)
-        .padding(.horizontal, 20)
-        .padding(.top, 2)
-        .padding(.bottom, -14)
-        .background(Color.clear)
     }
 }

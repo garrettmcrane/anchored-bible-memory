@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject private var settingsController: UserSettingsController
@@ -79,7 +80,7 @@ struct SettingsView: View {
                     HStack {
                         Text("View App Tutorial")
                         Spacer()
-                        Image(systemName: "play.rectangle")
+                        Image(systemName: "play.square.fill")
                             .foregroundStyle(AppColors.textSecondary)
                     }
                 }
@@ -106,11 +107,15 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .tint(AppColors.structuralAccent)
+        .listSectionSpacing(22)
         .fullScreenCover(isPresented: $isShowingTutorial) {
             OnboardingView {
                 hasCompletedOnboarding = true
                 isShowingTutorial = false
             }
+        }
+        .onAppear {
+            UITableView.appearance().backgroundColor = .clear
         }
     }
 

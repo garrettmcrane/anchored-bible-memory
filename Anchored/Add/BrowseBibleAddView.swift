@@ -44,7 +44,7 @@ struct BrowseBibleAddView: View {
 
                 selectionFlowCard
             }
-            .padding(20)
+            .padding(AnchoredSpacing.screenHorizontal)
         }
         .background(AppColors.background)
         .navigationTitle("Search Bible")
@@ -85,7 +85,7 @@ struct BrowseBibleAddView: View {
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add verses by browsing Scripture")
-                .font(.title3.weight(.semibold))
+                .font(AnchoredFont.editorial(28))
                 .foregroundStyle(AppColors.textPrimary)
 
             Text("Choose a Bible book, then select a chapter and verse. You can add a single verse or switch to a verse range when you want to save a longer passage.")
@@ -99,14 +99,7 @@ struct BrowseBibleAddView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(AppColors.elevatedSurface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(AnchoredCardBackground(elevated: true, cornerRadius: 26))
     }
 
     private var selectionFlowCard: some View {
@@ -153,10 +146,7 @@ struct BrowseBibleAddView: View {
                     }
                     .pickerStyle(.segmented)
                     .padding(4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(AppColors.secondarySurface)
-                    )
+                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(AppColors.secondarySurface))
 
                     if selectionMode == .singleVerse {
                         compactSelector(
@@ -210,11 +200,8 @@ struct BrowseBibleAddView: View {
                     Button(previewButtonTitle) {
                         buildPreview()
                     }
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(selectedReference == nil ? AppColors.textSecondary : AppColors.reviewPracticingActionText)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .buttonStyle(.glass(.regular.tint(selectedReference == nil ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground).interactive()))
+                    .buttonStyle(AnchoredPrimaryButtonStyle())
+                    .opacity(selectedReference == nil ? 0.45 : 1)
                     .disabled(selectedReference == nil)
                 }
             }
@@ -318,10 +305,6 @@ struct BrowseBibleAddView: View {
     private func cardBackground(cornerRadius: CGFloat, fill: Color = AppColors.surface) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(fill)
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(AppColors.divider, lineWidth: 1)
-            }
     }
 
     private func verseButtons(

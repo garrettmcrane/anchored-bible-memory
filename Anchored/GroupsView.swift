@@ -47,7 +47,7 @@ struct GroupsView: View {
                     addFocusTrigger += 1
                     isShowingAddFlow = true
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "plus.circle.fill")
                 }
                 .accessibilityLabel("Add")
             }
@@ -56,26 +56,18 @@ struct GroupsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 14) {
-            ZStack(alignment: .trailing) {
-                Text("Groups")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-
+            CenteredScreenTitleBar(title: "Groups", sideContentWidth: 112) {
+                Color.clear
+                    .frame(width: 112, height: ShellCircularIconLabel.diameter)
+            } trailing: {
                 Button {
                     isShowingCreateGroupSheet = true
                 } label: {
-                    Label("Create", systemImage: "plus")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
-                        .padding(.horizontal, 16)
-                        .frame(height: 42)
+                    Text("Create")
                 }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .capsule)
+                .buttonStyle(AnchoredCompactPrimaryButtonStyle())
                 .accessibilityLabel("Create group")
             }
-            .frame(height: 44)
 
             Text("Memorize together without losing the focus of your personal library.")
                 .font(.subheadline)
@@ -89,16 +81,17 @@ struct GroupsView: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, AnchoredSpacing.screenHorizontal)
         .padding(.top, 16)
         .padding(.bottom, 14)
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        AnchoredCard(elevated: true, cornerRadius: AnchoredSpacing.heroCornerRadius, padding: 24) {
+            VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Shared memorization starts here")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(AnchoredFont.editorial(30))
 
                 Text("Create a group for the verses you want to memorize together. Group passages stay separate from your personal memorization library, so your own progress stays focused.")
                     .font(.subheadline)
@@ -116,18 +109,8 @@ struct GroupsView: View {
             Button("Create Group") {
                 isShowingCreateGroupSheet = true
             }
-            .buttonStyle(.glass(.regular.tint(AppColors.reviewPracticingActionBackground).interactive()))
-            .foregroundStyle(AppColors.reviewPracticingActionText)
+            .buttonStyle(AnchoredPrimaryButtonStyle())
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
         }
         .padding(20)
     }
@@ -195,10 +178,6 @@ struct GroupsView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AppColors.surface)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
     }
 
     private var totalAssignmentCount: Int {
@@ -221,14 +200,7 @@ struct GroupsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(AppColors.surface))
     }
 
     private func groupMetaPill(title: String, subtitle: String, systemImage: String) -> some View {

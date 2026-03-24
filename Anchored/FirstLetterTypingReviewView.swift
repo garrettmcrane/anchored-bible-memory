@@ -34,12 +34,12 @@ struct FirstLetterTypingReviewView: View {
                     VStack(spacing: 20) {
                     VStack(spacing: 10) {
                         Text(verse.reference)
-                            .font(.title2.weight(.semibold))
+                            .font(AnchoredFont.editorial(30))
                             .multilineTextAlignment(.center)
                             .foregroundStyle(AppColors.scriptureAccent)
 
                         Text(reconstructionState.currentPrompt)
-                            .font(.subheadline)
+                            .font(AnchoredFont.uiSubheadline)
                             .foregroundStyle(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                     }
@@ -53,12 +53,7 @@ struct FirstLetterTypingReviewView: View {
                         Button("Finish Review") {
                             recordReview()
                         }
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(AppColors.primaryButton)
-                        .foregroundStyle(AppColors.primaryButtonText)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .buttonStyle(AnchoredPrimaryButtonStyle())
                     } else {
                         inputCard
                     }
@@ -87,13 +82,13 @@ struct FirstLetterTypingReviewView: View {
     private var inputCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Next Letter")
-                .font(.headline)
+                .font(AnchoredFont.ui(17, weight: .semibold))
 
             TextField("Type the next first letter", text: $stepInput)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .focused($isStepFieldFocused)
-                .font(.title3.weight(.semibold))
+                .font(AnchoredFont.ui(20, weight: .semibold))
                 .padding(.horizontal, 16)
                 .frame(height: 56)
                 .background(
@@ -110,7 +105,7 @@ struct FirstLetterTypingReviewView: View {
                 }
 
             Text(showIncorrectHint ? "Try again" : "Enter one letter at a time to reveal the next word.")
-                .font(.subheadline)
+                .font(AnchoredFont.uiSubheadline)
                 .foregroundStyle(showIncorrectHint ? AppColors.gold : AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

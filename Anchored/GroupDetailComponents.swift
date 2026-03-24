@@ -26,7 +26,7 @@ struct GroupDetailHeroSectionView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(groupName)
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(AnchoredFont.editorial(30))
                     .foregroundStyle(AppColors.textPrimary)
 
                 Text(subtitle)
@@ -47,15 +47,8 @@ struct GroupDetailHeroSectionView: View {
                 )
             }
         }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(AppColors.elevatedSurface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .padding(20)
+        .background(AnchoredCardBackground(elevated: true, cornerRadius: AnchoredSpacing.heroCornerRadius))
     }
 
     private func groupHeroAccentPill(title: String, value: String) -> some View {
@@ -87,13 +80,13 @@ struct GroupDetailReviewSectionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            GroupSectionHeader(
+            AnchoredSectionHeader(
                 title: "Review",
                 subtitle: "Start from the verses this group is actively working on."
             )
 
             HStack(spacing: 10) {
-                groupProgressTag(value: practicingAssignedCount, title: "Practicing", tint: AppColors.statusPracticing)
+                groupProgressTag(value: practicingAssignedCount, title: "Learning", tint: AppColors.statusPracticing)
                 groupProgressTag(value: memorizedAssignedCount, title: "Memorized", tint: AppColors.statusMemorized)
             }
         }
@@ -124,18 +117,7 @@ struct GroupSectionHeader: View {
     let subtitle: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppColors.textPrimary)
-
-            if let subtitle {
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
+        AnchoredSectionHeader(title: title, subtitle: subtitle)
     }
 }
 
@@ -146,47 +128,30 @@ struct GroupBottomReviewBarView: View {
     let onStartReviewAll: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            groupReviewButton(
-                title: "Review Practicing",
-                tint: AppColors.reviewPracticingActionBackground,
-                textColor: AppColors.reviewPracticingActionText,
-                isEnabled: practicingReviewEnabled,
-                action: onStartPracticingReview
-            )
+        AnchoredBottomActionDock {
+            HStack(spacing: 10) {
+                AnchoredReviewActionButton(
+                    title: "Review Learning",
+                    role: .primary,
+                    isEnabled: practicingReviewEnabled,
+                    action: onStartPracticingReview
+                )
 
-            groupReviewButton(
-                title: "Review All",
-                tint: AppColors.reviewAllActionBackground,
-                textColor: AppColors.reviewAllActionText,
-                isEnabled: reviewAllEnabled,
-                action: onStartReviewAll
-            )
+                AnchoredReviewActionButton(
+                    title: "Review All",
+                    role: .secondary,
+                    isEnabled: reviewAllEnabled,
+                    action: onStartReviewAll
+                )
+            }
         }
-        .padding(.horizontal, 20)
-    }
-
-    private func groupReviewButton(
-        title: String,
-        tint: Color,
-        textColor: Color,
-        isEnabled: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Text(title)
-                .fontWeight(.semibold)
-                .foregroundStyle(isEnabled ? textColor : AppColors.textSecondary.opacity(0.72))
-                .frame(maxWidth: .infinity)
-                .frame(height: 40)
-        }
-        .buttonStyle(.glass(.regular.tint(isEnabled ? tint : AppColors.secondarySurface).interactive()))
-        .disabled(!isEnabled)
     }
 }
 
 struct GroupAssignedPassageCardView: View {
     let verse: Verse
+    let isFirstInStack: Bool
+    let isLastInStack: Bool
     let onSelect: () -> Void
     let onRemove: () -> Void
     let onToggleMastery: () -> Void
@@ -194,7 +159,7 @@ struct GroupAssignedPassageCardView: View {
     let toggleTint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        ZStack(alignment: .bottomTrailing) {
             Button(action: onSelect) {
                 VerseRowView(
                     verse: verse,
@@ -204,30 +169,35 @@ struct GroupAssignedPassageCardView: View {
             }
             .buttonStyle(.plain)
 
-            Divider()
-                .padding(.leading, 17)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
-
             Button("Remove", role: .destructive, action: onRemove)
-                .font(.subheadline.weight(.semibold))
-                .padding(.leading, 17)
+                .font(AnchoredFont.uiSubheadline.weight(.semibold))
+                .padding(.trailing, 2)
+                .padding(.bottom, 1)
         }
-        .padding(18)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        )
+        .background(cardBackground)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button(action: onToggleMastery) {
                 Image(systemName: toggleSystemImage)
             }
             .tint(toggleTint)
         }
+    }
+
+    private var cardBackground: some View {
+        UnevenRoundedRectangle(cornerRadii: cardCornerRadii, style: .continuous)
+            .fill(AppColors.surface)
+    }
+
+    private var cardCornerRadii: RectangleCornerRadii {
+        let radius: CGFloat = 24
+        return RectangleCornerRadii(
+            topLeading: isFirstInStack ? radius : 0,
+            bottomLeading: isLastInStack ? radius : 0,
+            bottomTrailing: isLastInStack ? radius : 0,
+            topTrailing: isFirstInStack ? radius : 0
+        )
     }
 }

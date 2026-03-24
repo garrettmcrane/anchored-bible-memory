@@ -18,14 +18,14 @@ struct ReviewView: View {
                     Spacer()
 
                     Text(verse.reference)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(AnchoredFont.editorial(30))
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(AppColors.scriptureAccent)
+                        .foregroundStyle(AppColors.brandBlue)
 
                     if showingAnswer {
                         Text(verse.text)
-                            .font(.title3)
+                            .font(AnchoredFont.scripture(26))
+                            .lineSpacing(8)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(AppColors.textPrimary)
                             .padding(.horizontal)
@@ -45,25 +45,15 @@ struct ReviewView: View {
                                 recordReview(result: .missed)
                             } label: {
                                 Text("Missed")
-                                    .fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 56)
-                                    .background(AppColors.secondaryButton)
-                                    .foregroundStyle(AppColors.secondaryButtonText)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
                             }
+                            .buttonStyle(AnchoredMissedButtonStyle())
 
                             Button {
                                 recordReview(result: .correct)
                             } label: {
                                 Text("Got It")
-                                    .fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 56)
-                                    .background(AppColors.primaryButton)
-                                    .foregroundStyle(AppColors.primaryButtonText)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18))
                             }
+                            .buttonStyle(AnchoredSuccessButtonStyle())
                         }
                         .padding(.horizontal)
                     } else {
@@ -71,13 +61,8 @@ struct ReviewView: View {
                             showingAnswer = true
                         } label: {
                             Text("Reveal Verse")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(AppColors.primaryButton)
-                                .foregroundStyle(AppColors.primaryButtonText)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
+                        .buttonStyle(AnchoredPrimaryButtonStyle())
                         .padding(.horizontal)
                     }
                 }

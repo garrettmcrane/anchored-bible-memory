@@ -23,7 +23,7 @@ struct LibraryView: View {
 
     enum FilterType: String, CaseIterable {
         case all = "All"
-        case practicing = "Practicing"
+        case practicing = "Learning"
         case memorized = "Memorized"
     }
 
@@ -472,8 +472,8 @@ struct LibraryView: View {
             reviewAllEnabled: !reviewVerses.isEmpty,
             onStartPracticingReview: {
                 startLibraryReview(
-                    title: "Review Practicing",
-                    description: "Review only the practicing verses currently shown in your library.",
+                    title: "Review Learning",
+                    description: "Review only the learning verses currently shown in your library.",
                     verses: practicingReviewVerses
                 )
             },
@@ -493,10 +493,6 @@ struct LibraryView: View {
         LibraryHeaderSectionView(
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
-            selectedFilter: $selectedFilter,
-            totalCount: totalCount,
-            practicingCount: practicingCount,
-            memorizedCount: memorizedCount,
             hasActiveSearch: hasActiveSearch,
             searchTransitionNamespace: searchTransitionNamespace,
             isSearchFieldFocused: $isSearchFieldFocused
@@ -508,10 +504,16 @@ struct LibraryView: View {
         LibraryManagementRailView(
             isSelectionMode: isSelectionMode,
             selectedVisibleCount: selectedVisibleCount,
+            totalVisibleCount: filteredVerses.count,
+            selectedFilter: $selectedFilter,
+            totalCount: totalCount,
+            practicingCount: practicingCount,
+            memorizedCount: memorizedCount,
             hasActiveFolderFilter: hasActiveFolderFilter,
             folderSelectionSummary: folderSelectionSummary,
             hasNonDefaultSortMode: hasNonDefaultSortMode,
             onCancelSelection: exitSelectionMode,
+            onToggleSelectAll: toggleSelectAllVisibleVerses,
             onShowFolderFilter: { showingFolderFilterSheet = true },
             onShowSort: { showingSortSheet = true },
             onEnterSelectionMode: enterSelectionMode
@@ -575,7 +577,7 @@ struct LibraryView: View {
                 Button {
                     pendingMoveVerse = MoveVersePresentation(verse: verse)
                 } label: {
-                    Label("Move to Folder", systemImage: "folder")
+                    Label("Move to Folder", systemImage: "folder.fill")
                 }
 
                 Button {
@@ -587,7 +589,7 @@ struct LibraryView: View {
                 Button(role: .destructive) {
                     deleteVerse(verse)
                 } label: {
-                    Label("Delete", systemImage: "trash")
+                    Label("Delete", systemImage: "trash.fill")
                 }
             }
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -603,7 +605,7 @@ struct LibraryView: View {
                 Button(role: .destructive) {
                     deleteVerse(verse)
                 } label: {
-                    Image(systemName: "trash")
+                    Image(systemName: "trash.fill")
                 }
                 .tint(.red)
             }
@@ -625,13 +627,7 @@ struct LibraryView: View {
         )
         .contentShape(Rectangle())
         .padding(.horizontal, 18)
-        .padding(.vertical, 5)
-        .overlay(alignment: .bottom) {
-            if index < totalCount - 1 {
-                Divider()
-                    .padding(.horizontal, 18)
-            }
-        }
+        .padding(.vertical, 6)
     }
 
     private var utilityControlBackground: some View {
@@ -898,15 +894,15 @@ struct LibraryView: View {
     }
 
     private func toggleActionTitle(for verse: Verse) -> String {
-        verse.masteryStatus == .practicing ? "Memorized" : "Practicing"
+        verse.masteryStatus == .practicing ? "Memorized" : "Learning"
     }
 
     private func toggleActionMenuTitle(for verse: Verse) -> String {
-        verse.masteryStatus == .practicing ? "Mark Memorized" : "Mark Practicing"
+        verse.masteryStatus == .practicing ? "Mark Memorized" : "Mark Learning"
     }
 
     private func toggleActionSystemImage(for verse: Verse) -> String {
-        verse.masteryStatus == .practicing ? "checkmark.circle" : "flame.fill"
+        verse.masteryStatus == .practicing ? "checkmark.circle" : "circle.dashed"
     }
 
     private func toggleActionTint(for verse: Verse) -> Color {
@@ -929,6 +925,20 @@ struct LibraryView: View {
             selectedVerseIDs.remove(verse.id)
         } else {
             selectedVerseIDs.insert(verse.id)
+        }
+    }
+
+    private func toggleSelectAllVisibleVerses() {
+        let visibleVerseIDs = Set(filteredVerses.map(\.id))
+        guard !visibleVerseIDs.isEmpty else {
+            return
+        }
+
+        let visibleSelection = selectedVerseIDs.intersection(visibleVerseIDs)
+        if visibleSelection.count == visibleVerseIDs.count {
+            selectedVerseIDs.subtract(visibleVerseIDs)
+        } else {
+            selectedVerseIDs.formUnion(visibleVerseIDs)
         }
     }
 
@@ -1163,8 +1173,8 @@ private struct BatchVerseActionsSheet: View {
                     }
 
                     actionRow(
-                        title: "Mark Practicing",
-                        systemImage: "flame.fill",
+                        title: "Mark Learning",
+                        systemImage: "circle.dashed",
                         tint: AppColors.statusPracticing
                     ) {
                         dismiss()

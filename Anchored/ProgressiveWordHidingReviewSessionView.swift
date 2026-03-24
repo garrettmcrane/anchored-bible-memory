@@ -163,7 +163,7 @@ struct ProgressiveWordHidingReviewSessionView: View {
         VStack(spacing: 20) {
             ScrollView {
                 Text(hidingState.displayedText)
-                    .font(.system(.title3, design: .serif))
+                    .font(AnchoredFont.scripture(24))
                     .lineSpacing(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(24)
@@ -178,22 +178,16 @@ struct ProgressiveWordHidingReviewSessionView: View {
                     hidingState.hideMoreWords()
                 } label: {
                     Text("Hide More Words")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(AnchoredPrimaryButtonStyle())
                 .disabled(!hidingState.canHideMoreWords)
 
                 Button {
                     hidingState.reset()
                 } label: {
                     Text("Reset")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
                 .disabled(!hidingState.hasHiddenWords)
             }
 

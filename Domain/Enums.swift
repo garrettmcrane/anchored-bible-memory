@@ -53,7 +53,7 @@ enum ReviewMethod: String, Codable, CaseIterable, Identifiable {
         case .firstLetterTyping:
             return "Type the verse from memory with first-letter prompts as your guide."
         case .voiceRecitation:
-            return "Hear the reference, recite aloud, review the transcript, and score it manually."
+            return "Recite aloud while Anchored listens, grades automatically, and guides you to the next verse."
         }
     }
 

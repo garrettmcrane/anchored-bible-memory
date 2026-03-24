@@ -7,7 +7,7 @@ enum GroupVerseProgressStatus: String, Codable {
     var title: String {
         switch self {
         case .practicing:
-            return "Practicing"
+            return "Learning"
         case .memorized:
             return "Memorized"
         }

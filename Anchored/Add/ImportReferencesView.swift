@@ -183,7 +183,7 @@ private enum CSVImportService {
             } else {
                 disposition = .invalid
                 resolvedStatus = .practicing
-                message = "Status must be Practicing or Memorized."
+                message = "Status must be Learning or Memorized."
             }
 
             rows.append(
@@ -413,12 +413,11 @@ struct ImportReferencesView: View {
                 Button(selectedFileName == nil ? "Choose CSV File" : "Choose Another CSV") {
                     isShowingFileImporter = true
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(AnchoredPrimaryButtonStyle())
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .disabled(isParsing)
             }
-            .padding(20)
+            .padding(AnchoredSpacing.screenHorizontal)
         }
         .background(AppColors.background)
         .navigationTitle("Import CSV")
@@ -442,7 +441,7 @@ struct ImportReferencesView: View {
     private var introCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Import many verses from one CSV file.")
-                .font(.title3.weight(.semibold))
+                .font(AnchoredFont.editorial(28))
 
             Text("Choose a CSV from Files, review every row before saving, and bring the valid verses straight into your personal library.")
                 .font(.subheadline)
@@ -450,10 +449,7 @@ struct ImportReferencesView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.selectionFill)
-        )
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(AppColors.secondarySurface))
     }
 
     private var fileCard: some View {
@@ -468,7 +464,7 @@ struct ImportReferencesView: View {
                         .fill(AppColors.structuralAccent.opacity(0.12))
                         .frame(width: 46, height: 46)
 
-                    Image(systemName: "doc.text")
+                    Image(systemName: "doc.badge.plus")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(AppColors.structuralAccent)
                 }
@@ -487,14 +483,7 @@ struct ImportReferencesView: View {
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.surface)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(AppColors.surface))
     }
 
     private var helperCard: some View {
@@ -520,7 +509,7 @@ struct ImportReferencesView: View {
                 """
                 reference,text,folder,status
                 John 3:16,For God so loved the world...,Salvation,Memorized
-                Romans 8:28,And we know that all things...,Promises,Practicing
+                Romans 8:28,And we know that all things...,Promises,Learning
                 """
             )
             .font(.system(.footnote, design: .monospaced))
@@ -533,10 +522,7 @@ struct ImportReferencesView: View {
             )
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppColors.surface)
-        )
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(AppColors.surface))
     }
 
     private var loadingCard: some View {
@@ -827,28 +813,14 @@ private struct CSVImportPreviewView: View {
     }
 
     private var saveBar: some View {
-        VStack(spacing: 0) {
-            Divider()
-
+        AnchoredBottomActionDock {
             Button {
                 save()
             } label: {
                 Text(isSaving ? "Importing..." : saveButtonTitle)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(
-                        Capsule()
-                            .fill(context.readyRows.isEmpty ? AppColors.textSecondary : AppColors.structuralAccent)
-                    )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(AnchoredPrimaryButtonStyle())
             .disabled(isSaving || context.readyRows.isEmpty)
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
-            .background(.ultraThinMaterial)
         }
     }
 

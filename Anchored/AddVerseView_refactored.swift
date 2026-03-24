@@ -39,7 +39,7 @@ struct AddVerseView: View {
 
                 continueButton
             }
-            .padding(20)
+            .padding(AnchoredSpacing.screenHorizontal)
         }
         .background(AppColors.background)
         .navigationTitle("Type Verses")
@@ -74,17 +74,17 @@ struct AddVerseView: View {
     private var introCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Enter one or more verses")
-                .font(.title3.weight(.semibold))
+                .font(AnchoredFont.editorial(28))
                 .foregroundStyle(AppColors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text("Anchored will identify what you type or paste into verses you can add to your library.")
-                .font(.subheadline)
+                .font(AnchoredFont.uiSubheadline)
                 .foregroundStyle(AppColors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text("Paste references, rough notes, or mixed lists, then review before saving.")
-                .font(.caption.weight(.semibold))
+                .font(AnchoredFont.uiCaption)
                 .foregroundStyle(AppColors.structuralAccent)
         }
         .padding(20)
@@ -106,7 +106,7 @@ struct AddVerseView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Input")
-                    .font(.subheadline.weight(.semibold))
+                    .font(AnchoredFont.uiLabel)
                     .foregroundStyle(AppColors.textSecondary)
 
                 Spacer(minLength: 12)
@@ -114,12 +114,12 @@ struct AddVerseView: View {
                 Button("Paste") {
                     rawInput = UIPasteboard.general.string ?? rawInput
                 }
-                .font(.subheadline.weight(.semibold))
+                .font(AnchoredFont.uiLabel)
                 .foregroundStyle(AppColors.structuralAccent)
             }
 
             Text("Enter references one per line, comma-separated lists, or rough notes that include references.")
-                .font(.footnote)
+                .font(AnchoredFont.uiSubheadline)
                 .foregroundStyle(AppColors.textSecondary)
 
             ZStack(alignment: .topLeading) {
@@ -136,7 +136,7 @@ struct AddVerseView: View {
                 TextEditor(text: $rawInput)
                     .focused($isReferenceEditorFocused)
                     .scrollContentBackground(.hidden)
-                    .font(.system(.body, design: .serif))
+                    .font(AnchoredFont.scripture(20))
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(minHeight: 240)
                     .padding(.horizontal, 16)
@@ -149,7 +149,7 @@ struct AddVerseView: View {
                         Genesis 1:3-5, Romans 8:28
                         Memory list: John 3:16, Romans 12:2, Jude 24-25
                         """)
-                        .font(.system(.body, design: .serif))
+                        .font(AnchoredFont.scripture(20))
                         .foregroundStyle(AppColors.textSecondary)
                     }
                     .padding(.horizontal, 22)
@@ -166,21 +166,14 @@ struct AddVerseView: View {
         Button("Continue") {
             continueToReview()
         }
-        .font(.headline.weight(.semibold))
-        .foregroundStyle(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.textSecondary : AppColors.reviewPracticingActionText)
-        .frame(maxWidth: .infinity)
-        .frame(height: 54)
-        .buttonStyle(.glass(.regular.tint(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.secondarySurface : AppColors.reviewPracticingActionBackground).interactive()))
+        .buttonStyle(AnchoredPrimaryButtonStyle())
+        .opacity(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
         .disabled(rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
     private func cardBackground(cornerRadius: CGFloat, fill: Color = AppColors.surface) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(fill)
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(AppColors.divider, lineWidth: 1)
-            }
     }
 
     private func continueToReview() {

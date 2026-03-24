@@ -8,11 +8,11 @@ struct NotificationsPlaceholderView: View {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Notifications")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(AnchoredFont.editorial(30, weight: .bold))
                         .foregroundStyle(AppColors.textPrimary)
 
                     Text("This space is reserved for reminders, app updates, and important announcements.")
-                        .font(.subheadline)
+                        .font(AnchoredFont.uiSubheadline)
                         .foregroundStyle(AppColors.textSecondary)
                 }
 
@@ -42,11 +42,11 @@ struct NotificationsPlaceholderView: View {
     private func placeholderRow(title: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.headline)
+                .font(AnchoredFont.ui(17, weight: .semibold))
                 .foregroundStyle(AppColors.textPrimary)
 
             Text(subtitle)
-                .font(.subheadline)
+                .font(AnchoredFont.uiSubheadline)
                 .foregroundStyle(AppColors.textSecondary)
         }
         .padding(18)
@@ -55,9 +55,5 @@ struct NotificationsPlaceholderView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColors.surface)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(AppColors.divider, lineWidth: 1)
-        }
     }
 }
